@@ -4,6 +4,7 @@ export type ManagerRole = 'company_super_admin' | 'vehicle_manager' | 'settlemen
 export type NavItemKey =
   | 'dashboard'
   | 'account'
+  | 'manager_navigation_policy'
   | 'accounts'
   | 'announcements'
   | 'support'
@@ -20,6 +21,7 @@ export type NavItemKey =
 export const allNavItemKeys: NavItemKey[] = [
   'dashboard',
   'account',
+  'manager_navigation_policy',
   'accounts',
   'announcements',
   'support',
@@ -159,6 +161,10 @@ export function getAccountsScopeDescription(session: SessionPayload) {
 
 export function getDefaultAllowedNavKeys(session: SessionPayload): NavItemKey[] {
   const allowed = new Set<NavItemKey>(['dashboard', 'account']);
+
+  if (isSystemAdmin(session)) {
+    allowed.add('manager_navigation_policy');
+  }
 
   if (canAccessAccountsScope(session)) {
     allowed.add('accounts');

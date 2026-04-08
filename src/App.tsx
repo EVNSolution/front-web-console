@@ -16,6 +16,7 @@ import {
   canAccessSettlementScope,
   canAccessVehicleScope,
   canManageAnnouncementScope,
+  canManageCompanySuperAdmin,
   canManageDriverProfileScope,
   canManagePersonnelDocumentScope,
   canManageRegionScope,
@@ -38,6 +39,7 @@ import { DriversPage } from './pages/DriversPage';
 import { FleetDetailPage } from './pages/FleetDetailPage';
 import { FleetFormPage } from './pages/FleetFormPage';
 import { LoginPage } from './pages/LoginPage';
+import { ManagerNavigationPolicyPage } from './pages/ManagerNavigationPolicyPage';
 import { ConsentRecoveryPage } from './pages/ConsentRecoveryPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { PersonnelDocumentDetailPage } from './pages/PersonnelDocumentDetailPage';
@@ -283,6 +285,20 @@ export default function App() {
               }
             />
             <Route path="/accounts" element={<AccountsPage client={client} session={session} />} />
+            <Route
+              path="/admin/navigation-policy"
+              element={
+                <RequireRoleScope
+                  message="관리자 권한 정책은 시스템 관리자만 관리할 수 있습니다."
+                  onLogout={handleLogout}
+                  session={session}
+                  title="관리자 권한 정책 권한 필요"
+                  when={canManageCompanySuperAdmin}
+                >
+                  <ManagerNavigationPolicyPage client={client} />
+                </RequireRoleScope>
+              }
+            />
             <Route path="/organization" element={<Navigate replace to="/companies" />} />
             <Route path="/dispatch" element={<Navigate replace to="/dispatch/boards" />} />
             <Route

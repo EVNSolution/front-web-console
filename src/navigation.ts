@@ -9,6 +9,7 @@ import {
   canAccessRegionScope,
   canAccessSettlementScope,
   canAccessVehicleScope,
+  isSystemAdmin,
 } from './authScopes';
 
 type Visibility = (session: SessionPayload) => boolean;
@@ -102,6 +103,13 @@ const driverItems: NavigationItem[] = [
 ];
 
 const operationsItems: NavigationItem[] = [
+  {
+    key: 'manager_navigation_policy',
+    label: '관리자 권한 정책',
+    to: '/admin/navigation-policy',
+    isVisible: isSystemAdmin,
+    matchPrefixes: ['/admin/navigation-policy'],
+  },
   {
     key: 'accounts',
     label: '계정 요청',

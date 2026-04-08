@@ -40,6 +40,7 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '관리자 권한 정책' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '회사' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '권역' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '차량' })).toBeInTheDocument();
