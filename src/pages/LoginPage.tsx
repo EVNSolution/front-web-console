@@ -146,7 +146,7 @@ export function LoginPage({
           <section className="login-auth-panel">
             <div className="login-form-shell">
               <h1 className="login-page-title">
-                {view === 'login' ? '로그인' : view === 'signup' ? '회원가입 요청' : '비밀번호 변경'}
+                {view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : '비밀번호 변경'}
               </h1>
 
               {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
@@ -187,7 +187,7 @@ export function LoginPage({
 
                   <div className="auth-link-row" aria-label="로그인 보조 링크">
                     <button className="auth-text-link" onClick={() => setView('signup')} type="button">
-                      회원가입 요청
+                      회원가입
                     </button>
                     <button className="auth-text-link" onClick={() => setView('password')} type="button">
                       비밀번호 찾기
@@ -358,7 +358,7 @@ export function LoginPage({
                       로그인
                     </button>
                     <button className="auth-text-link" onClick={() => setView('signup')} type="button">
-                      회원가입 요청
+                      회원가입
                     </button>
                   </div>
                 </>

@@ -116,7 +116,7 @@ textarea {
   padding: 0.9rem 1rem;
   background: #ffffff;
   line-height: 1.2;
-  color: inherit;
+  color: #000000;
   box-shadow: none;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
