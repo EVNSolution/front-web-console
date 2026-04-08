@@ -10,9 +10,10 @@ export function listManagedRequests(client: HttpClient, status = 'pending') {
   return client.request<IdentitySignupRequestList>(`/auth/identity-signup-requests/manage/${suffix}`);
 }
 
-export function approveManagedRequest(client: HttpClient, requestId: string) {
+export function approveManagedRequest(client: HttpClient, requestId: string, roleType?: string) {
   return client.request<IdentitySignupRequestSummary>(`/auth/identity-signup-requests/${requestId}/approve/`, {
     method: 'POST',
+    body: JSON.stringify(roleType ? { role_type: roleType } : {}),
   });
 }
 

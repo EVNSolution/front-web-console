@@ -7,12 +7,16 @@ import { AccountsPage } from './AccountsPage';
 const apiMocks = vi.hoisted(() => ({
   listManagedRequests: vi.fn(),
   listManageableManagerAccounts: vi.fn(),
+  approveManagedRequest: vi.fn(),
+  rejectManagedRequest: vi.fn(),
   changeManagerAccountRole: vi.fn(),
   archiveManagerAccount: vi.fn(),
 }));
 
 vi.mock('../api/authRequests', () => ({
   listManagedRequests: apiMocks.listManagedRequests,
+  approveManagedRequest: apiMocks.approveManagedRequest,
+  rejectManagedRequest: apiMocks.rejectManagedRequest,
 }));
 
 vi.mock('../api/managerAccounts', () => ({
@@ -72,6 +76,22 @@ describe('AccountsPage', () => {
         },
       ],
     });
+    apiMocks.approveManagedRequest.mockResolvedValue({
+      identity_signup_request_id: '20000000-0000-0000-0000-000000000001',
+      identity: {
+        identity_id: '30000000-0000-0000-0000-000000000001',
+        name: '홍길동',
+        birth_date: '1990-01-01',
+        status: 'active',
+      },
+      request_type: 'manager_account_create',
+      request_display_name: '관리자 계정 신청',
+      status: 'approved',
+      status_message: '승인되어 사용할 수 있습니다.',
+      company_id: '40000000-0000-0000-0000-000000000001',
+      requested_at: '2026-04-04T09:00:00Z',
+    });
+    apiMocks.rejectManagedRequest.mockResolvedValue({});
     apiMocks.changeManagerAccountRole.mockResolvedValue({
       manager_account_id: '50000000-0000-0000-0000-000000000001',
       identity: {
@@ -128,11 +148,10 @@ describe('AccountsPage', () => {
     await screen.findByText('홍길동');
     expect(screen.getByText('현재 권한으로 처리할 수 있는 하위 요청과 관리자 계정만 표시합니다.')).toBeInTheDocument();
     expect(screen.getByText('요청 처리와 관리자 계정 운영을 한 화면에서 이어서 처리합니다.')).toBeInTheDocument();
-    expect(screen.getByText('대기 또는 설정 중 요청')).toBeInTheDocument();
+    expect(screen.getByText('처리 대기 요청')).toBeInTheDocument();
     expect(screen.getByText('현재 활성 관리자 계정')).toBeInTheDocument();
     expect(screen.getAllByText('알파 회사').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: '대기' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '설정 중' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '승인됨' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '반려됨' })).toBeInTheDocument();
     expect(screen.getByText('관리자 계정 신청')).toBeInTheDocument();
@@ -149,7 +168,17 @@ describe('AccountsPage', () => {
     expect(screen.queryByRole('option', { name: '회사 전체 관리자' })).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: '플릿 관리자' })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByDisplayValue('차량 관리자'), { target: { value: 'fleet_manager' } });
+    fireEvent.change(screen.getAllByDisplayValue('차량 관리자')[0], { target: { value: 'fleet_manager' } });
+    fireEvent.click(screen.getAllByRole('button', { name: '승인' })[0]);
+    await waitFor(() => {
+      expect(apiMocks.approveManagedRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        '20000000-0000-0000-0000-000000000001',
+        'fleet_manager',
+      );
+    });
+
+    fireEvent.change(screen.getAllByDisplayValue('차량 관리자')[1], { target: { value: 'fleet_manager' } });
     fireEvent.click(screen.getByRole('button', { name: '권한 변경' }));
     await waitFor(() => {
       expect(apiMocks.changeManagerAccountRole).toHaveBeenCalledWith(

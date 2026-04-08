@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { approveManagedRequest, completeManagedManagerSetup, listManagedRequests, rejectManagedRequest } from '../api/authRequests';
+import { approveManagedRequest, listManagedRequests, rejectManagedRequest } from '../api/authRequests';
 import { getErrorMessage, type HttpClient, type SessionPayload } from '../api/http';
 import { archiveManagerAccount, changeManagerAccountRole, listManageableManagerAccounts } from '../api/managerAccounts';
 import { listCompanies } from '../api/organization';
@@ -18,17 +18,14 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
   const [requests, setRequests] = useState<IdentitySignupRequestSummary[]>([]);
   const [managerAccounts, setManagerAccounts] = useState<ManagerAccountSummary[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [statusFilter, setStatusFilter] = useState<'pending' | 'awaiting_setup' | 'approved' | 'rejected'>(
-    'pending',
-  );
+  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [setupRoles, setSetupRoles] = useState<Record<string, string>>({});
   const [managerRoles, setManagerRoles] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const tabs = useMemo(
-    () => [
+      () => [
       { value: 'pending', label: '대기' },
-      { value: 'awaiting_setup', label: '설정 중' },
       { value: 'approved', label: '승인됨' },
       { value: 'rejected', label: '반려됨' },
     ],
@@ -110,10 +107,10 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
     }));
   }
 
-  async function handleApprove(requestId: string) {
+  async function handleApprove(requestId: string, roleType?: string) {
     setErrorMessage(null);
     try {
-      await approveManagedRequest(client, requestId);
+      await approveManagedRequest(client, requestId, roleType);
       await reloadCurrentStatus();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -124,16 +121,6 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
     setErrorMessage(null);
     try {
       await rejectManagedRequest(client, requestId);
-      await reloadCurrentStatus();
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    }
-  }
-
-  async function handleCompleteSetup(requestId: string) {
-    setErrorMessage(null);
-    try {
-      await completeManagedManagerSetup(client, requestId, setupRoles[requestId] ?? 'vehicle_manager');
       await reloadCurrentStatus();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -190,7 +177,7 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
             <article className="summary-item">
               <span>Open Requests</span>
               <strong>{pendingRequestCount}</strong>
-              <small>대기 또는 설정 중 요청</small>
+              <small>처리 대기 요청</small>
             </article>
             <article className="summary-item">
               <span>Managers</span>
@@ -232,17 +219,8 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                       <td>{new Date(request.requested_at).toLocaleString('ko-KR')}</td>
                       <td>
                         <div className="inline-actions">
-                          {request.status === 'pending' ? (
-                            <>
-                              <button className="button ghost small" onClick={() => void handleApprove(request.identity_signup_request_id)} type="button">
-                                승인
-                              </button>
-                              <button className="button ghost small" onClick={() => void handleReject(request.identity_signup_request_id)} type="button">
-                                반려
-                              </button>
-                            </>
-                          ) : null}
-                          {request.status === 'awaiting_setup' && request.request_type === 'manager_account_create' ? (
+                          {request.request_type === 'manager_account_create' &&
+                          (request.status === 'pending' || request.status === 'awaiting_setup') ? (
                             <>
                               <select
                                 onChange={(event) =>
@@ -261,10 +239,25 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                               </select>
                               <button
                                 className="button ghost small"
-                                onClick={() => void handleCompleteSetup(request.identity_signup_request_id)}
+                                onClick={() =>
+                                  void handleApprove(
+                                    request.identity_signup_request_id,
+                                    setupRoles[request.identity_signup_request_id] ?? roleOptions[0] ?? 'vehicle_manager',
+                                  )
+                                }
                                 type="button"
                               >
-                                설정 완료
+                                승인
+                              </button>
+                              <button className="button ghost small" onClick={() => void handleReject(request.identity_signup_request_id)} type="button">
+                                반려
+                              </button>
+                            </>
+                          ) : null}
+                          {request.request_type !== 'manager_account_create' && request.status === 'pending' ? (
+                            <>
+                              <button className="button ghost small" onClick={() => void handleApprove(request.identity_signup_request_id)} type="button">
+                                승인
                               </button>
                               <button className="button ghost small" onClick={() => void handleReject(request.identity_signup_request_id)} type="button">
                                 반려
