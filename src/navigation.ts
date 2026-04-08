@@ -111,6 +111,13 @@ const operationsItems: NavigationItem[] = [
     matchPrefixes: ['/admin/navigation-policy'],
   },
   {
+    key: 'company_navigation_policy',
+    label: '회사 메뉴 정책',
+    to: '/company/navigation-policy',
+    isVisible: (session) => session.activeAccount?.accountType === 'manager' && session.activeAccount.roleType === 'company_super_admin',
+    matchPrefixes: ['/company/navigation-policy'],
+  },
+  {
     key: 'accounts',
     label: '계정 요청',
     to: '/accounts',

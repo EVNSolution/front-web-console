@@ -16,6 +16,7 @@ import {
   canAccessSettlementScope,
   canAccessVehicleScope,
   canManageAnnouncementScope,
+  canManageCompanyNavigationPolicy,
   canManageCompanySuperAdmin,
   canManageDriverProfileScope,
   canManagePersonnelDocumentScope,
@@ -29,6 +30,7 @@ import { AnnouncementsPage } from './pages/AnnouncementsPage';
 import { CompaniesPage } from './pages/CompaniesPage';
 import { CompanyDetailPage } from './pages/CompanyDetailPage';
 import { CompanyFormPage } from './pages/CompanyFormPage';
+import { CompanyNavigationPolicyPage } from './pages/CompanyNavigationPolicyPage';
 import { DispatchBoardDetailPage } from './pages/DispatchBoardDetailPage';
 import { DispatchBoardsPage } from './pages/DispatchBoardsPage';
 import { DispatchPlanFormPage } from './pages/DispatchPlanFormPage';
@@ -296,6 +298,20 @@ export default function App() {
                   when={canManageCompanySuperAdmin}
                 >
                   <ManagerNavigationPolicyPage client={client} />
+                </RequireRoleScope>
+              }
+            />
+            <Route
+              path="/company/navigation-policy"
+              element={
+                <RequireRoleScope
+                  message="회사 메뉴 정책은 회사 전체 관리자만 관리할 수 있습니다."
+                  onLogout={handleLogout}
+                  session={session}
+                  title="회사 메뉴 정책 권한 필요"
+                  when={canManageCompanyNavigationPolicy}
+                >
+                  <CompanyNavigationPolicyPage client={client} session={session} />
                 </RequireRoleScope>
               }
             />

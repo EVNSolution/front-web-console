@@ -6,7 +6,7 @@ import { getDefaultAllowedNavKeys } from '../authScopes';
 import { Layout } from './Layout';
 
 describe('Layout', () => {
-  it('renders grouped drawer navigation instead of a flat top navigation bar', () => {
+  it('renders grouped drawer navigation for company super admin with company policy link', () => {
     const { container } = render(
       <MemoryRouter>
         <Layout
@@ -40,7 +40,7 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '관리자 권한 정책' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '회사 메뉴 정책' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '회사' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '권역' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '차량' })).toBeInTheDocument();
@@ -48,6 +48,35 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: '배차' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '내 계정' })).toHaveLength(2);
     expect(container.querySelector('.console-home-icon')).toBeNull();
+  });
+
+  it('shows global manager policy link only for system admin', () => {
+    render(
+      <MemoryRouter>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'sysadmin@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '시스템 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'system_admin',
+              accountId: '20000000-0000-0000-0000-000000000001',
+            },
+            availableAccountTypes: ['system_admin'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: '관리자 권한 정책' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '회사 메뉴 정책' })).not.toBeInTheDocument();
   });
 
   it('hides settlement and dispatch groups for vehicle managers', () => {
