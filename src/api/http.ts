@@ -26,6 +26,7 @@ export type HttpClientConfig = {
   getAccessToken: () => string | null;
   onSessionRefresh: (payload: SessionPayload) => void;
   onUnauthorized: () => void;
+  onNavigationForbidden?: (error: ApiError) => void;
 };
 
 export type HttpClient = {
@@ -92,6 +93,14 @@ export function getErrorMessage(error: unknown, fallback = 'Request failed.'): s
     return error.message;
   }
   return fallback;
+}
+
+export function isNavigationPolicyApiError(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError &&
+    error.status === 403 &&
+    error.message === 'This API is not allowed by current navigation policy.'
+  );
 }
 
 function toIdentitySummary(payload: IdentitySessionResponse['identity']): IdentitySummary {
@@ -193,7 +202,11 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     }
 
     if (!response.ok) {
-      throw toApiError(response, payload);
+      const error = toApiError(response, payload);
+      if (isNavigationPolicyApiError(error)) {
+        config.onNavigationForbidden?.(error);
+      }
+      throw error;
     }
 
     return payload as T;

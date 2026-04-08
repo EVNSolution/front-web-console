@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import { login, logout, signupRequestIntake } from './api/auth';
 import { createHttpClient, DEFAULT_API_BASE_URL, getErrorMessage, type HttpClient, type SessionPayload } from './api/http';
@@ -65,17 +65,107 @@ import { VehicleOperatorAccessFormPage } from './pages/VehicleOperatorAccessForm
 import { VehiclesPage } from './pages/VehiclesPage';
 import { clearStoredSession, loadStoredSession, persistSession } from './sessionPersistence';
 import { useNavigationPolicy } from './hooks/useNavigationPolicy';
+import { accountItem, dashboardItem, isNavigationItemActive, navigationGroups } from './navigation';
+import type { NavItemKey } from './authScopes';
 
 const ROUTER_FUTURE = {
   v7_relativeSplatPath: true,
   v7_startTransition: true,
 } as const;
 
+function resolveFirstAllowedPath(session: SessionPayload, allowedNavKeys: NavItemKey[]) {
+  const allowed = new Set(allowedNavKeys);
+  if (allowed.has(dashboardItem.key)) {
+    return dashboardItem.to;
+  }
+
+  for (const group of navigationGroups) {
+    if (!group.isVisible(session)) {
+      continue;
+    }
+    for (const item of group.items) {
+      if (item.isVisible(session) && allowed.has(item.key)) {
+        return item.to;
+      }
+    }
+  }
+
+  return accountItem.to;
+}
+
+function resolveActiveNavKey(session: SessionPayload, pathname: string): NavItemKey | null {
+  if (isNavigationItemActive(pathname, dashboardItem)) {
+    return dashboardItem.key;
+  }
+  if (isNavigationItemActive(pathname, accountItem)) {
+    return accountItem.key;
+  }
+
+  for (const group of navigationGroups) {
+    if (!group.isVisible(session)) {
+      continue;
+    }
+    for (const item of group.items) {
+      if (item.isVisible(session) && isNavigationItemActive(pathname, item)) {
+        return item.key;
+      }
+    }
+  }
+
+  return null;
+}
+
+type NavigationPolicyRouteEffectProps = {
+  session: SessionPayload;
+  allowedNavKeys: NavItemKey[];
+  isLoading: boolean;
+  redirectTick: number;
+  onRedirect: () => void;
+};
+
+function NavigationPolicyRouteEffect({
+  session,
+  allowedNavKeys,
+  isLoading,
+  redirectTick,
+  onRedirect,
+}: NavigationPolicyRouteEffectProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const activeKey = resolveActiveNavKey(session, location.pathname);
+    if (activeKey === null) {
+      return;
+    }
+
+    if (allowedNavKeys.includes(activeKey)) {
+      return;
+    }
+
+    const nextPath = resolveFirstAllowedPath(session, allowedNavKeys);
+    if (location.pathname === nextPath) {
+      return;
+    }
+
+    onRedirect();
+    navigate(nextPath, { replace: true });
+  }, [allowedNavKeys, isLoading, location.pathname, navigate, onRedirect, redirectTick, session]);
+
+  return null;
+}
+
 export default function App() {
   const [session, setSession] = useState<SessionPayload | null>(() => loadStoredSession());
   const [authError, setAuthError] = useState<string | null>(null);
   const [authStatusMessage, setAuthStatusMessage] = useState<string | null>(null);
   const [companyErrorMessage, setCompanyErrorMessage] = useState<string | null>(null);
+  const [policyStatusMessage, setPolicyStatusMessage] = useState<string | null>(null);
+  const [policyRedirectTick, setPolicyRedirectTick] = useState(0);
   const [publicCompanies, setPublicCompanies] = useState<{ company_id: string; route_no?: number; name: string }[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,11 +227,15 @@ export default function App() {
         setSession(null);
         setAuthError('세션이 만료되었습니다. 다시 로그인하세요.');
       },
+      onNavigationForbidden: () => {
+        setPolicyStatusMessage('권한 정책이 변경되어 현재 화면을 유지할 수 없습니다. 허용된 메뉴로 이동합니다.');
+        setPolicyRedirectTick((current) => current + 1);
+      },
     });
   }
 
   const client = clientRef.current as HttpClient;
-  const { allowedNavKeys } = useNavigationPolicy(client, session);
+  const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicy(client, session);
 
   async function handleLogin(credentials: { email: string; password: string }) {
     setIsSubmitting(true);
@@ -151,6 +245,7 @@ export default function App() {
       const nextSession = await login(credentials);
       sessionRef.current = nextSession;
       setSession(nextSession);
+      setPolicyStatusMessage(null);
     } catch (error) {
       setAuthError(getErrorMessage(error, '로그인할 수 없습니다.'));
     } finally {
@@ -198,6 +293,7 @@ export default function App() {
     } finally {
       sessionRef.current = null;
       setSession(null);
+      setPolicyStatusMessage(null);
     }
   }
 
@@ -269,6 +365,25 @@ export default function App() {
 
   return (
     <BrowserRouter future={ROUTER_FUTURE}>
+      <NavigationPolicyRouteEffect
+        allowedNavKeys={allowedNavKeys}
+        isLoading={isNavigationPolicyLoading}
+        onRedirect={() => {
+          setPolicyStatusMessage('권한 정책이 변경되어 현재 화면에 접근할 수 없습니다. 허용된 메뉴로 이동했습니다.');
+        }}
+        redirectTick={policyRedirectTick}
+        session={session}
+      />
+      {policyStatusMessage ? (
+        <div role="status" style={{ padding: '12px 16px', background: '#fff7e6', borderBottom: '1px solid #f0d29b', color: '#5f370e' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <span>{policyStatusMessage}</span>
+            <button className="button ghost small" onClick={() => setPolicyStatusMessage(null)} type="button">
+              닫기
+            </button>
+          </div>
+        </div>
+      ) : null}
       <RequireAdmin session={session} onLogout={handleLogout}>
         <Routes>
           <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
