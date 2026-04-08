@@ -64,6 +64,28 @@ describe('ManagerNavigationPolicyPage', () => {
     });
   });
 
+  it('uses the same sidebar structure in editor and preview and shows non-editable items', async () => {
+    render(
+      <ManagerNavigationPolicyPage
+        client={{
+          request: vi.fn(),
+        }}
+      />,
+    );
+
+    await screen.findByRole('heading', { name: '전역 관리자 메뉴 정책' });
+
+    const preview = screen.getByTestId('navigation-policy-preview');
+    expect(screen.getAllByText('운영').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('관리자 권한 정책').length).toBeGreaterThan(1);
+    expect(screen.getAllByText('회사 메뉴 정책').length).toBeGreaterThan(1);
+    expect(screen.getAllByText('설정 불가').length).toBeGreaterThan(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /차량 관리자/ }));
+    expect(within(preview).queryByText('차량 배정')).toBeInTheDocument();
+    expect(within(preview).getAllByText('설정 불가').length).toBeGreaterThan(0);
+  });
+
   it('updates preview and saves the selected role policy', async () => {
     render(
       <ManagerNavigationPolicyPage
@@ -78,11 +100,12 @@ describe('ManagerNavigationPolicyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /차량 관리자/ }));
 
     const preview = screen.getByTestId('navigation-policy-preview');
-    expect(within(preview).queryByText('차량 배정')).not.toBeInTheDocument();
+    expect(within(preview).getByText('차량 배정')).toBeInTheDocument();
+    expect(within(preview).getByText('숨김')).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('차량 배정'));
 
-    expect(within(preview).getByText('차량 배정')).toBeInTheDocument();
+    expect(within(preview).getByText('허용')).toBeInTheDocument();
     expect(screen.getByText('저장 전 변경 있음')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '현재 역할 저장' }));
@@ -101,4 +124,4 @@ describe('ManagerNavigationPolicyPage', () => {
       );
     });
   });
-});
+}
