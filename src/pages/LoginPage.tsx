@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import type { Company } from '../types';
 import loginSideImage from '../assets/login-side-image.svg';
+import loginSideImageSmall from '../assets/login-side-image-small.jpg';
 
 type SignupFormPayload = {
   name: string;
@@ -59,6 +60,7 @@ export function LoginPage({
     password: '',
     passwordConfirm: '',
   });
+  const [isLoginMediaLoaded, setIsLoginMediaLoaded] = useState(false);
   const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
   const [passwordResetStatus, setPasswordResetStatus] = useState<string | null>(null);
 
@@ -125,8 +127,15 @@ export function LoginPage({
       <div className="login-landing-frame">
         <div className="login-landing-content">
           <section className="login-media-panel">
-            <div className="login-media-frame">
-              <img alt="EV&Solution Logistics" src={loginSideImage} />
+            <div
+              className={`login-media-frame${isLoginMediaLoaded ? ' is-loaded' : ''}`}
+              style={{ ['--login-media-placeholder' as string]: `url(${loginSideImageSmall})` }}
+            >
+              <img
+                alt="EV&Solution Logistics"
+                onLoad={() => setIsLoginMediaLoaded(true)}
+                src={loginSideImage}
+              />
               <div className="login-media-overlay">
                 <strong>EV&amp;Solution</strong>
                 <span>통합 운영 웹 콘솔</span>
