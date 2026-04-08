@@ -1,6 +1,38 @@
 import type { SessionPayload } from './api/http';
 
 export type ManagerRole = 'company_super_admin' | 'vehicle_manager' | 'settlement_manager' | 'fleet_manager';
+export type NavItemKey =
+  | 'dashboard'
+  | 'account'
+  | 'accounts'
+  | 'announcements'
+  | 'support'
+  | 'notifications'
+  | 'companies'
+  | 'regions'
+  | 'vehicles'
+  | 'vehicle_assignments'
+  | 'drivers'
+  | 'personnel_documents'
+  | 'dispatch'
+  | 'settlements';
+
+export const allNavItemKeys: NavItemKey[] = [
+  'dashboard',
+  'account',
+  'accounts',
+  'announcements',
+  'support',
+  'notifications',
+  'companies',
+  'regions',
+  'vehicles',
+  'vehicle_assignments',
+  'drivers',
+  'personnel_documents',
+  'dispatch',
+  'settlements',
+];
 
 export function isSystemAdmin(session: SessionPayload) {
   return session.activeAccount?.accountType === 'system_admin';
@@ -123,4 +155,46 @@ export function getAccountsScopeDescription(session: SessionPayload) {
   }
 
   return '내 계정과 같은 회사의 배송원 계정 요청만 처리할 수 있습니다.';
+}
+
+export function getDefaultAllowedNavKeys(session: SessionPayload): NavItemKey[] {
+  const allowed = new Set<NavItemKey>(['dashboard', 'account']);
+
+  if (canAccessAccountsScope(session)) {
+    allowed.add('accounts');
+    allowed.add('announcements');
+    allowed.add('support');
+    allowed.add('notifications');
+  }
+
+  if (canAccessCompanyScope(session)) {
+    allowed.add('companies');
+  }
+
+  if (canAccessRegionScope(session)) {
+    allowed.add('regions');
+  }
+
+  if (canAccessVehicleScope(session)) {
+    allowed.add('vehicles');
+    allowed.add('vehicle_assignments');
+  }
+
+  if (canAccessDriverScope(session)) {
+    allowed.add('drivers');
+  }
+
+  if (canAccessPersonnelDocumentScope(session)) {
+    allowed.add('personnel_documents');
+  }
+
+  if (canAccessDispatchScope(session)) {
+    allowed.add('dispatch');
+  }
+
+  if (canAccessSettlementScope(session)) {
+    allowed.add('settlements');
+  }
+
+  return allNavItemKeys.filter((key) => allowed.has(key));
 }

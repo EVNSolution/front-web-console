@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { getDefaultAllowedNavKeys } from '../authScopes';
 import { Layout } from './Layout';
 
 describe('Layout', () => {
@@ -180,5 +181,75 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사' })).not.toBeInTheDocument();
+  });
+
+  it('returns stable nav item keys for vehicle manager defaults', () => {
+    const allowedKeys = getDefaultAllowedNavKeys({
+      accessToken: 'token',
+      sessionKind: 'normal',
+      email: 'vehicle@example.com',
+      identity: {
+        identityId: '10000000-0000-0000-0000-000000000001',
+        name: '차량 관리자',
+        birthDate: '1970-01-01',
+        status: 'active',
+      },
+      activeAccount: {
+        accountType: 'manager',
+        accountId: '20000000-0000-0000-0000-000000000001',
+        companyId: '30000000-0000-0000-0000-000000000001',
+        roleType: 'vehicle_manager',
+      },
+      availableAccountTypes: ['manager'],
+    });
+
+    expect(allowedKeys).toEqual([
+      'dashboard',
+      'account',
+      'accounts',
+      'announcements',
+      'support',
+      'notifications',
+      'regions',
+      'vehicles',
+      'vehicle_assignments',
+      'drivers',
+      'personnel_documents',
+    ]);
+  });
+
+  it('returns stable nav item keys for settlement manager defaults', () => {
+    const allowedKeys = getDefaultAllowedNavKeys({
+      accessToken: 'token',
+      sessionKind: 'normal',
+      email: 'settlement@example.com',
+      identity: {
+        identityId: '10000000-0000-0000-0000-000000000001',
+        name: '정산 관리자',
+        birthDate: '1970-01-01',
+        status: 'active',
+      },
+      activeAccount: {
+        accountType: 'manager',
+        accountId: '20000000-0000-0000-0000-000000000001',
+        companyId: '30000000-0000-0000-0000-000000000001',
+        roleType: 'settlement_manager',
+      },
+      availableAccountTypes: ['manager'],
+    });
+
+    expect(allowedKeys).toEqual([
+      'dashboard',
+      'account',
+      'accounts',
+      'announcements',
+      'support',
+      'notifications',
+      'regions',
+      'drivers',
+      'personnel_documents',
+      'dispatch',
+      'settlements',
+    ]);
   });
 });

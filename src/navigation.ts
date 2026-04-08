@@ -1,5 +1,6 @@
 import type { SessionPayload } from './api/http';
 import {
+  type NavItemKey,
   canAccessAccountsScope,
   canAccessCompanyScope,
   canAccessDispatchScope,
@@ -13,6 +14,7 @@ import {
 type Visibility = (session: SessionPayload) => boolean;
 
 export type NavigationItem = {
+  key: NavItemKey;
   label: string;
   to: string;
   isVisible: Visibility;
@@ -34,12 +36,14 @@ function anyVisible(items: NavigationItem[], session: SessionPayload) {
 }
 
 export const dashboardItem: NavigationItem = {
+  key: 'dashboard',
   label: '대시보드',
   to: '/',
   isVisible: alwaysVisible,
 };
 
 export const accountItem: NavigationItem = {
+  key: 'account',
   label: '내 계정',
   to: '/account',
   isVisible: alwaysVisible,
@@ -48,12 +52,14 @@ export const accountItem: NavigationItem = {
 
 const organizationItems: NavigationItem[] = [
   {
+    key: 'companies',
     label: '회사',
     to: '/companies',
     isVisible: canAccessCompanyScope,
     matchPrefixes: ['/companies'],
   },
   {
+    key: 'regions',
     label: '권역',
     to: '/regions',
     isVisible: canAccessRegionScope,
@@ -63,12 +69,14 @@ const organizationItems: NavigationItem[] = [
 
 const vehicleItems: NavigationItem[] = [
   {
+    key: 'vehicles',
     label: '차량',
     to: '/vehicles',
     isVisible: canAccessVehicleScope,
     matchPrefixes: ['/vehicles'],
   },
   {
+    key: 'vehicle_assignments',
     label: '차량 배정',
     to: '/vehicle-assignments',
     isVisible: canAccessVehicleScope,
@@ -78,12 +86,14 @@ const vehicleItems: NavigationItem[] = [
 
 const driverItems: NavigationItem[] = [
   {
+    key: 'drivers',
     label: '배송원',
     to: '/drivers',
     isVisible: canAccessDriverScope,
     matchPrefixes: ['/drivers'],
   },
   {
+    key: 'personnel_documents',
     label: '인사문서',
     to: '/personnel-documents',
     isVisible: canAccessPersonnelDocumentScope,
@@ -93,24 +103,28 @@ const driverItems: NavigationItem[] = [
 
 const operationsItems: NavigationItem[] = [
   {
+    key: 'accounts',
     label: '계정 요청',
     to: '/accounts',
     isVisible: canAccessAccountsScope,
     matchPrefixes: ['/accounts'],
   },
   {
+    key: 'announcements',
     label: '공지',
     to: '/announcements',
     isVisible: canAccessAccountsScope,
     matchPrefixes: ['/announcements'],
   },
   {
+    key: 'support',
     label: '지원',
     to: '/support',
     isVisible: canAccessAccountsScope,
     matchPrefixes: ['/support'],
   },
   {
+    key: 'notifications',
     label: '알림',
     to: '/notifications',
     isVisible: canAccessAccountsScope,
@@ -120,6 +134,7 @@ const operationsItems: NavigationItem[] = [
 
 const dispatchItems: NavigationItem[] = [
   {
+    key: 'dispatch',
     label: '배차',
     to: '/dispatch/boards',
     isVisible: canAccessDispatchScope,
@@ -129,6 +144,7 @@ const dispatchItems: NavigationItem[] = [
 
 const settlementItems: NavigationItem[] = [
   {
+    key: 'settlements',
     label: '정산',
     to: '/settlements/overview',
     isVisible: canAccessSettlementScope,
