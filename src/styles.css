@@ -102,6 +102,8 @@ code {
 
 .field span {
   font-size: 0.9rem;
+  color: #2f3643;
+  font-weight: 600;
 }
 
 input,
@@ -146,7 +148,7 @@ select {
 }
 
 input::placeholder {
-  color: rgba(100, 107, 122, 0.9);
+  color: rgba(100, 107, 122, 0.72);
 }
 
 input:focus,

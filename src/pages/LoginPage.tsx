@@ -150,12 +150,12 @@ export function LoginPage({
                 <>
                   <form className="stack login-form-stack" onSubmit={(event) => void handleLoginSubmit(event)}>
                     <label className="field">
-                      <span>이메일</span>
+                      <span>아이디</span>
                       <input
                         autoComplete="email"
                         name="email"
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="admin@example.com"
+                        placeholder="아이디"
                         type="email"
                         value={email}
                       />
@@ -166,7 +166,7 @@ export function LoginPage({
                         autoComplete="current-password"
                         name="password"
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="change-me"
+                        placeholder="비밀번호"
                         type="password"
                         value={password}
                       />
