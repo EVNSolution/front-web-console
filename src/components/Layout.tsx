@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import type { SessionPayload } from '../api/http';
+import type { NavItemKey } from '../authScopes';
+import { getDefaultAllowedNavKeys } from '../authScopes';
 import {
   accountItem,
   dashboardItem,
@@ -14,6 +16,7 @@ import { formatRoleLabel } from '../uiLabels';
 type LayoutProps = {
   session: SessionPayload;
   onLogout: () => void | Promise<void>;
+  allowedNavKeys?: NavItemKey[];
 };
 
 function buildInitialExpansionState(session: SessionPayload) {
@@ -22,10 +25,14 @@ function buildInitialExpansionState(session: SessionPayload) {
   );
 }
 
-export function Layout({ session, onLogout }: LayoutProps) {
+export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => buildInitialExpansionState(session));
+  const effectiveAllowedNavKeys = useMemo(
+    () => new Set<NavItemKey>(allowedNavKeys ?? getDefaultAllowedNavKeys(session)),
+    [allowedNavKeys, session],
+  );
 
   const visibleGroups = useMemo(
     () =>
@@ -33,10 +40,13 @@ export function Layout({ session, onLogout }: LayoutProps) {
         .filter((group) => group.isVisible(session))
         .map((group) => ({
           ...group,
-          items: group.items.filter((item) => item.isVisible(session)),
+          items: group.items.filter((item) => item.isVisible(session) && effectiveAllowedNavKeys.has(item.key)),
         })),
-    [session],
+    [effectiveAllowedNavKeys, session],
   );
+
+  const isDashboardVisible = effectiveAllowedNavKeys.has(dashboardItem.key);
+  const isAccountVisible = effectiveAllowedNavKeys.has(accountItem.key);
 
   useEffect(() => {
     setExpandedGroups((current) => {
@@ -90,13 +100,15 @@ export function Layout({ session, onLogout }: LayoutProps) {
       <div className="console-frame">
         <aside className={drawerOpen ? 'console-drawer is-open' : 'console-drawer'}>
           <nav aria-label="주 메뉴" className="console-drawer-nav">
-            <NavLink
-              className={({ isActive }) => (isActive ? 'console-home-link is-active' : 'console-home-link')}
-              end
-              to={dashboardItem.to}
-            >
-              <span>{dashboardItem.label}</span>
-            </NavLink>
+            {isDashboardVisible ? (
+              <NavLink
+                className={({ isActive }) => (isActive ? 'console-home-link is-active' : 'console-home-link')}
+                end
+                to={dashboardItem.to}
+              >
+                <span>{dashboardItem.label}</span>
+              </NavLink>
+            ) : null}
 
             {visibleGroups.map((group) => {
               if (group.displayMode === 'link' && group.items.length === 1) {
@@ -156,12 +168,14 @@ export function Layout({ session, onLogout }: LayoutProps) {
               );
             })}
 
-            <NavLink
-              className={isNavigationItemActive(location.pathname, accountItem) ? 'console-home-link is-active' : 'console-home-link'}
-              to={accountItem.to}
-            >
-              <span>{accountItem.label}</span>
-            </NavLink>
+            {isAccountVisible ? (
+              <NavLink
+                className={isNavigationItemActive(location.pathname, accountItem) ? 'console-home-link is-active' : 'console-home-link'}
+                to={accountItem.to}
+              >
+                <span>{accountItem.label}</span>
+              </NavLink>
+            ) : null}
           </nav>
         </aside>
         <main className="console-content">

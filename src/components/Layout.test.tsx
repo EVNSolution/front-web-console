@@ -252,4 +252,39 @@ describe('Layout', () => {
       'settlements',
     ]);
   });
+
+  it('hides items excluded by backend navigation policy even if role fallback would show them', () => {
+    render(
+      <MemoryRouter>
+        <Layout
+          allowedNavKeys={['dashboard', 'account', 'vehicles']}
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'vehicle@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '차량 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'vehicle_manager',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: '대시보드' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '내 계정' })).toHaveLength(2);
+    expect(screen.getByRole('link', { name: '차량' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배송원' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
+  });
 });

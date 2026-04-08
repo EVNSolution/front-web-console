@@ -60,6 +60,7 @@ import { VehicleFormPage } from './pages/VehicleFormPage';
 import { VehicleOperatorAccessFormPage } from './pages/VehicleOperatorAccessFormPage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { clearStoredSession, loadStoredSession, persistSession } from './sessionPersistence';
+import { useNavigationPolicy } from './hooks/useNavigationPolicy';
 
 const ROUTER_FUTURE = {
   v7_relativeSplatPath: true,
@@ -136,6 +137,7 @@ export default function App() {
   }
 
   const client = clientRef.current as HttpClient;
+  const { allowedNavKeys } = useNavigationPolicy(client, session);
 
   async function handleLogin(credentials: { email: string; password: string }) {
     setIsSubmitting(true);
@@ -265,7 +267,7 @@ export default function App() {
     <BrowserRouter future={ROUTER_FUTURE}>
       <RequireAdmin session={session} onLogout={handleLogout}>
         <Routes>
-          <Route element={<Layout session={session} onLogout={handleLogout} />}>
+          <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
             <Route path="/" element={<DashboardPage client={client} session={session} />} />
             <Route
               path="/account"
