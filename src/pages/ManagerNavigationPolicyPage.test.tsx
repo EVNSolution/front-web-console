@@ -86,6 +86,39 @@ describe('ManagerNavigationPolicyPage', () => {
     expect(within(preview).getAllByText('설정 불가').length).toBeGreaterThan(0);
   });
 
+  it('keeps management items separate from operations items in both editor and preview', async () => {
+    render(
+      <ManagerNavigationPolicyPage
+        client={{
+          request: vi.fn(),
+        }}
+      />,
+    );
+
+    await screen.findByRole('heading', { name: '전역 관리자 메뉴 정책' });
+
+    const editorHeading = screen.getByRole('heading', { name: '회사 전체 관리자 편집' });
+    const editor = editorHeading.closest('.policy-editor');
+    const preview = screen.getByTestId('navigation-policy-preview');
+    expect(editor).not.toBeNull();
+
+    const managementSections = within(editor as HTMLElement).getAllByText('관리');
+    const operationsSections = within(editor as HTMLElement).getAllByText('운영');
+    expect(managementSections.length).toBeGreaterThan(0);
+    expect(operationsSections.length).toBeGreaterThan(0);
+
+    expect(within(editor as HTMLElement).getByText('계정 요청')).toBeInTheDocument();
+    expect(within(editor as HTMLElement).getByText('공지')).toBeInTheDocument();
+
+    const previewManagementLabels = within(preview).getAllByText('관리');
+    const previewOperationsLabels = within(preview).getAllByText('운영');
+    expect(previewManagementLabels.length).toBeGreaterThan(0);
+    expect(previewOperationsLabels.length).toBeGreaterThan(0);
+
+    expect(within(preview).getByText('계정 요청')).toBeInTheDocument();
+    expect(within(preview).getByText('공지')).toBeInTheDocument();
+  });
+
   it('updates preview and saves the selected role policy', async () => {
     render(
       <ManagerNavigationPolicyPage
@@ -100,12 +133,13 @@ describe('ManagerNavigationPolicyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /차량 관리자/ }));
 
     const preview = screen.getByTestId('navigation-policy-preview');
-    expect(within(preview).getByText('차량 배정')).toBeInTheDocument();
-    expect(within(preview).getByText('숨김')).toBeInTheDocument();
+    const vehicleAssignmentPreviewItem = within(preview).getByText('차량 배정').closest('.policy-preview-item');
+    expect(vehicleAssignmentPreviewItem).not.toBeNull();
+    expect(within(vehicleAssignmentPreviewItem as HTMLElement).getByText('숨김')).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('차량 배정'));
 
-    expect(within(preview).getByText('허용')).toBeInTheDocument();
+    expect(within(vehicleAssignmentPreviewItem as HTMLElement).getByText('허용')).toBeInTheDocument();
     expect(screen.getByText('저장 전 변경 있음')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '현재 역할 저장' }));
@@ -124,4 +158,4 @@ describe('ManagerNavigationPolicyPage', () => {
       );
     });
   });
-}
+});
