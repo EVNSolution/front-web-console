@@ -584,15 +584,20 @@ textarea:focus {
   align-items: center;
   gap: 0.7rem;
   color: #2f3643;
+  cursor: pointer;
 }
 
 .auth-check-row input[type='checkbox'] {
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  accent-color: #161811;
   width: 18px;
   min-width: 18px;
   height: 18px;
   min-height: 18px;
   border-radius: 4px;
   padding: 0;
+  cursor: pointer;
 }
 
 .login-support-note {
