@@ -1388,9 +1388,9 @@ textarea:focus {
 }
 
 .policy-preview-shell {
-  border: 1px solid rgba(28, 32, 43, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  background: #171817;
+  background: #0d0e0d;
   color: #ffffff;
   padding: 1rem;
   display: grid;
@@ -1419,25 +1419,34 @@ textarea:focus {
   min-height: 2.4rem;
   padding: 0.55rem 0.8rem;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
   font-weight: 600;
   gap: 0.75rem;
 }
 
 .policy-preview-item small {
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.52);
   font-size: 0.8rem;
   font-weight: 600;
 }
 
 .policy-preview-item.is-hidden {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.48);
 }
 
 .policy-preview-item.is-visible {
-  background: rgba(205, 222, 0, 0.16);
+  background: #ffffff;
+  border-color: rgba(255, 255, 255, 0.98);
+  color: #121512;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.policy-preview-item.is-visible small {
+  color: #646d79;
 }
 
 .panel-toolbar {
