@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -38,5 +38,34 @@ describe('FleetFormPage', () => {
     expect(screen.getByText('회사 문맥을 유지한 채 플릿 정보를 입력합니다.')).toBeInTheDocument();
     expect(screen.getByText('입력 요약')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Seed Company')).toBeInTheDocument();
+  });
+
+  it('redirects back to company detail after creating a fleet', async () => {
+    apiMocks.getCompany.mockResolvedValue({
+      company_id: '30000000-0000-0000-0000-000000000001',
+      route_no: 1,
+      name: 'Seed Company',
+    });
+    apiMocks.createFleet.mockResolvedValue({
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      company_id: '30000000-0000-0000-0000-000000000001',
+      route_no: 99,
+      name: 'New Fleet',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/companies/1/fleets/new']}>
+        <Routes>
+          <Route path="/companies/:companyRef/fleets/new" element={<FleetFormPage client={{ request: vi.fn() }} mode="create" />} />
+          <Route path="/companies/:companyRef" element={<div>Company Detail Landing</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const inputs = await screen.findAllByRole('textbox');
+    fireEvent.change(inputs[1], { target: { value: 'New Fleet' } });
+    fireEvent.click(screen.getByRole('button', { name: '플릿 생성' }));
+
+    expect(await screen.findByText('Company Detail Landing')).toBeInTheDocument();
   });
 });

@@ -95,12 +95,8 @@ export function FleetFormPage({ client, mode }: FleetFormPageProps) {
         return;
       }
 
-      const created = await createFleet(client, { company_id: company?.company_id ?? '', name });
-      navigate(
-        company
-          ? `/companies/${getCompanyRouteRef(company)}/fleets/${getFleetRouteRef(created)}`
-          : '/companies',
-      );
+      await createFleet(client, { company_id: company?.company_id ?? '', name });
+      navigate(company ? `/companies/${getCompanyRouteRef(company)}` : '/companies');
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
