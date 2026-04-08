@@ -102,7 +102,7 @@ const driverItems: NavigationItem[] = [
   },
 ];
 
-const operationsItems: NavigationItem[] = [
+const managementItems: NavigationItem[] = [
   {
     key: 'manager_navigation_policy',
     label: '관리자 권한 정책',
@@ -124,6 +124,9 @@ const operationsItems: NavigationItem[] = [
     isVisible: canAccessAccountsScope,
     matchPrefixes: ['/accounts'],
   },
+];
+
+const operationsItems: NavigationItem[] = [
   {
     key: 'announcements',
     label: '공지',
@@ -185,6 +188,12 @@ export const navigationGroups: NavigationGroup[] = [
     label: '배송원',
     isVisible: (session) => anyVisible(driverItems, session),
     items: driverItems,
+  },
+  {
+    key: 'management',
+    label: '관리',
+    isVisible: (session) => anyVisible(managementItems, session),
+    items: managementItems,
   },
   {
     key: 'operations',
