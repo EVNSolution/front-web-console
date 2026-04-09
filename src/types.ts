@@ -178,6 +178,15 @@ export type Fleet = {
   name: string;
 };
 
+export type CompanyFleetPricingTable = {
+  pricing_table_id: string;
+  company_id: string;
+  fleet_id: string;
+  box_sale_unit_price: string;
+  box_purchase_unit_price: string;
+  overtime_fee: string;
+};
+
 export type CompanyManagerRole = {
   company_manager_role_id: string;
   company_id: string;

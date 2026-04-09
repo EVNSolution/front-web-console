@@ -1,4 +1,5 @@
 import type {
+  CompanyFleetPricingTable,
   SettlementConfig,
   SettlementConfigMetadata,
   SettlementPolicy,
@@ -11,6 +12,10 @@ export type SettlementPolicyPayload = Omit<SettlementPolicy, 'policy_id'>;
 export type SettlementPolicyVersionPayload = Omit<SettlementPolicyVersion, 'policy_version_id'>;
 export type SettlementPolicyAssignmentPayload = Omit<SettlementPolicyAssignment, 'assignment_id'>;
 export type SettlementConfigPayload = Omit<SettlementConfig, 'singleton_key'>;
+export type CompanyFleetPricingTablePayload = Omit<
+  CompanyFleetPricingTable,
+  'pricing_table_id'
+>;
 
 export function getSettlementConfigMetadata(client: HttpClient) {
   return client.request<SettlementConfigMetadata>('/settlement-registry/settlement-config/metadata/');
@@ -28,6 +33,34 @@ export function updateSettlementConfig(
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export function listSettlementPricingTables(client: HttpClient) {
+  return client.request<CompanyFleetPricingTable[]>('/settlement-registry/pricing-tables/');
+}
+
+export function createSettlementPricingTable(
+  client: HttpClient,
+  payload: CompanyFleetPricingTablePayload,
+) {
+  return client.request<CompanyFleetPricingTable>('/settlement-registry/pricing-tables/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateSettlementPricingTable(
+  client: HttpClient,
+  pricingTableId: string,
+  payload: Partial<CompanyFleetPricingTablePayload>,
+) {
+  return client.request<CompanyFleetPricingTable>(
+    `/settlement-registry/pricing-tables/${pricingTableId}/`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function listSettlementPolicies(client: HttpClient) {

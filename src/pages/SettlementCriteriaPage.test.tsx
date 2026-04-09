@@ -4,15 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { SettlementCriteriaPage } from './SettlementCriteriaPage';
 
 const apiMocks = vi.hoisted(() => ({
+  createSettlementPricingTable: vi.fn(),
   getSettlementConfigMetadata: vi.fn(),
   getSettlementConfig: vi.fn(),
+  listSettlementPricingTables: vi.fn(),
   updateSettlementConfig: vi.fn(),
+  updateSettlementPricingTable: vi.fn(),
+  listCompanies: vi.fn(),
+  listFleets: vi.fn(),
 }));
 
 vi.mock('../api/settlementRegistry', () => ({
+  createSettlementPricingTable: apiMocks.createSettlementPricingTable,
   getSettlementConfigMetadata: apiMocks.getSettlementConfigMetadata,
   getSettlementConfig: apiMocks.getSettlementConfig,
+  listSettlementPricingTables: apiMocks.listSettlementPricingTables,
   updateSettlementConfig: apiMocks.updateSettlementConfig,
+  updateSettlementPricingTable: apiMocks.updateSettlementPricingTable,
+}));
+
+vi.mock('../api/organization', () => ({
+  listCompanies: apiMocks.listCompanies,
+  listFleets: apiMocks.listFleets,
 }));
 
 const metadataFixture = {
@@ -83,26 +96,68 @@ const configFixture = {
   meal_allowance: '20000',
 };
 
+const pricingTableFixture = [
+  {
+    pricing_table_id: '91000000-0000-0000-0000-000000000001',
+    company_id: '30000000-0000-0000-0000-000000000001',
+    fleet_id: '40000000-0000-0000-0000-000000000001',
+    box_sale_unit_price: '1000.00',
+    box_purchase_unit_price: '800.00',
+    overtime_fee: '20000.00',
+  },
+];
+
 describe('SettlementCriteriaPage', () => {
   it('renders global settlement fields from metadata and current config', async () => {
     apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
     apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
+    apiMocks.listSettlementPricingTables.mockResolvedValue(pricingTableFixture);
+    apiMocks.listCompanies.mockResolvedValue([
+      { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+    ]);
+    apiMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 1,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'Seed Fleet',
+      },
+    ]);
 
     render(<SettlementCriteriaPage client={{ request: vi.fn() }} />);
 
     expect(await screen.findByRole('heading', { name: '전역 정산 설정' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
     expect(screen.getByText('현재 설정 항목: 3개 (2개 영역)')).toBeInTheDocument();
     expect(screen.getByDisplayValue('0.0300')).toBeInTheDocument();
     expect(screen.getByDisplayValue('20000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('1000.00')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('800.00')).toBeInTheDocument();
     expect(screen.getByText('과세 기준 소득세율')).toBeInTheDocument();
   });
 
   it('saves edited values using metadata-driven payload', async () => {
     apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
     apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
+    apiMocks.listSettlementPricingTables.mockResolvedValue(pricingTableFixture);
+    apiMocks.listCompanies.mockResolvedValue([
+      { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+    ]);
+    apiMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 1,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'Seed Fleet',
+      },
+    ]);
     apiMocks.updateSettlementConfig.mockResolvedValue({
       ...configFixture,
       meal_allowance: '21000',
+    });
+    apiMocks.updateSettlementPricingTable.mockResolvedValue({
+      ...pricingTableFixture[0],
+      overtime_fee: '25000.00',
     });
 
     render(<SettlementCriteriaPage client={{ request: vi.fn() }} />);
@@ -117,6 +172,17 @@ describe('SettlementCriteriaPage', () => {
         income_tax_rate: '0.0300',
         vat_tax_rate: '0.1000',
         meal_allowance: '21000',
+      }),
+    );
+
+    fireEvent.change(screen.getByDisplayValue('20000.00'), { target: { value: '25000.00' } });
+    fireEvent.click(screen.getByRole('button', { name: '단가표 저장' }));
+
+    expect(apiMocks.updateSettlementPricingTable).toHaveBeenCalledWith(
+      { request: expect.any(Function) },
+      '91000000-0000-0000-0000-000000000001',
+      expect.objectContaining({
+        overtime_fee: '25000.00',
       }),
     );
   });
