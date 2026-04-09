@@ -17,6 +17,7 @@ import {
   formatPayoutStatusLabel,
   formatSettlementStatusLabel,
 } from '../uiLabels';
+import { useSettlementFlow } from '../components/SettlementFlowContext';
 import { getCompanyName, getDriverName, getFleetName } from './settlementAdminHelpers';
 
 type SettlementOverviewPageProps = {
@@ -24,6 +25,7 @@ type SettlementOverviewPageProps = {
 };
 
 export function SettlementOverviewPage({ client }: SettlementOverviewPageProps) {
+  const { selectedCompanyId, selectedFleetId } = useSettlementFlow();
   const [runs, setRuns] = useState<SettlementRun[]>([]);
   const [items, setItems] = useState<SettlementItem[]>([]);
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -36,16 +38,25 @@ export function SettlementOverviewPage({ client }: SettlementOverviewPageProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [isDriverSummaryLoading, setIsDriverSummaryLoading] = useState(false);
 
+  function getScopeFilters() {
+    return {
+      ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
+      ...(selectedFleetId ? { fleet_id: selectedFleetId } : {}),
+    };
+  }
+
   useEffect(() => {
     let ignore = false;
 
     async function load() {
+      const scopeFilters = getScopeFilters();
+
       setIsLoading(true);
       setErrorMessage(null);
       try {
         const [runResponse, itemResponse, driverResponse, companyResponse, fleetResponse] = await Promise.all([
-          listSettlementReadRuns(client),
-          listSettlementReadItems(client),
+          listSettlementReadRuns(client, scopeFilters),
+          listSettlementReadItems(client, scopeFilters),
           listDrivers(client),
           listCompanies(client),
           listFleets(client),
@@ -75,7 +86,7 @@ export function SettlementOverviewPage({ client }: SettlementOverviewPageProps) 
     return () => {
       ignore = true;
     };
-  }, [client]);
+  }, [client, selectedCompanyId, selectedFleetId]);
 
   useEffect(() => {
     if (!drivers.length) {

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { IdentitySession } from '../types';
 
 import { CompanyNavigationPolicyPage } from './CompanyNavigationPolicyPage';
 
@@ -92,7 +93,7 @@ describe('CompanyNavigationPolicyPage', () => {
     });
   });
 
-  const session = {
+  const session: IdentitySession = {
     accessToken: 'token',
     sessionKind: 'normal',
     email: 'company-admin@example.com',
@@ -110,7 +111,7 @@ describe('CompanyNavigationPolicyPage', () => {
       roleDisplayName: '회사 전체 관리자',
     },
     availableAccountTypes: ['manager'],
-  } as const;
+  };
 
   it('loads company manager roles and saves selected role policy', async () => {
     render(<CompanyNavigationPolicyPage client={{ request: vi.fn() }} session={session} />);

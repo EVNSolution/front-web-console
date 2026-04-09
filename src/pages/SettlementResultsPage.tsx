@@ -41,10 +41,19 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  function getScopeFilters() {
+    return {
+      ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
+      ...(selectedFleetId ? { fleet_id: selectedFleetId } : {}),
+    };
+  }
+
   async function loadAll() {
+    const scopeFilters = getScopeFilters();
+
     const [itemResponse, runResponse, driverResponse, companyResponse, fleetResponse] = await Promise.all([
-      listSettlementItems(client),
-      listSettlementRuns(client),
+      listSettlementItems(client, scopeFilters),
+      listSettlementRuns(client, scopeFilters),
       listDrivers(client),
       listCompanies(client),
       listFleets(client),
@@ -66,12 +75,14 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
     let ignore = false;
 
     async function load() {
+      const scopeFilters = getScopeFilters();
+
       setIsLoading(true);
       setErrorMessage(null);
       try {
         const [itemResponse, runResponse, driverResponse, companyResponse, fleetResponse] = await Promise.all([
-          listSettlementItems(client),
-          listSettlementRuns(client),
+          listSettlementItems(client, scopeFilters),
+          listSettlementRuns(client, scopeFilters),
           listDrivers(client),
           listCompanies(client),
           listFleets(client),
@@ -106,7 +117,7 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client]);
+  }, [client, selectedCompanyId, selectedFleetId]);
 
   function getRunLabel(runId: string) {
     const run = runs.find((entry) => entry.settlement_run_id === runId);

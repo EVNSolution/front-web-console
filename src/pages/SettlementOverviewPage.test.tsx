@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SettlementOverviewPage } from './SettlementOverviewPage';
+import { SettlementFlowProvider } from '../components/SettlementFlowContext';
 
 const apiMocks = vi.hoisted(() => ({
   listCompanies: vi.fn(),
@@ -104,7 +105,11 @@ describe('SettlementOverviewPage', () => {
         latest_settlement: null,
       });
 
-    render(<SettlementOverviewPage client={{ request: vi.fn() }} />);
+    render(
+      <SettlementFlowProvider client={{ request: vi.fn() }}>
+        <SettlementOverviewPage client={{ request: vi.fn() }} />
+      </SettlementFlowProvider>,
+    );
 
     await screen.findByRole('heading', { name: '정산 운영 요약' });
     expect(await screen.findByText('Second Driver')).toBeInTheDocument();

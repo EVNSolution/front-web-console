@@ -29,9 +29,100 @@ vi.mock('./sessionPersistence', () => ({
 }));
 
 vi.mock('./api/organization', () => ({
-  listCompanies: vi.fn().mockResolvedValue([]),
-  listFleets: vi.fn().mockResolvedValue([]),
+  listCompanies: vi.fn().mockResolvedValue([
+    { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+  ]),
+  listFleets: vi.fn().mockResolvedValue([
+    {
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      route_no: 1,
+      company_id: '30000000-0000-0000-0000-000000000001',
+      name: 'Seed Fleet',
+    },
+  ]),
   listPublicCompanies: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('./api/settlementOps', () => ({
+  listSettlementReadRuns: vi.fn().mockResolvedValue([]),
+  listSettlementReadItems: vi.fn().mockResolvedValue([]),
+  getDriverLatestSettlement: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('./api/settlementRegistry', () => ({
+  getSettlementConfigMetadata: vi.fn().mockResolvedValue({
+    sections: [
+      {
+        key: 'tax_rates',
+        title: '세율',
+        description: '정산 산출에 적용되는 세금율입니다.',
+        fields: [
+          {
+            key: 'income_tax_rate',
+            label: '소득세율',
+            description: '과세 기준 소득세율',
+            input_type: 'percent',
+            unit: '%',
+            min: '0.0000',
+            max: '100.0000',
+            decimal_precision: 4,
+            required: true,
+          },
+        ],
+      },
+    ],
+  }),
+  getSettlementConfig: vi.fn().mockResolvedValue({
+    singleton_key: 'global',
+    income_tax_rate: '0.0000',
+    vat_tax_rate: '0.0000',
+    reported_amount_rate: '0.0000',
+    national_pension_rate: '0.0000',
+    health_insurance_rate: '0.0000',
+    medical_insurance_rate: '0.0000',
+    employment_insurance_rate: '0.0000',
+    industrial_accident_insurance_rate: '0.0000',
+    special_employment_insurance_rate: '0.0000',
+    special_industrial_accident_insurance_rate: '0.0000',
+    two_insurance_min_settlement_amount: '0.0000',
+    meal_allowance: '0.0000',
+  }),
+  updateSettlementConfig: vi.fn(),
+  listSettlementPolicies: vi.fn(),
+  createSettlementPolicy: vi.fn(),
+  updateSettlementPolicy: vi.fn(),
+  deleteSettlementPolicy: vi.fn(),
+  listSettlementPolicyVersions: vi.fn(),
+  createSettlementPolicyVersion: vi.fn(),
+  updateSettlementPolicyVersion: vi.fn(),
+  deleteSettlementPolicyVersion: vi.fn(),
+  listSettlementPolicyAssignments: vi.fn(),
+  createSettlementPolicyAssignment: vi.fn(),
+  updateSettlementPolicyAssignment: vi.fn(),
+  deleteSettlementPolicyAssignment: vi.fn(),
+}));
+
+vi.mock('./api/settlements', () => ({
+  listSettlementRuns: vi.fn().mockResolvedValue([]),
+  createSettlementRun: vi.fn(),
+  updateSettlementRun: vi.fn(),
+  deleteSettlementRun: vi.fn(),
+  listSettlementItems: vi.fn().mockResolvedValue([]),
+  createSettlementItem: vi.fn(),
+  updateSettlementItem: vi.fn(),
+  deleteSettlementItem: vi.fn(),
+}));
+
+vi.mock('./api/deliveryRecords', () => ({
+  listDeliveryRecords: vi.fn().mockResolvedValue([]),
+  createDeliveryRecord: vi.fn(),
+  updateDeliveryRecord: vi.fn(),
+  deleteDeliveryRecord: vi.fn(),
+  listDailyDeliveryInputSnapshots: vi.fn().mockResolvedValue([]),
+  createDailyDeliveryInputSnapshot: vi.fn(),
+  updateDailyDeliveryInputSnapshot: vi.fn(),
+  deleteDailyDeliveryInputSnapshot: vi.fn(),
+  bootstrapDispatchSnapshots: vi.fn(),
 }));
 
 vi.mock('./api/personnelDocuments', () => ({
@@ -132,5 +223,38 @@ describe('Admin App', () => {
     render(<App />);
 
     await waitFor(() => expect(window.location.pathname).toBe('/company/menu-policy'));
+  });
+
+  it('redirects /settlements to the standalone overview entry', async () => {
+    window.history.replaceState({}, '', '/settlements');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/settlements/overview'));
+  });
+
+  it('renders settlement overview without process tabs or context selectors', async () => {
+    window.history.replaceState({}, '', '/settlements/overview');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '정산 실행 조회' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '정산 기준' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('회사')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('플릿')).not.toBeInTheDocument();
+  });
+
+  it('renders settlement process routes with process tabs and context selectors', async () => {
+    window.history.replaceState({}, '', '/settlements/criteria');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '정산 처리' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '정산 기준' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '정산 입력' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '정산 실행' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '정산 결과' })).toBeInTheDocument();
+    expect(screen.getByLabelText('회사')).toBeInTheDocument();
+    expect(screen.getByLabelText('플릿')).toBeInTheDocument();
   });
 });

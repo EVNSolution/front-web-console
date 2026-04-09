@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 0,
   reporter: 'list',
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://gateway:8080',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5174',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

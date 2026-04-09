@@ -18,8 +18,35 @@ export type DispatchSnapshotBootstrapResult = {
   created_snapshot_ids: string[];
 };
 
-export function listDeliveryRecords(client: HttpClient) {
-  return client.request<DeliveryRecord[]>('/delivery-record/records/');
+export type DeliveryRecordListFilters = Partial<
+  Pick<DeliveryRecord, 'company_id' | 'fleet_id' | 'driver_id' | 'service_date' | 'status'>
+>;
+
+export function listDeliveryRecords(client: HttpClient, filters?: DeliveryRecordListFilters) {
+  const query = new URLSearchParams();
+
+  if (filters?.company_id) {
+    query.set('company_id', filters.company_id);
+  }
+  if (filters?.fleet_id) {
+    query.set('fleet_id', filters.fleet_id);
+  }
+  if (filters?.driver_id) {
+    query.set('driver_id', filters.driver_id);
+  }
+  if (filters?.service_date) {
+    query.set('service_date', filters.service_date);
+  }
+  if (filters?.status) {
+    query.set('status', filters.status);
+  }
+
+  const queryString = query.toString();
+  const path = queryString
+    ? `/delivery-record/records/?${queryString}`
+    : '/delivery-record/records/';
+
+  return client.request<DeliveryRecord[]>(path);
 }
 
 export function createDeliveryRecord(client: HttpClient, payload: DeliveryRecordPayload) {

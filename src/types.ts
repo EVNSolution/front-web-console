@@ -246,6 +246,27 @@ export type DispatchPlan = {
   updated_at: string;
 };
 
+export type DispatchUploadRow = {
+  upload_row_id: string;
+  row_index: number;
+  external_user_name: string;
+  small_region_text: string;
+  detailed_region_text: string;
+  box_count: number;
+  household_count: number;
+  matched_driver_id: string | null;
+};
+
+export type DispatchUploadBatch = {
+  upload_batch_id: string;
+  dispatch_plan_id: string;
+  source_filename: string;
+  upload_status: 'draft' | 'confirmed';
+  rows: DispatchUploadRow[];
+  created_at: string;
+  updated_at: string;
+};
+
 export type DispatchWorkRule = {
   work_rule_id: string;
   company_id: string;
@@ -549,6 +570,46 @@ export type SettlementPolicyAssignment = {
   effective_start_date: string;
   effective_end_date: string | null;
   status: string;
+};
+
+export type SettlementConfigMetadataField = {
+  key: string;
+  label: string;
+  description: string;
+  input_type: 'percent' | 'currency' | 'text';
+  unit: string;
+  min: string;
+  max: string;
+  decimal_precision?: number;
+  integer_only?: boolean;
+  required: boolean;
+};
+
+export type SettlementConfigMetadataSection = {
+  key: string;
+  title: string;
+  description: string;
+  fields: SettlementConfigMetadataField[];
+};
+
+export type SettlementConfigMetadata = {
+  sections: SettlementConfigMetadataSection[];
+};
+
+export type SettlementConfig = {
+  singleton_key: 'global';
+  income_tax_rate: string;
+  vat_tax_rate: string;
+  reported_amount_rate: string;
+  national_pension_rate: string;
+  health_insurance_rate: string;
+  medical_insurance_rate: string;
+  employment_insurance_rate: string;
+  industrial_accident_insurance_rate: string;
+  special_employment_insurance_rate: string;
+  special_industrial_accident_insurance_rate: string;
+  two_insurance_min_settlement_amount: string;
+  meal_allowance: string;
 };
 
 export type DeliveryRecord = {

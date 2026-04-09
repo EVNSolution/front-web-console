@@ -8,6 +8,7 @@ import { Layout } from './components/Layout';
 import { RequireAdmin } from './components/RequireAdmin';
 import { RequireRoleScope } from './components/RequireRoleScope';
 import { SettlementSectionLayout } from './components/SettlementSectionLayout';
+import { SettlementFlowProvider } from './components/SettlementFlowContext';
 import {
   canAccessCompanyScope,
   canAccessDispatchScope,
@@ -916,6 +917,22 @@ export default function App() {
               }
             />
             <Route
+              path="/settlements/overview"
+              element={
+                <RequireRoleScope
+                  message="정산은 시스템 관리자, 회사 전체 관리자, 정산 관리자만 관리할 수 있습니다."
+                  onLogout={handleLogout}
+                  session={session}
+                  title="정산 관리 권한 필요"
+                  when={canAccessSettlementScope}
+                >
+                  <SettlementFlowProvider client={client}>
+                    <SettlementOverviewPage client={client} />
+                  </SettlementFlowProvider>
+                </RequireRoleScope>
+              }
+            />
+            <Route
               path="/settlements"
               element={
                 <RequireRoleScope
@@ -930,7 +947,6 @@ export default function App() {
               }
             >
               <Route index element={<Navigate replace to="/settlements/overview" />} />
-              <Route path="overview" element={<SettlementOverviewPage client={client} />} />
               <Route path="criteria" element={<SettlementCriteriaPage client={client} />} />
               <Route path="inputs" element={<SettlementInputsPage client={client} />} />
               <Route path="runs" element={<SettlementRunsPage client={client} />} />

@@ -5,7 +5,6 @@ import { PageLayout } from './PageLayout';
 import { SettlementFlowProvider, useSettlementFlow } from './SettlementFlowContext';
 
 const SETTLEMENT_NAV_ITEMS = [
-  { to: '/settlements/overview', label: '정산 조회' },
   { to: '/settlements/criteria', label: '정산 기준' },
   { to: '/settlements/inputs', label: '정산 입력' },
   { to: '/settlements/runs', label: '정산 실행' },
@@ -90,7 +89,7 @@ export function SettlementSectionLayout({ client }: SettlementSectionLayoutProps
             ))}
           </div>
         }
-        title="정산"
+        title="정산 처리"
       >
         <Outlet />
       </PageLayout>

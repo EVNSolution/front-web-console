@@ -15,6 +15,14 @@ vi.mock('../api/dispatchRegistry', () => ({
 
 vi.mock('../api/deliveryRecords', () => ({
   listDailyDeliveryInputSnapshots: apiMocks.listDailyDeliveryInputSnapshots,
+  listDeliveryRecords: vi.fn(),
+  createDeliveryRecord: vi.fn(),
+  updateDeliveryRecord: vi.fn(),
+  deleteDeliveryRecord: vi.fn(),
+  createDailyDeliveryInputSnapshot: vi.fn(),
+  updateDailyDeliveryInputSnapshot: vi.fn(),
+  deleteDailyDeliveryInputSnapshot: vi.fn(),
+  bootstrapDailySnapshotsFromDispatch: vi.fn(),
 }));
 
 vi.mock('../api/organization', () => ({

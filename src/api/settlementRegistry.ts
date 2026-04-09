@@ -1,4 +1,6 @@
 import type {
+  SettlementConfig,
+  SettlementConfigMetadata,
   SettlementPolicy,
   SettlementPolicyAssignment,
   SettlementPolicyVersion,
@@ -8,6 +10,25 @@ import type { HttpClient } from './http';
 export type SettlementPolicyPayload = Omit<SettlementPolicy, 'policy_id'>;
 export type SettlementPolicyVersionPayload = Omit<SettlementPolicyVersion, 'policy_version_id'>;
 export type SettlementPolicyAssignmentPayload = Omit<SettlementPolicyAssignment, 'assignment_id'>;
+export type SettlementConfigPayload = Omit<SettlementConfig, 'singleton_key'>;
+
+export function getSettlementConfigMetadata(client: HttpClient) {
+  return client.request<SettlementConfigMetadata>('/settlement-registry/settlement-config/metadata/');
+}
+
+export function getSettlementConfig(client: HttpClient) {
+  return client.request<SettlementConfig>('/settlement-registry/settlement-config/');
+}
+
+export function updateSettlementConfig(
+  client: HttpClient,
+  payload: Partial<SettlementConfigPayload>,
+) {
+  return client.request<SettlementConfig>('/settlement-registry/settlement-config/', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
 
 export function listSettlementPolicies(client: HttpClient) {
   return client.request<SettlementPolicy[]>('/settlement-registry/policies/');

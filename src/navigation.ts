@@ -171,10 +171,22 @@ const dispatchItems: NavigationItem[] = [
 const settlementItems: NavigationItem[] = [
   {
     key: 'settlements',
-    label: '정산',
+    label: '정산 조회',
     to: '/settlements/overview',
     isVisible: canAccessSettlementScope,
-    matchPrefixes: ['/settlements'],
+    matchPrefixes: ['/settlements/overview'],
+  },
+  {
+    key: 'settlements',
+    label: '정산 처리',
+    to: '/settlements/criteria',
+    isVisible: canAccessSettlementScope,
+    matchPrefixes: [
+      '/settlements/criteria',
+      '/settlements/inputs',
+      '/settlements/runs',
+      '/settlements/results',
+    ],
   },
 ];
 
@@ -220,7 +232,6 @@ export const navigationGroups: NavigationGroup[] = [
     label: '정산',
     isVisible: (session) => anyVisible(settlementItems, session),
     items: settlementItems,
-    displayMode: 'link',
   },
 ];
 

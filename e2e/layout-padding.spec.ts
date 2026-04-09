@@ -1,13 +1,17 @@
 import { expect, test } from '@playwright/test';
 
+const adminEmail = process.env.PLAYWRIGHT_ADMIN_EMAIL ?? 'seed-admin@example.com';
+const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD ?? 'imjing12!';
+
 test('logged-in console pages keep outer content padding', async ({ page }) => {
   await page.goto('/');
 
-  await page.getByLabel('이메일').fill('admin@example.com');
-  await page.getByLabel('비밀번호').fill('change-me');
+  await page.getByLabel('아이디').fill(adminEmail);
+  await page.getByLabel('비밀번호').fill(adminPassword);
   await page.getByRole('button', { name: '로그인' }).click();
 
-  await expect(page.getByRole('heading', { name: '운영 관리 현황' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '내 계정' })).toBeVisible();
 
   const shellPadding = await page.locator('.console-content').evaluate((element) => {
     const styles = window.getComputedStyle(element);

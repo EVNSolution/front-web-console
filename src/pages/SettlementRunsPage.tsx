@@ -45,11 +45,20 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  function getScopeFilters() {
+    return {
+      ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
+      ...(selectedFleetId ? { fleet_id: selectedFleetId } : {}),
+    };
+  }
+
   async function loadAll() {
+    const scopeFilters = getScopeFilters();
+
     const [runResponse, recordResponse, snapshotResponse, companyResponse, fleetResponse] = await Promise.all([
-      listSettlementRuns(client),
-      listDeliveryRecords(client),
-      listDailyDeliveryInputSnapshots(client),
+      listSettlementRuns(client, scopeFilters),
+      listDeliveryRecords(client, scopeFilters),
+      listDailyDeliveryInputSnapshots(client, scopeFilters),
       listCompanies(client),
       listFleets(client),
     ]);
@@ -81,13 +90,15 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
     let ignore = false;
 
     async function load() {
+      const scopeFilters = getScopeFilters();
+
       setIsLoading(true);
       setErrorMessage(null);
       try {
         const [runResponse, recordResponse, snapshotResponse, companyResponse, fleetResponse] = await Promise.all([
-          listSettlementRuns(client),
-          listDeliveryRecords(client),
-          listDailyDeliveryInputSnapshots(client),
+          listSettlementRuns(client, scopeFilters),
+          listDeliveryRecords(client, scopeFilters),
+          listDailyDeliveryInputSnapshots(client, scopeFilters),
           listCompanies(client),
           listFleets(client),
         ]);
@@ -129,7 +140,7 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client]);
+  }, [client, selectedCompanyId, selectedFleetId]);
 
   function resetRunForm() {
     const companyId = selectedCompanyId || companies[0]?.company_id || '';

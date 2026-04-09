@@ -22,7 +22,7 @@ describe('Admin LoginPage', () => {
         />,
       );
 
-      await user.type(screen.getByLabelText(/이메일/i), 'admin@example.com');
+      await user.type(screen.getByLabelText(/아이디/i), 'admin@example.com');
       await user.type(screen.getByLabelText(/비밀번호/i), 'change-me');
       await user.click(screen.getByRole('button', { name: /^로그인$/i }));
 
@@ -31,11 +31,11 @@ describe('Admin LoginPage', () => {
         password: 'change-me',
       });
       expect(screen.getByRole('button', { name: /^로그인$/i }).closest('form')).not.toBeNull();
-      expect(screen.getByLabelText(/이메일/i)).toHaveAttribute('autocomplete', 'email');
+      expect(screen.getByLabelText(/아이디/i)).toHaveAttribute('autocomplete', 'email');
       expect(screen.getByLabelText(/비밀번호/i)).toHaveAttribute('autocomplete', 'current-password');
       expect(screen.getByText('로그인 실패')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /로그인 화면/i })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /회원가입 요청/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /회원가입/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /비밀번호 찾기/i })).toBeInTheDocument();
       expect(container.querySelector('.login-browser-frame')).toBeNull();
       expect(screen.getByAltText(/EV&Solution Logistics/i)).toHaveAttribute(
@@ -63,7 +63,7 @@ describe('Admin LoginPage', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /회원가입 요청/i }));
+    await user.click(screen.getByRole('button', { name: /^회원가입$/i }));
     await user.type(screen.getByLabelText(/이름/i), '홍길동');
     await user.type(screen.getByLabelText(/생년월일/i), '1990-01-02');
     await user.type(await screen.findByLabelText(/가입 이메일/i), 'hong@example.com');

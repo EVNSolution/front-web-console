@@ -67,6 +67,20 @@ const DEFAULT_SNAPSHOT_FORM = {
   status: 'active',
 };
 
+function isDispatchUploadRecord(record: DeliveryRecord) {
+  return record.source_reference.startsWith('dispatch-upload-row:');
+}
+
+function getPayloadText(payload: Record<string, unknown>, key: string) {
+  const value = payload[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function getPayloadNumber(payload: Record<string, unknown>, key: string) {
+  const value = payload[key];
+  return typeof value === 'number' ? value : 0;
+}
+
 export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
   const { selectedCompanyId, selectedFleetId } = useSettlementFlow();
   const [records, setRecords] = useState<DeliveryRecord[]>([]);
@@ -83,14 +97,23 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  function getScopeFilters() {
+    return {
+      ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
+      ...(selectedFleetId ? { fleet_id: selectedFleetId } : {}),
+    };
+  }
+
   function getDriverOptions(companyId: string, fleetId: string) {
     return drivers.filter((driver) => driver.company_id === companyId && driver.fleet_id === fleetId);
   }
 
   async function loadAll() {
+    const scopeFilters = getScopeFilters();
+
     const [recordResponse, snapshotResponse, companyResponse, fleetResponse, driverResponse] = await Promise.all([
-      listDeliveryRecords(client),
-      listDailyDeliveryInputSnapshots(client),
+      listDeliveryRecords(client, scopeFilters),
+      listDailyDeliveryInputSnapshots(client, scopeFilters),
       listCompanies(client),
       listFleets(client),
       listDrivers(client),
@@ -149,12 +172,14 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
     let ignore = false;
 
     async function load() {
+      const scopeFilters = getScopeFilters();
+
       setIsLoading(true);
       setErrorMessage(null);
       try {
         const [recordResponse, snapshotResponse, companyResponse, fleetResponse, driverResponse] = await Promise.all([
-          listDeliveryRecords(client),
-          listDailyDeliveryInputSnapshots(client),
+          listDeliveryRecords(client, scopeFilters),
+          listDailyDeliveryInputSnapshots(client, scopeFilters),
           listCompanies(client),
           listFleets(client),
           listDrivers(client),
@@ -226,7 +251,7 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client]);
+  }, [client, selectedCompanyId, selectedFleetId]);
 
   function getDriverOptionsFromList(driverList: DriverProfile[], companyId: string, fleetId: string) {
     return driverList.filter((driver) => driver.company_id === companyId && driver.fleet_id === fleetId);
@@ -493,6 +518,10 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
   const draftSnapshotCount = filteredSnapshots.filter((snapshot) => snapshot.status === 'draft').length;
   const activeSnapshotCount = filteredSnapshots.filter((snapshot) => snapshot.status === 'active').length;
   const readyDriverCount = new Set(filteredSnapshots.map((snapshot) => snapshot.driver_id)).size;
+  const uploadDerivedRecords = filteredRecords.filter(isDispatchUploadRecord);
+  const uploadDerivedBoxCount = uploadDerivedRecords.reduce((sum, record) => sum + record.delivery_count, 0);
+  const uploadDerivedDriverCount = new Set(uploadDerivedRecords.map((record) => record.driver_id)).size;
+  const uploadDerivedServiceDateCount = new Set(uploadDerivedRecords.map((record) => record.service_date)).size;
 
   return (
     <div className="stack large-gap">
@@ -530,16 +559,93 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
               </article>
             </div>
             <div className="panel-toolbar">
-              <span className="table-meta">원천 입력과 일별 스냅샷을 먼저 정리한 뒤 정산 실행 단계로 넘깁니다.</span>
+              <span className="table-meta">
+                업로드 결과로 만들어진 정산 대상 snapshot을 먼저 검토하고, 필요한 예외만 수동 보정합니다.
+              </span>
               <div className="panel-toolbar-actions">
                 <span className="table-meta">record {filteredRecords.length}건</span>
                 <span className="table-meta">snapshot {filteredSnapshots.length}건</span>
+                <Link className="button ghost small" to="/dispatch/boards">
+                  배차 보드로 이동
+                </Link>
                 <Link className="button ghost small" to="/settlements/runs">
                   정산 실행으로 이동
                 </Link>
               </div>
             </div>
           </>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="panel-kicker">업로드 검토</p>
+            <h2>업로드 기준 검토</h2>
+          </div>
+        </div>
+        <div className="panel-toolbar">
+          <span className="table-meta">
+            배차표에서 확정된 row만 정산 대상 record로 취급합니다. 권역과 가구 수는 검토 참고값으로만 남기고,
+            박스 수를 정산 기준으로 사용합니다.
+          </span>
+        </div>
+        <div className="summary-strip">
+          <article className="summary-item">
+            <span>업로드 기반 record</span>
+            <strong>{uploadDerivedRecords.length}</strong>
+            <small>배차 업로드에서 넘어온 정산 대상 row</small>
+          </article>
+          <article className="summary-item">
+            <span>총 박스 수</span>
+            <strong>{uploadDerivedBoxCount}</strong>
+            <small>정산 계산에 직접 쓰는 box 기준 수량</small>
+          </article>
+          <article className="summary-item">
+            <span>대상 배송원</span>
+            <strong>{uploadDerivedDriverCount}</strong>
+            <small>업로드 row가 연결된 배송원 수</small>
+          </article>
+          <article className="summary-item">
+            <span>서비스 일자</span>
+            <strong>{uploadDerivedServiceDateCount}</strong>
+            <small>현재 문맥에서 검토 중인 배차 일자 수</small>
+          </article>
+        </div>
+        {uploadDerivedRecords.length ? (
+          <div className="stack tight">
+            {uploadDerivedRecords.map((record) => {
+              const householdCount = getPayloadNumber(record.payload, 'household_count');
+              const smallRegionText = getPayloadText(record.payload, 'small_region_text');
+              const detailedRegionText = getPayloadText(record.payload, 'detailed_region_text');
+
+              return (
+                <div className="list-card" key={record.delivery_record_id}>
+                  <div className="list-card-header">
+                    <div>
+                      <h3>{getDriverName(drivers, record.driver_id)}</h3>
+                      <p>
+                        {record.service_date} · 박스 {record.delivery_count}
+                        {householdCount ? ` · 가구 ${householdCount}` : ''}
+                      </p>
+                    </div>
+                    <span className="status-badge">{formatDeliveryRecordStatusLabel(record.status)}</span>
+                  </div>
+                  <div className="stack tight">
+                    <p>
+                      권역 {smallRegionText || '-'}
+                      {detailedRegionText ? ` / ${detailedRegionText}` : ''}
+                    </p>
+                    <p>{record.source_reference}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="empty-state">
+            아직 업로드에서 만들어진 정산 대상이 없습니다. 배차 보드에서 배차표를 확정한 뒤 정산 입력으로 넘기세요.
+          </p>
         )}
       </section>
 

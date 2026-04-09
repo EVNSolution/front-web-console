@@ -1,45 +1,53 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 
+import * as deliveryRecords from '../api/deliveryRecords';
+import * as driversApi from '../api/drivers';
+import * as organizationApi from '../api/organization';
 import { SettlementFlowProvider } from '../components/SettlementFlowContext';
 import { SettlementInputsPage } from './SettlementInputsPage';
 
-const apiMocks = vi.hoisted(() => ({
+vi.mock('../api/organization', () => ({
   listCompanies: vi.fn(),
   listFleets: vi.fn(),
-  listDrivers: vi.fn(),
-  listDeliveryRecords: vi.fn(),
-  listDailyDeliveryInputSnapshots: vi.fn(),
-  updateDailyDeliveryInputSnapshot: vi.fn(),
-}));
-
-vi.mock('../api/organization', () => ({
-  listCompanies: apiMocks.listCompanies,
-  listFleets: apiMocks.listFleets,
 }));
 
 vi.mock('../api/drivers', () => ({
-  listDrivers: apiMocks.listDrivers,
+  listDrivers: vi.fn(),
 }));
 
 vi.mock('../api/deliveryRecords', () => ({
-  listDeliveryRecords: apiMocks.listDeliveryRecords,
-  listDailyDeliveryInputSnapshots: apiMocks.listDailyDeliveryInputSnapshots,
+  listDeliveryRecords: vi.fn(),
+  listDailyDeliveryInputSnapshots: vi.fn(),
   createDeliveryRecord: vi.fn(),
   updateDeliveryRecord: vi.fn(),
   deleteDeliveryRecord: vi.fn(),
   createDailyDeliveryInputSnapshot: vi.fn(),
-  updateDailyDeliveryInputSnapshot: apiMocks.updateDailyDeliveryInputSnapshot,
+  updateDailyDeliveryInputSnapshot: vi.fn(),
   deleteDailyDeliveryInputSnapshot: vi.fn(),
 }));
 
+const mockedListCompanies = vi.mocked(organizationApi.listCompanies);
+const mockedListFleets = vi.mocked(organizationApi.listFleets);
+const mockedListDrivers = vi.mocked(driversApi.listDrivers);
+const mockedListDeliveryRecords = vi.mocked(deliveryRecords.listDeliveryRecords);
+const mockedListDailyDeliveryInputSnapshots = vi.mocked(
+  deliveryRecords.listDailyDeliveryInputSnapshots,
+);
+const mockedUpdateDailyDeliveryInputSnapshot = vi.mocked(deliveryRecords.updateDailyDeliveryInputSnapshot);
+
 describe('SettlementInputsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('allows draft snapshots to be activated from the list', async () => {
-    apiMocks.listCompanies.mockResolvedValue([
+    mockedListCompanies.mockResolvedValue([
       { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
     ]);
-    apiMocks.listFleets.mockResolvedValue([
+    mockedListFleets.mockResolvedValue([
       {
         fleet_id: '40000000-0000-0000-0000-000000000001',
         route_no: 1,
@@ -47,11 +55,10 @@ describe('SettlementInputsPage', () => {
         name: 'Seed Fleet',
       },
     ]);
-    apiMocks.listDrivers.mockResolvedValue([
+    mockedListDrivers.mockResolvedValue([
       {
         driver_id: '10000000-0000-0000-0000-000000000001',
         route_no: 1,
-        account_id: null,
         company_id: '30000000-0000-0000-0000-000000000001',
         fleet_id: '40000000-0000-0000-0000-000000000001',
         name: 'Seed Driver',
@@ -60,22 +67,37 @@ describe('SettlementInputsPage', () => {
         address: 'Seoul',
       },
     ]);
-    apiMocks.listDeliveryRecords.mockResolvedValue([]);
-    apiMocks.listDailyDeliveryInputSnapshots.mockResolvedValue([
-      {
-        daily_delivery_input_snapshot_id: 'snapshot-draft-1',
-        company_id: '30000000-0000-0000-0000-000000000001',
-        fleet_id: '40000000-0000-0000-0000-000000000001',
-        driver_id: '10000000-0000-0000-0000-000000000001',
-        service_date: '2026-03-30',
-        delivery_count: 0,
-        total_distance_km: '0.00',
-        total_base_amount: '0.00',
-        source_record_count: 0,
-        status: 'draft',
-      },
-    ]);
-    apiMocks.updateDailyDeliveryInputSnapshot.mockResolvedValue({
+    mockedListDeliveryRecords.mockResolvedValue([]);
+    mockedListDailyDeliveryInputSnapshots
+      .mockResolvedValueOnce([
+        {
+          daily_delivery_input_snapshot_id: 'snapshot-draft-1',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          fleet_id: '40000000-0000-0000-0000-000000000001',
+          driver_id: '10000000-0000-0000-0000-000000000001',
+          service_date: '2026-03-30',
+          delivery_count: 0,
+          total_distance_km: '0.00',
+          total_base_amount: '0.00',
+          source_record_count: 0,
+          status: 'draft',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          daily_delivery_input_snapshot_id: 'snapshot-draft-1',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          fleet_id: '40000000-0000-0000-0000-000000000001',
+          driver_id: '10000000-0000-0000-0000-000000000001',
+          service_date: '2026-03-30',
+          delivery_count: 0,
+          total_distance_km: '0.00',
+          total_base_amount: '0.00',
+          source_record_count: 0,
+          status: 'active',
+        },
+      ]);
+    mockedUpdateDailyDeliveryInputSnapshot.mockResolvedValue({
       daily_delivery_input_snapshot_id: 'snapshot-draft-1',
       company_id: '30000000-0000-0000-0000-000000000001',
       fleet_id: '40000000-0000-0000-0000-000000000001',
@@ -97,20 +119,20 @@ describe('SettlementInputsPage', () => {
     );
 
     const activateButton = await screen.findByRole('button', { name: '활성화' });
-    fireEvent.click(activateButton);
+    const user = userEvent.setup();
+    await user.click(activateButton);
 
-    expect(apiMocks.updateDailyDeliveryInputSnapshot).toHaveBeenCalledWith(
-      expect.anything(),
-      'snapshot-draft-1',
-      { status: 'active' },
-    );
+    await waitFor(() => {
+      expect(screen.getByText('활성')).toBeInTheDocument();
+      expect(screen.queryByText('draft snapshot')).not.toBeInTheDocument();
+    });
   });
 
-  it('prioritizes upload and validation shells ahead of manual inputs', async () => {
-    apiMocks.listCompanies.mockResolvedValue([
+  it('renders upload-first review language ahead of manual correction', async () => {
+    mockedListCompanies.mockResolvedValue([
       { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
     ]);
-    apiMocks.listFleets.mockResolvedValue([
+    mockedListFleets.mockResolvedValue([
       {
         fleet_id: '40000000-0000-0000-0000-000000000001',
         route_no: 1,
@@ -118,11 +140,10 @@ describe('SettlementInputsPage', () => {
         name: 'Seed Fleet',
       },
     ]);
-    apiMocks.listDrivers.mockResolvedValue([
+    mockedListDrivers.mockResolvedValue([
       {
         driver_id: '10000000-0000-0000-0000-000000000001',
         route_no: 1,
-        account_id: null,
         company_id: '30000000-0000-0000-0000-000000000001',
         fleet_id: '40000000-0000-0000-0000-000000000001',
         name: 'Seed Driver',
@@ -131,8 +152,26 @@ describe('SettlementInputsPage', () => {
         address: 'Seoul',
       },
     ]);
-    apiMocks.listDeliveryRecords.mockResolvedValue([]);
-    apiMocks.listDailyDeliveryInputSnapshots.mockResolvedValue([
+    mockedListDeliveryRecords.mockResolvedValue([
+      {
+        delivery_record_id: 'record-1',
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        driver_id: '10000000-0000-0000-0000-000000000001',
+        service_date: '2026-03-30',
+        source_reference: 'dispatch-upload-row:upload-row-1',
+        delivery_count: 133,
+        distance_km: '0.00',
+        base_amount: '0.00',
+        status: 'confirmed',
+        payload: {
+          household_count: 90,
+          small_region_text: '10H2',
+          detailed_region_text: '10H2-가',
+        },
+      },
+    ]);
+    mockedListDailyDeliveryInputSnapshots.mockResolvedValue([
       {
         daily_delivery_input_snapshot_id: 'snapshot-draft-1',
         company_id: '30000000-0000-0000-0000-000000000001',
@@ -156,11 +195,13 @@ describe('SettlementInputsPage', () => {
     );
 
     await screen.findByRole('heading', { name: '정산 입력 요약' });
-    expect(screen.queryByText('검증 요약')).not.toBeInTheDocument();
-    expect(screen.queryByText('업로드 흐름')).not.toBeInTheDocument();
-    const draftSnapshotMetric = screen.getByText('Draft Snapshot').closest('article') as HTMLElement;
-    expect(draftSnapshotMetric).toBeTruthy();
-    expect(within(draftSnapshotMetric).getByText('1')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /정산 실행으로 이동/i })).toBeInTheDocument();
+    await screen.findByText('업로드 결과로 만들어진 정산 대상 snapshot을 먼저 검토하고, 필요한 예외만 수동 보정합니다.');
+    expect(screen.getByRole('heading', { name: '업로드 기준 검토' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Seed Driver', level: 3 })).toBeInTheDocument();
+    expect(screen.getByText(/박스 133/)).toBeInTheDocument();
+    expect(screen.getByText(/10H2/)).toBeInTheDocument();
+    expect(screen.getByText('dispatch-upload-row:upload-row-1')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /배차 보드로 이동/i })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /정산 실행으로 이동/i })).toBeInTheDocument();
   });
 });

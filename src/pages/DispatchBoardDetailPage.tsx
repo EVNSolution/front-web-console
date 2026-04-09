@@ -12,6 +12,7 @@ import {
   createOutsourcedDriver,
   archiveOutsourcedDriver,
   listDriverDayExceptions,
+  listDispatchUploadBatches,
   listDispatchPlans,
   listDispatchWorkRules,
   listOutsourcedDrivers,
@@ -35,6 +36,7 @@ import type {
   DispatchBoardRow,
   DispatchBoardSummary,
   DispatchPlan,
+  DispatchUploadBatch,
   DispatchWorkRule,
   DriverDayException,
   DriverProfile,
@@ -43,6 +45,7 @@ import type {
   VehicleMaster,
   VehicleSchedule,
 } from '../types';
+import { DispatchUploadWizard } from '../components/DispatchUploadWizard';
 import { PageLayout } from '../components/PageLayout';
 
 type DispatchBoardDetailPageProps = {
@@ -87,6 +90,7 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
   const [companies, setCompanies] = useState<Company[]>([]);
   const [fleet, setFleet] = useState<Fleet | null>(null);
   const [dispatchPlan, setDispatchPlan] = useState<DispatchPlan | null>(null);
+  const [confirmedUploadBatches, setConfirmedUploadBatches] = useState<DispatchUploadBatch[]>([]);
   const [vehicleSchedules, setVehicleSchedules] = useState<VehicleSchedule[]>([]);
   const [vehicles, setVehicles] = useState<VehicleMaster[]>([]);
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -151,6 +155,7 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
           driverDayExceptionResponse,
           activeOutsourcedDriverResponse,
           archivedOutsourcedDriverResponse,
+          uploadBatchResponse,
           dailySnapshotResponse,
         ] = await Promise.all([
           getDispatchSummary(client, selectedDispatchDate, fleetResponse.fleet_id),
@@ -181,6 +186,12 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
             dispatch_date: selectedDispatchDate,
             status: 'archived',
           }),
+          listDispatchUploadBatches(client, {
+            company_id: fleetResponse.company_id,
+            fleet_id: fleetResponse.fleet_id,
+            dispatch_date: selectedDispatchDate,
+            upload_status: 'confirmed',
+          }),
           listDailyDeliveryInputSnapshots(client, {
             company_id: fleetResponse.company_id,
             fleet_id: fleetResponse.fleet_id,
@@ -202,6 +213,7 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
         setDriverDayExceptions(driverDayExceptionResponse);
         setActiveOutsourcedDrivers(activeOutsourcedDriverResponse);
         setArchivedOutsourcedDrivers(archivedOutsourcedDriverResponse);
+        setConfirmedUploadBatches(uploadBatchResponse);
         setDailySnapshots(dailySnapshotResponse);
         setNewScheduleVehicleId(vehicleResponse[0]?.vehicle_id ?? '');
         setNewAssignmentScheduleId(scheduleResponse[0]?.vehicle_schedule_id ?? '');
@@ -274,6 +286,7 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
       driverDayExceptionResponse,
       activeOutsourcedDriverResponse,
       archivedOutsourcedDriverResponse,
+      uploadBatchResponse,
       dailySnapshotResponse,
     ] = await Promise.all([
       getDispatchSummary(client, dispatchDate, fleet.fleet_id),
@@ -296,6 +309,12 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
         dispatch_date: dispatchDate,
         status: 'archived',
       }),
+      listDispatchUploadBatches(client, {
+        company_id: fleet.company_id,
+        fleet_id: fleet.fleet_id,
+        dispatch_date: dispatchDate,
+        upload_status: 'confirmed',
+      }),
       listDailyDeliveryInputSnapshots(client, {
         company_id: fleet.company_id,
         fleet_id: fleet.fleet_id,
@@ -310,6 +329,7 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
     setDriverDayExceptions(driverDayExceptionResponse);
     setActiveOutsourcedDrivers(activeOutsourcedDriverResponse);
     setArchivedOutsourcedDrivers(archivedOutsourcedDriverResponse);
+    setConfirmedUploadBatches(uploadBatchResponse);
     setDailySnapshots(dailySnapshotResponse);
     setNewAssignmentScheduleId(scheduleResponse[0]?.vehicle_schedule_id ?? '');
     setNewAssignmentMode(
@@ -652,6 +672,10 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
               </dd>
             </div>
             <div>
+              <dt>배차 업로드</dt>
+              <dd>{confirmedUploadBatches.length ? `업로드 확정 ${confirmedUploadBatches.length}건` : '배차 업로드 대기'}</dd>
+            </div>
+            <div>
               <dt>draft snapshot</dt>
               <dd>{draftDailySnapshotCount}</dd>
             </div>
@@ -662,6 +686,13 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
           </dl>
         )}
       </section>
+
+      <DispatchUploadWizard
+        client={client}
+        confirmedBatches={confirmedUploadBatches}
+        dispatchPlanId={dispatchPlan?.dispatch_plan_id ?? null}
+        onConfirmed={reloadBoard}
+      />
 
       <section className="panel">
         <div className="panel-header panel-header-inline">

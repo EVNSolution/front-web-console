@@ -21,6 +21,25 @@ type SidebarWorkbenchSection = {
   items: SidebarWorkbenchItem[];
 };
 
+function buildWorkbenchItemsForGroup(group: (typeof navigationGroups)[number]): SidebarWorkbenchItem[] {
+  const itemsByKey = new Map<string, SidebarWorkbenchItem>();
+
+  for (const item of group.items) {
+    if (itemsByKey.has(item.key)) {
+      continue;
+    }
+
+    const duplicateCount = group.items.filter((candidate) => candidate.key === item.key).length;
+    itemsByKey.set(item.key, {
+      key: item.key,
+      label: duplicateCount > 1 ? group.label : item.label,
+      editable: !NON_EDITABLE_ITEM_KEYS.has(item.key),
+    });
+  }
+
+  return Array.from(itemsByKey.values());
+}
+
 type PolicyDropdownOption = {
   value: string;
   label: string;
@@ -39,11 +58,7 @@ const SIDEBAR_WORKBENCH_SECTIONS: SidebarWorkbenchSection[] = [
   ...navigationGroups.map((group) => ({
     key: group.key,
     label: group.label,
-    items: group.items.map((item) => ({
-      key: item.key,
-      label: item.label,
-      editable: !NON_EDITABLE_ITEM_KEYS.has(item.key),
-    })),
+    items: buildWorkbenchItemsForGroup(group),
   })),
 ];
 

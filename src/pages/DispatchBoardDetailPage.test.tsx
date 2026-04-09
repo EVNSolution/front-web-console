@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DispatchBoardDetailPage } from './DispatchBoardDetailPage';
 
 const apiMocks = vi.hoisted(() => ({
+  listDispatchUploadBatches: vi.fn(),
+  previewDispatchUpload: vi.fn(),
+  confirmDispatchUpload: vi.fn(),
   createDispatchAssignment: vi.fn(),
   createDriverDayException: vi.fn(),
   createDispatchWorkRule: vi.fn(),
@@ -35,6 +38,9 @@ vi.mock('../api/dispatchOps', () => ({
 }));
 
 vi.mock('../api/dispatchRegistry', () => ({
+  listDispatchUploadBatches: apiMocks.listDispatchUploadBatches,
+  previewDispatchUpload: apiMocks.previewDispatchUpload,
+  confirmDispatchUpload: apiMocks.confirmDispatchUpload,
   createDispatchAssignment: apiMocks.createDispatchAssignment,
   createDriverDayException: apiMocks.createDriverDayException,
   createDispatchWorkRule: apiMocks.createDispatchWorkRule,
@@ -54,7 +60,14 @@ vi.mock('../api/dispatchRegistry', () => ({
 }));
 
 vi.mock('../api/deliveryRecords', () => ({
+  listDeliveryRecords: vi.fn(),
   listDailyDeliveryInputSnapshots: apiMocks.listDailyDeliveryInputSnapshots,
+  createDeliveryRecord: vi.fn(),
+  updateDeliveryRecord: vi.fn(),
+  deleteDeliveryRecord: vi.fn(),
+  createDailyDeliveryInputSnapshot: vi.fn(),
+  updateDailyDeliveryInputSnapshot: vi.fn(),
+  deleteDailyDeliveryInputSnapshot: vi.fn(),
   bootstrapDailySnapshotsFromDispatch: apiMocks.bootstrapDailySnapshotsFromDispatch,
 }));
 
@@ -93,6 +106,9 @@ function mockOutsourcedDriverLists(activeDrivers: unknown[], archivedDrivers: un
 
 describe('DispatchBoardDetailPage', () => {
   beforeEach(() => {
+    apiMocks.listDispatchUploadBatches.mockResolvedValue([]);
+    apiMocks.previewDispatchUpload.mockResolvedValue(null);
+    apiMocks.confirmDispatchUpload.mockResolvedValue(null);
     apiMocks.listDailyDeliveryInputSnapshots.mockResolvedValue([]);
     apiMocks.bootstrapDailySnapshotsFromDispatch.mockResolvedValue({
       created_count: 1,
@@ -275,6 +291,80 @@ describe('DispatchBoardDetailPage', () => {
           service_date: '2026-03-24',
         },
       );
+    });
+  });
+
+  it('shows confirmed dispatch upload batches in the board context', async () => {
+    apiMocks.listDispatchPlans.mockResolvedValue([
+      {
+        dispatch_plan_id: 'dispatch-plan-1',
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        dispatch_date: '2026-03-24',
+        planned_volume: 120,
+        dispatch_status: 'draft',
+      },
+    ]);
+    apiMocks.getDispatchSummary.mockResolvedValue({
+      dispatch_date: '2026-03-24',
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      planned_volume: 120,
+      planned_assignment_count: 1,
+      matched_count: 1,
+      not_started_count: 0,
+      dispatch_unit_changed_count: 0,
+      unplanned_current_count: 0,
+    });
+    apiMocks.getDispatchBoard.mockResolvedValue([]);
+    apiMocks.listDispatchUploadBatches.mockResolvedValue([
+      {
+        upload_batch_id: 'upload-batch-1',
+        dispatch_plan_id: 'dispatch-plan-1',
+        source_filename: 'dispatch.xlsx',
+        upload_status: 'confirmed',
+        created_at: '2026-03-24T09:00:00Z',
+        updated_at: '2026-03-24T09:10:00Z',
+        rows: [
+          {
+            upload_row_id: 'upload-row-1',
+            row_index: 1,
+            external_user_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+            matched_driver_id: 'driver-1',
+          },
+        ],
+      },
+    ]);
+    mockOutsourcedDriverLists([]);
+    apiMocks.listVehicleSchedules.mockResolvedValue([]);
+    apiMocks.listDispatchAssignments.mockResolvedValue([]);
+    apiMocks.listDispatchWorkRules.mockResolvedValue([]);
+    apiMocks.listDriverDayExceptions.mockResolvedValue([]);
+    apiMocks.listVehicleMasters.mockResolvedValue([]);
+    apiMocks.listDrivers.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={['/dispatch/boards/41/2026-03-24']}>
+        <Routes>
+          <Route
+            path="/dispatch/boards/:fleetRef/:dispatchDate"
+            element={<DispatchBoardDetailPage client={{ request: vi.fn() }} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('heading', { name: '배차표 업로드' });
+    expect(screen.getByText('dispatch.xlsx')).toBeInTheDocument();
+    expect(screen.getByText(/ZD홍길동/)).toBeInTheDocument();
+    expect(apiMocks.listDispatchUploadBatches).toHaveBeenCalledWith(expect.anything(), {
+      company_id: '30000000-0000-0000-0000-000000000001',
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      dispatch_date: '2026-03-24',
+      upload_status: 'confirmed',
     });
   });
 

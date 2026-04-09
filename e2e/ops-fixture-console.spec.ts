@@ -1,9 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const adminEmail = process.env.PLAYWRIGHT_ADMIN_EMAIL ?? 'seed-admin@example.com';
+const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD ?? 'imjing12!';
+
 async function signIn(page: Page) {
   await page.goto('/');
-  await page.getByLabel('이메일').fill('admin@example.com');
-  await page.getByLabel('비밀번호').fill('change-me');
+  await page.getByLabel('아이디').fill(adminEmail);
+  await page.getByLabel('비밀번호').fill(adminPassword);
   await page.getByRole('button', { name: '로그인' }).click();
   await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('link', { name: '대시보드', exact: true })).toBeVisible({
@@ -17,6 +20,14 @@ async function gotoAppPath(page: Page, path: string) {
 
 function uniqueSuffix() {
   return Date.now().toString(36);
+}
+
+async function openSettlementNavigation(page: Page) {
+  const mainNavigation = page.getByLabel('주 메뉴');
+  await mainNavigation.getByRole('button', { name: '정산' }).click();
+  await expect(mainNavigation.getByRole('link', { name: '정산 조회', exact: true })).toBeVisible();
+  await expect(mainNavigation.getByRole('link', { name: '정산 처리', exact: true })).toBeVisible();
+  return mainNavigation;
 }
 
 test('ops-derived fixture company and fleet data is visible in registry pages', async ({ page }) => {
@@ -296,14 +307,18 @@ test('ops-derived fixture data is visible in dispatch pages', async ({ page }) =
 
 test('ops-derived fixture data is visible in settlement overview and input pages', async ({ page }) => {
   await signIn(page);
-  const mainNavigation = page.getByLabel('주 메뉴');
+  const mainNavigation = await openSettlementNavigation(page);
 
-  await mainNavigation.getByRole('link', { name: '정산', exact: true }).click();
+  await mainNavigation.getByRole('link', { name: '정산 조회', exact: true }).click();
   await expect(page).toHaveURL(/\/settlements\/overview$/);
   await expect(page.getByRole('heading', { name: '정산 운영 요약' })).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('body')).toContainText('Ops Driver A1-01', { timeout: 15_000 });
+  await expect(page.locator('body')).toContainText('Seed Driver', { timeout: 15_000 });
+  await expect(page.locator('body')).toContainText('Seed Company', { timeout: 15_000 });
+  await expect(page.locator('body')).toContainText('Seed Fleet', { timeout: 15_000 });
   await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 15_000 });
 
+  await mainNavigation.getByRole('link', { name: '정산 처리', exact: true }).click();
+  await expect(page).toHaveURL(/\/settlements\/criteria$/);
   await page.getByRole('link', { name: '정산 입력', exact: true }).click();
   await expect(page).toHaveURL(/\/settlements\/inputs$/);
   await expect(page.getByRole('heading', { name: '정산 입력 요약' })).toBeVisible();
@@ -316,10 +331,10 @@ test('ops-derived fixture data is visible in settlement overview and input pages
 
 test('ops-derived fixture data is visible in settlement run and result pages', async ({ page }) => {
   await signIn(page);
-  const mainNavigation = page.getByLabel('주 메뉴');
+  const mainNavigation = await openSettlementNavigation(page);
 
-  await mainNavigation.getByRole('link', { name: '정산', exact: true }).click();
-  await expect(page).toHaveURL(/\/settlements\/overview$/);
+  await mainNavigation.getByRole('link', { name: '정산 처리', exact: true }).click();
+  await expect(page).toHaveURL(/\/settlements\/criteria$/);
 
   await page.getByRole('link', { name: '정산 실행', exact: true }).click();
   await expect(page).toHaveURL(/\/settlements\/runs$/);

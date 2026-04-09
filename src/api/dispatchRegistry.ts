@@ -1,5 +1,6 @@
 import type {
   DispatchAssignment,
+  DispatchUploadBatch,
   DispatchPlan,
   DispatchWorkRule,
   DriverDayException,
@@ -48,6 +49,20 @@ export type DriverDayExceptionPayload = {
   memo: string;
 };
 
+export type DispatchUploadPreviewRowPayload = {
+  delivery_manager_name: string;
+  small_region_text: string;
+  detailed_region_text: string;
+  box_count: number;
+  household_count: number;
+};
+
+export type DispatchUploadPreviewPayload = {
+  dispatch_plan_id: string;
+  source_filename?: string;
+  rows: DispatchUploadPreviewRowPayload[];
+};
+
 export function listDispatchPlans(
   client: HttpClient,
   filters?: Partial<Pick<DispatchPlan, 'company_id' | 'fleet_id' | 'dispatch_date'>>,
@@ -82,6 +97,43 @@ export function updateDispatchPlan(client: HttpClient, dispatchPlanRef: string, 
   return client.request<DispatchPlan>(`/dispatch/plans/${dispatchPlanRef}/`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
+  });
+}
+
+export function listDispatchUploadBatches(
+  client: HttpClient,
+  filters?: Partial<Pick<DispatchPlan, 'company_id' | 'fleet_id' | 'dispatch_date'>> & {
+    upload_status?: DispatchUploadBatch['upload_status'];
+  },
+) {
+  const query = new URLSearchParams();
+  if (filters?.company_id) {
+    query.set('company_id', filters.company_id);
+  }
+  if (filters?.fleet_id) {
+    query.set('fleet_id', filters.fleet_id);
+  }
+  if (filters?.dispatch_date) {
+    query.set('dispatch_date', filters.dispatch_date);
+  }
+  if (filters?.upload_status) {
+    query.set('upload_status', filters.upload_status);
+  }
+  const queryString = query.toString();
+  const path = queryString ? `/dispatch/upload-batches/?${queryString}` : '/dispatch/upload-batches/';
+  return client.request<DispatchUploadBatch[]>(path);
+}
+
+export function previewDispatchUpload(client: HttpClient, payload: DispatchUploadPreviewPayload) {
+  return client.request<DispatchUploadBatch>('/dispatch/upload-batches/preview/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function confirmDispatchUpload(client: HttpClient, uploadBatchId: string) {
+  return client.request<DispatchUploadBatch>(`/dispatch/upload-batches/${uploadBatchId}/confirm/`, {
+    method: 'POST',
   });
 }
 
