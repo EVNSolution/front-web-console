@@ -55,6 +55,28 @@ export function resolveApiUrl(baseUrl: string, path: string): string {
   return `${sanitizedBase}${normalizedPath}`;
 }
 
+function defaultHttpErrorMessage(status: number): string {
+  switch (status) {
+    case 400:
+      return 'Bad request.';
+    case 401:
+      return 'Authentication failed.';
+    case 403:
+      return 'Permission denied.';
+    case 404:
+      return 'Requested API endpoint was not found.';
+    case 500:
+      return 'Unexpected server error.';
+    default:
+      return 'Request failed.';
+  }
+}
+
+function looksLikeHtml(text: string): boolean {
+  const normalized = text.trimStart().toLowerCase();
+  return normalized.startsWith('<!doctype html') || normalized.startsWith('<html');
+}
+
 export async function parseApiResponse(response: Response): Promise<unknown> {
   if (response.status === 204) {
     return undefined;
@@ -66,6 +88,13 @@ export async function parseApiResponse(response: Response): Promise<unknown> {
   }
 
   const text = await response.text();
+  if (text && (contentType.includes('text/html') || looksLikeHtml(text))) {
+    return {
+      code: `http_${response.status}`,
+      message: defaultHttpErrorMessage(response.status),
+      details: {},
+    };
+  }
   return text ? { message: text } : undefined;
 }
 

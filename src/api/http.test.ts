@@ -88,4 +88,26 @@ describe('createHttpClient', () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
     expect(result).toEqual([{ company_id: '30000000-0000-0000-0000-000000000001' }]);
   });
+
+  it('does not expose raw html error bodies to the UI', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response('<!DOCTYPE html><html><body>Page not found</body></html>', {
+        status: 404,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      }),
+    ) as typeof fetch;
+
+    const client = createHttpClient({
+      baseUrl: '/api',
+      getAccessToken: () => null,
+      onSessionRefresh: vi.fn(),
+      onUnauthorized: vi.fn(),
+    });
+
+    await expect(client.request('/auth/manager-navigation-policy/manage/')).rejects.toMatchObject({
+      status: 404,
+      code: 'http_404',
+      message: 'Requested API endpoint was not found.',
+    });
+  });
 });
