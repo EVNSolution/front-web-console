@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettlementCriteriaPage } from './SettlementCriteriaPage';
 
@@ -108,6 +108,10 @@ const pricingTableFixture = [
 ];
 
 describe('SettlementCriteriaPage', () => {
+  beforeEach(() => {
+    Object.values(apiMocks).forEach((mock) => mock.mockReset());
+  });
+
   it('renders global settlement fields from metadata and current config', async () => {
     apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
     apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
@@ -185,5 +189,49 @@ describe('SettlementCriteriaPage', () => {
         overtime_fee: '25000.00',
       }),
     );
+  });
+
+  it('creates a company-fleet pricing table when no row exists for the selected scope', async () => {
+    apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
+    apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
+    apiMocks.listSettlementPricingTables.mockResolvedValue([]);
+    apiMocks.listCompanies.mockResolvedValue([
+      { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+    ]);
+    apiMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 1,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'Seed Fleet',
+      },
+    ]);
+    apiMocks.createSettlementPricingTable.mockResolvedValue({
+      pricing_table_id: '91000000-0000-0000-0000-000000000099',
+      company_id: '30000000-0000-0000-0000-000000000001',
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      box_sale_unit_price: '1100.00',
+      box_purchase_unit_price: '900.00',
+      overtime_fee: '30000.00',
+    });
+
+    render(<SettlementCriteriaPage client={{ request: vi.fn() }} />);
+
+    fireEvent.change(await screen.findByLabelText('박스당 수신단가'), { target: { value: '1100.00' } });
+    fireEvent.change(screen.getByLabelText('박스당 지급단가'), { target: { value: '900.00' } });
+    fireEvent.change(screen.getByLabelText('특근비'), { target: { value: '30000.00' } });
+    fireEvent.click(screen.getByRole('button', { name: '단가표 저장' }));
+
+    expect(apiMocks.createSettlementPricingTable).toHaveBeenCalledWith(
+      { request: expect.any(Function) },
+      {
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        box_sale_unit_price: '1100.00',
+        box_purchase_unit_price: '900.00',
+        overtime_fee: '30000.00',
+      },
+    );
+    expect(apiMocks.updateSettlementPricingTable).not.toHaveBeenCalled();
   });
 });
