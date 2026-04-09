@@ -2,14 +2,6 @@ export function formatRoleLabel(role: string | null | undefined) {
   switch (role) {
     case 'system_admin':
       return '시스템 관리자';
-    case 'company_super_admin':
-      return '회사 전체 관리자';
-    case 'vehicle_manager':
-      return '차량 관리자';
-    case 'settlement_manager':
-      return '정산 관리자';
-    case 'fleet_manager':
-      return '플릿 관리자';
     case 'manager':
       return '관리자';
     case 'driver':
@@ -21,6 +13,35 @@ export function formatRoleLabel(role: string | null | undefined) {
     default:
       return role ?? '-';
   }
+}
+
+export function formatActiveAccountRoleLabel(
+  activeAccount:
+    | {
+        accountType?: string | null;
+        roleType?: string | null;
+        roleDisplayName?: string | null;
+      }
+    | null
+    | undefined,
+) {
+  if (!activeAccount) {
+    return '-';
+  }
+
+  if (activeAccount.roleDisplayName) {
+    return activeAccount.roleDisplayName;
+  }
+
+  if (activeAccount.roleType === 'system_admin') {
+    return formatRoleLabel('system_admin');
+  }
+
+  if (activeAccount.roleType === 'company_super_admin') {
+    return '회사 전체 관리자';
+  }
+
+  return formatRoleLabel(activeAccount.accountType ?? activeAccount.roleType);
 }
 
 export function formatProtectedIdentifier(

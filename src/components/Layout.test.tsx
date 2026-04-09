@@ -25,6 +25,7 @@ describe('Layout', () => {
               accountId: '20000000-0000-0000-0000-000000000001',
               companyId: '30000000-0000-0000-0000-000000000001',
               roleType: 'company_super_admin',
+              roleDisplayName: '회사 전체 관리자',
             },
             availableAccountTypes: ['manager'],
           }}
@@ -34,6 +35,7 @@ describe('Layout', () => {
     );
 
     expect(screen.getByRole('link', { name: '대시보드' })).toBeInTheDocument();
+    expect(screen.getByText('회사 전체 관리자')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '조직 관리' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '차량' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배송원' })).toBeInTheDocument();
@@ -86,6 +88,38 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '메뉴 정책' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '관리자 역할' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사 메뉴 정책' })).not.toBeInTheDocument();
+  });
+
+  it('prefers roleDisplayName over static role code in the topbar summary', () => {
+    render(
+      <MemoryRouter>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'custom@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '커스텀 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'dispatch_quality_lead',
+              roleDisplayName: '배차 품질 리더',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('배차 품질 리더')).toBeInTheDocument();
+    expect(screen.queryByText('dispatch_quality_lead')).not.toBeInTheDocument();
   });
 
   it('hides settlement and dispatch groups for vehicle managers', () => {

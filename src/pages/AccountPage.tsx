@@ -24,7 +24,7 @@ import type {
   IdentityProfile,
   IdentitySignupRequestList,
 } from '../types';
-import { formatRoleLabel } from '../uiLabels';
+import { formatActiveAccountRoleLabel, formatRoleLabel } from '../uiLabels';
 
 type AccountPageProps = {
   client: HttpClient;
@@ -70,7 +70,7 @@ export function AccountPage({ client, session, onSessionChange }: AccountPagePro
 
     const role = getManagerRole(session);
     if (role) {
-      return formatRoleLabel(role);
+      return formatActiveAccountRoleLabel(session.activeAccount);
     }
 
     return '승인 대기';

@@ -41,6 +41,7 @@ describe('Admin DashboardPage', () => {
             accountId: '20000000-0000-0000-0000-000000000001',
             companyId: '30000000-0000-0000-0000-000000000001',
             roleType: 'vehicle_manager',
+            roleDisplayName: '차량 관리자',
           },
           availableAccountTypes: ['manager'],
         }}
@@ -50,6 +51,7 @@ describe('Admin DashboardPage', () => {
 
     await screen.findAllByText('Seed Company');
     expect(screen.getByText('운영 요약')).toBeInTheDocument();
+    expect(screen.getByText('차량 관리자')).toBeInTheDocument();
     await waitFor(() => {
       expect(apiMocks.listCompanies).toHaveBeenCalledTimes(1);
       expect(apiMocks.listFleets).toHaveBeenCalledTimes(1);

@@ -11,7 +11,7 @@ import {
   isNavigationItemActive,
   navigationGroups,
 } from '../navigation';
-import { formatRoleLabel } from '../uiLabels';
+import { formatActiveAccountRoleLabel } from '../uiLabels';
 
 type LayoutProps = {
   session: SessionPayload;
@@ -89,7 +89,7 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
           <div className="console-account-summary">
             <div className="console-account-meta">
               <strong>{session.email}</strong>
-              <span>{formatRoleLabel(session.activeAccount?.roleType ?? session.activeAccount?.accountType)}</span>
+              <span>{formatActiveAccountRoleLabel(session.activeAccount)}</span>
             </div>
             <button className="button ghost small" onClick={() => void onLogout()} type="button">
               로그아웃

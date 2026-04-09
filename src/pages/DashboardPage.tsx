@@ -4,7 +4,7 @@ import { listCompanies, listFleets } from '../api/organization';
 import { PageLayout } from '../components/PageLayout';
 import { getErrorMessage, type HttpClient, type SessionPayload } from '../api/http';
 import type { Company, Fleet } from '../types';
-import { formatRoleLabel } from '../uiLabels';
+import { formatActiveAccountRoleLabel } from '../uiLabels';
 
 type DashboardPageProps = {
   session: SessionPayload;
@@ -55,7 +55,7 @@ export function DashboardPage({ session, client }: DashboardPageProps) {
     <PageLayout
       subtitle={
         <>
-          현재 <strong>{formatRoleLabel(session.activeAccount?.roleType ?? session.activeAccount?.accountType)}</strong> 권한으로
+          현재 <strong>{formatActiveAccountRoleLabel(session.activeAccount)}</strong> 권한으로
           로그인되어 있습니다.
         </>
       }
