@@ -21,6 +21,7 @@ function createEmptyForm(companies: Company[], fleets: Fleet[]): DriverPayload {
     company_id: defaultCompanyId,
     fleet_id: fleetOptions[0]?.fleet_id ?? fleets[0]?.fleet_id ?? '',
     name: '',
+    external_user_name: '',
     ev_id: '',
     phone_number: '',
     address: '',
@@ -63,6 +64,7 @@ export function DriverFormPage({ client, mode }: DriverFormPageProps) {
             company_id: driverResponse.company_id,
             fleet_id: driverResponse.fleet_id,
             name: driverResponse.name,
+            external_user_name: driverResponse.external_user_name,
             ev_id: driverResponse.ev_id,
             phone_number: driverResponse.phone_number,
             address: driverResponse.address,
@@ -171,6 +173,13 @@ export function DriverFormPage({ client, mode }: DriverFormPageProps) {
           <label className="field">
             <span>이름</span>
             <input onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} value={form.name} />
+          </label>
+          <label className="field">
+            <span>원청 앱 사용자명</span>
+            <input
+              onChange={(event) => setForm((current) => ({ ...current, external_user_name: event.target.value }))}
+              value={form.external_user_name}
+            />
           </label>
           <label className="field">
             <span>EV ID</span>

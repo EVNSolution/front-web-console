@@ -159,6 +159,10 @@ export function DriverDetailPage({ client, session }: DriverDetailPageProps) {
                   <dd>{getFleetName(driver.fleet_id)}</dd>
                 </div>
                 <div>
+                  <dt>원청 앱 사용자명</dt>
+                  <dd>{driver.external_user_name || '미입력'}</dd>
+                </div>
+                <div>
                   <dt>EV ID</dt>
                   <dd>{driver.ev_id}</dd>
                 </div>

@@ -369,6 +369,7 @@ export type DriverProfile = {
   company_id: string;
   fleet_id: string;
   name: string;
+  external_user_name: string;
   ev_id: string;
   phone_number: string;
   address: string;

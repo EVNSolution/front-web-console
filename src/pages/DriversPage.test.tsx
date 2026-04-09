@@ -48,6 +48,7 @@ describe('Admin DriversPage', () => {
         company_id: '30000000-0000-0000-0000-000000000001',
         fleet_id: '40000000-0000-0000-0000-000000000001',
         name: 'Kim Driver',
+        external_user_name: 'ZD김기사',
         ev_id: 'EV-001',
         phone_number: '010-1234-5678',
         address: 'Seoul',
@@ -58,6 +59,7 @@ describe('Admin DriversPage', () => {
         company_id: '30000000-0000-0000-0000-000000000001',
         fleet_id: '40000000-0000-0000-0000-000000000001',
         name: 'Lee Driver',
+        external_user_name: 'ZD이기사',
         ev_id: 'EV-002',
         phone_number: '010-1234-9999',
         address: 'Busan',
@@ -167,6 +169,8 @@ describe('Admin DriversPage', () => {
     const row = screen.getByText('Kim Driver').closest('tr');
     expect(screen.getByRole('link', { name: /배송원 생성/i })).toHaveAttribute('href', '/drivers/new');
     expect(row).toHaveAttribute('data-detail-path', '/drivers/1');
+    expect(screen.getByText('원청 앱 사용자명')).toBeInTheDocument();
+    expect(screen.getByText('ZD김기사')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '연결 해제' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '계정 연결' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '보기' })).not.toBeInTheDocument();

@@ -163,7 +163,7 @@ export function DriversPage({ client, session }: DriversPageProps) {
         {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
         {isLoading ? <p className="empty-state">배송원을 불러오는 중입니다...</p> : (
           <table className="table compact">
-            <thead><tr><th>이름</th><th>배송원 계정</th><th>회사</th><th>플릿</th><th>계정 연결</th></tr></thead>
+            <thead><tr><th>이름</th><th>원청 앱 사용자명</th><th>배송원 계정</th><th>회사</th><th>플릿</th><th>계정 연결</th></tr></thead>
             <tbody>
               {drivers.map((driver) => {
                 const detailPath = driver.route_no != null ? `/drivers/${getDriverRouteRef(driver)}` : null;
@@ -180,6 +180,7 @@ export function DriversPage({ client, session }: DriversPageProps) {
                     tabIndex={detailPath ? 0 : undefined}
                   >
                     <td>{driver.name}</td>
+                    <td>{driver.external_user_name || '미입력'}</td>
                     <td>{activeLink?.email ?? '미연결'}</td>
                     <td>{getCompanyName(driver.company_id)}</td>
                     <td>{getFleetName(driver.fleet_id)}</td>

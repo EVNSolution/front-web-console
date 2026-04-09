@@ -46,5 +46,6 @@ describe('DriverFormPage', () => {
     });
     expect(screen.getByRole('heading', { name: '배송원 생성' })).toBeInTheDocument();
     expect(screen.getByText('배송원 정본과 소속 정보를 같은 입력 흐름에서 관리합니다.')).toBeInTheDocument();
+    expect(screen.getByLabelText('원청 앱 사용자명')).toBeInTheDocument();
   });
 });

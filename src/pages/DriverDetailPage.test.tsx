@@ -71,6 +71,7 @@ describe('DriverDetailPage', () => {
       company_id: '20000000-0000-0000-0000-000000000001',
       fleet_id: '30000000-0000-0000-0000-000000000001',
       name: 'Kim Driver',
+      external_user_name: 'ZD홍길동',
       ev_id: 'EV-001',
       phone_number: '010-1234-5678',
       address: 'Seoul',
@@ -110,6 +111,8 @@ describe('DriverDetailPage', () => {
 
     await screen.findByRole('heading', { name: 'Kim Driver' });
     expect(screen.getByText('배송원 정본과 계정·정산 문맥을 함께 확인합니다.')).toBeInTheDocument();
+    expect(screen.getByText('원청 앱 사용자명')).toBeInTheDocument();
+    expect(screen.getByText('ZD홍길동')).toBeInTheDocument();
     expect(screen.getByText('driver@example.com')).toBeInTheDocument();
     expect(screen.getByText(/driver@example.com/i)).toBeInTheDocument();
     expect(screen.getByText(/125000.50/i)).toBeInTheDocument();
@@ -123,6 +126,7 @@ describe('DriverDetailPage', () => {
       company_id: '20000000-0000-0000-0000-000000000001',
       fleet_id: '30000000-0000-0000-0000-000000000001',
       name: 'Kim Driver',
+      external_user_name: '',
       ev_id: 'EV-001',
       phone_number: '010-1234-5678',
       address: 'Seoul',
