@@ -12,6 +12,7 @@
 - React/Vite app
 - single-web route와 API client
 - page/component test
+- host dev server와 containerized static runtime
 
 포함하지 않음:
 - gateway 설정
@@ -27,3 +28,8 @@
 - `../../docs/contracts/`
 - `../../docs/boundaries/`
 - `../../docs/decisions/specs/2026-04-06-single-web-console-cutover-design.md`
+
+런타임 규칙:
+- `npm run dev`는 host 개발용 `http://localhost:5174`를 소유한다.
+- Docker image는 `npm run dev`를 띄우지 않고, `npm run build` 결과물을 정적으로 서빙한다.
+- 통합 확인용 `http://localhost:8080`은 gateway 뒤의 built frontend 기준으로 본다.
