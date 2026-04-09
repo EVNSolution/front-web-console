@@ -21,7 +21,7 @@ type LayoutProps = {
 
 function buildInitialExpansionState(session: SessionPayload) {
   return Object.fromEntries(
-    navigationGroups.filter((group) => group.isVisible(session)).map((group) => [group.key, true]),
+    navigationGroups.filter((group) => group.isVisible(session)).map((group) => [group.key, false]),
   );
 }
 
@@ -53,7 +53,7 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
       const next = { ...current };
       for (const group of visibleGroups) {
         if (!(group.key in next)) {
-          next[group.key] = true;
+          next[group.key] = false;
         }
         if (isNavigationGroupActive(location.pathname, group)) {
           next[group.key] = true;

@@ -10,6 +10,7 @@ import {
   canAccessSettlementScope,
   canAccessVehicleScope,
   isSystemAdmin,
+  canManageManagerRoles,
 } from './authScopes';
 
 type Visibility = (session: SessionPayload) => boolean;
@@ -46,9 +47,9 @@ export const dashboardItem: NavigationItem = {
 export const accountItem: NavigationItem = {
   key: 'account',
   label: '내 계정',
-  to: '/account',
+  to: '/me',
   isVisible: alwaysVisible,
-  matchPrefixes: ['/account'],
+  matchPrefixes: ['/me'],
 };
 
 const organizationItems: NavigationItem[] = [
@@ -105,24 +106,31 @@ const driverItems: NavigationItem[] = [
 const managementItems: NavigationItem[] = [
   {
     key: 'manager_navigation_policy',
-    label: '관리자 권한 정책',
-    to: '/admin/navigation-policy',
+    label: '메뉴 정책',
+    to: '/admin/menu-policy',
     isVisible: isSystemAdmin,
-    matchPrefixes: ['/admin/navigation-policy'],
+    matchPrefixes: ['/admin/menu-policy'],
+  },
+  {
+    key: 'manager_roles',
+    label: '관리자 역할',
+    to: '/admin/manager-roles',
+    isVisible: canManageManagerRoles,
+    matchPrefixes: ['/admin/manager-roles'],
   },
   {
     key: 'company_navigation_policy',
     label: '회사 메뉴 정책',
-    to: '/company/navigation-policy',
+    to: '/company/menu-policy',
     isVisible: (session) => session.activeAccount?.accountType === 'manager' && session.activeAccount.roleType === 'company_super_admin',
-    matchPrefixes: ['/company/navigation-policy'],
+    matchPrefixes: ['/company/menu-policy'],
   },
   {
     key: 'accounts',
     label: '계정 요청',
-    to: '/accounts',
+    to: '/admin/account-requests',
     isVisible: canAccessAccountsScope,
-    matchPrefixes: ['/accounts'],
+    matchPrefixes: ['/admin/account-requests'],
   },
 ];
 
@@ -221,7 +229,7 @@ export function isNavigationItemActive(pathname: string, item: NavigationItem) {
     return true;
   }
 
-  return (item.matchPrefixes ?? []).some((prefix) => pathname.startsWith(prefix));
+  return (item.matchPrefixes ?? []).some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 export function isNavigationGroupActive(pathname: string, group: NavigationGroup) {

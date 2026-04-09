@@ -64,6 +64,10 @@ export function AccountPage({ client, session, onSessionChange }: AccountPagePro
       return formatRoleLabel('system_admin');
     }
 
+    if (session.activeAccount?.roleDisplayName) {
+      return session.activeAccount.roleDisplayName;
+    }
+
     const role = getManagerRole(session);
     if (role) {
       return formatRoleLabel(role);

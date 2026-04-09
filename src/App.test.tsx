@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
@@ -94,5 +94,43 @@ describe('Admin App', () => {
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: '권역 목록' })).toBeInTheDocument();
+  });
+
+  it('renders the manager roles route for company super admin', async () => {
+    window.history.replaceState({}, '', '/admin/manager-roles');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '관리자 역할' })).toBeInTheDocument();
+  });
+
+  it('redirects legacy /account to canonical /me', async () => {
+    window.history.replaceState({}, '', '/account');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/me'));
+  });
+
+  it('redirects legacy /accounts to canonical /admin/account-requests', async () => {
+    window.history.replaceState({}, '', '/accounts');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/admin/account-requests'));
+  });
+
+  it('redirects legacy menu policy routes to canonical admin/company routes', async () => {
+    window.history.replaceState({}, '', '/admin/navigation-policy');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/admin/menu-policy'));
+
+    window.history.replaceState({}, '', '/company/navigation-policy');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/company/menu-policy'));
   });
 });

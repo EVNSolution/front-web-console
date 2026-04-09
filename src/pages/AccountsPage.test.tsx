@@ -7,6 +7,7 @@ import { AccountsPage } from './AccountsPage';
 const apiMocks = vi.hoisted(() => ({
   listManagedRequests: vi.fn(),
   listManageableManagerAccounts: vi.fn(),
+  listCompanyManagerRoles: vi.fn(),
   approveManagedRequest: vi.fn(),
   rejectManagedRequest: vi.fn(),
   changeManagerAccountRole: vi.fn(),
@@ -23,6 +24,10 @@ vi.mock('../api/managerAccounts', () => ({
   listManageableManagerAccounts: apiMocks.listManageableManagerAccounts,
   changeManagerAccountRole: apiMocks.changeManagerAccountRole,
   archiveManagerAccount: apiMocks.archiveManagerAccount,
+}));
+
+vi.mock('../api/managerRoles', () => ({
+  listCompanyManagerRoles: apiMocks.listCompanyManagerRoles,
 }));
 
 vi.mock('../api/organization', () => ({
@@ -70,9 +75,50 @@ describe('AccountsPage', () => {
             status: 'active',
           },
           company_id: '40000000-0000-0000-0000-000000000001',
-          role_type: 'vehicle_manager',
+          role_type: 'custom_dispatch_manager',
+          role_display_name: '배차 운영 관리자',
           status: 'active',
           created_at: '2026-04-04T09:30:00Z',
+        },
+      ],
+    });
+    apiMocks.listCompanyManagerRoles.mockResolvedValue({
+      roles: [
+        {
+          company_manager_role_id: '71000000-0000-0000-0000-000000000001',
+          company_id: '40000000-0000-0000-0000-000000000001',
+          code: 'company_super_admin',
+          display_name: '회사 전체 관리자',
+          is_system_required: true,
+          is_default: true,
+          assigned_count: 1,
+          can_delete: false,
+          delete_block_reason: '회사 전체 관리자 역할은 삭제할 수 없습니다.',
+          allowed_nav_keys: ['dashboard', 'accounts'],
+        },
+        {
+          company_manager_role_id: '72000000-0000-0000-0000-000000000001',
+          company_id: '40000000-0000-0000-0000-000000000001',
+          code: 'custom_dispatch_manager',
+          display_name: '배차 운영 관리자',
+          is_system_required: false,
+          is_default: false,
+          assigned_count: 1,
+          can_delete: false,
+          delete_block_reason: '배정된 관리자가 있습니다.',
+          allowed_nav_keys: ['dashboard', 'dispatch'],
+        },
+        {
+          company_manager_role_id: '73000000-0000-0000-0000-000000000001',
+          company_id: '40000000-0000-0000-0000-000000000001',
+          code: 'custom_safety_manager',
+          display_name: '안전 관리자',
+          is_system_required: false,
+          is_default: false,
+          assigned_count: 0,
+          can_delete: true,
+          delete_block_reason: null,
+          allowed_nav_keys: ['dashboard', 'vehicles'],
         },
       ],
     });
@@ -101,7 +147,8 @@ describe('AccountsPage', () => {
         status: 'active',
       },
       company_id: '40000000-0000-0000-0000-000000000001',
-      role_type: 'settlement_manager',
+      role_type: 'custom_safety_manager',
+      role_display_name: '안전 관리자',
       status: 'active',
       created_at: '2026-04-04T09:30:00Z',
     });
@@ -114,7 +161,8 @@ describe('AccountsPage', () => {
         status: 'active',
       },
       company_id: '40000000-0000-0000-0000-000000000001',
-      role_type: 'settlement_manager',
+      role_type: 'custom_safety_manager',
+      role_display_name: '안전 관리자',
       status: 'archived',
       created_at: '2026-04-04T09:30:00Z',
     });
@@ -160,31 +208,32 @@ describe('AccountsPage', () => {
     expect(screen.getByRole('button', { name: '반려' })).toBeInTheDocument();
     expect(screen.getByText('총 1건 요청')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '활성 관리자 계정' })).toBeInTheDocument();
-    expect(screen.getAllByText('차량 관리자').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('배차 운영 관리자').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: '권한 변경' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '계정 종료' })).toBeInTheDocument();
     expect(screen.getByText('총 1명 관리자')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /계정 생성/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: '회사 전체 관리자' })).not.toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '플릿 관리자' })).toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: '배차 운영 관리자' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('option', { name: '안전 관리자' }).length).toBeGreaterThan(0);
 
-    fireEvent.change(screen.getAllByDisplayValue('차량 관리자')[0], { target: { value: 'fleet_manager' } });
+    fireEvent.change(screen.getAllByDisplayValue('배차 운영 관리자')[0], { target: { value: 'custom_safety_manager' } });
     fireEvent.click(screen.getAllByRole('button', { name: '승인' })[0]);
     await waitFor(() => {
       expect(apiMocks.approveManagedRequest).toHaveBeenCalledWith(
         expect.anything(),
         '20000000-0000-0000-0000-000000000001',
-        'fleet_manager',
+        'custom_safety_manager',
       );
     });
 
-    fireEvent.change(screen.getAllByDisplayValue('차량 관리자')[1], { target: { value: 'fleet_manager' } });
+    fireEvent.change(screen.getAllByDisplayValue('배차 운영 관리자')[1], { target: { value: 'custom_safety_manager' } });
     fireEvent.click(screen.getByRole('button', { name: '권한 변경' }));
     await waitFor(() => {
       expect(apiMocks.changeManagerAccountRole).toHaveBeenCalledWith(
         expect.anything(),
         '50000000-0000-0000-0000-000000000001',
-        'fleet_manager',
+        'custom_safety_manager',
       );
     });
 

@@ -39,13 +39,19 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '배송원' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '조직 관리' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '차량' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '배송원' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '운영' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '배차 계획' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('link', { name: '정산' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '회사 메뉴 정책' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '회사' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '권역' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '차량' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '차량 배정' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배차' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '회사 메뉴 정책' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '관리자 역할' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '회사' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '권역' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배차' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '내 계정' })).toHaveLength(2);
     expect(container.querySelector('.console-home-icon')).toBeNull();
   });
@@ -75,7 +81,10 @@ describe('Layout', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('link', { name: '관리자 권한 정책' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '관리' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '관리' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: '메뉴 정책' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '관리자 역할' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사 메뉴 정책' })).not.toBeInTheDocument();
   });
 
@@ -110,17 +119,18 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '차량' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배송원' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '공지' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '지원' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '알림' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '인사문서' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '권역' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '차량' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '차량 배정' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배송원' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '지원' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '알림' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '인사문서' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '권역' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배송원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '정산' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '배차 계획' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '관리자 역할' })).not.toBeInTheDocument();
   });
 
   it('hides vehicle group for settlement managers while keeping dispatch and settlement groups', () => {
@@ -155,14 +165,14 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '공지' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '지원' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '알림' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '인사문서' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '권역' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '지원' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '알림' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '인사문서' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '권역' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '정산 조회' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배차' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배송원' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배차' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배송원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사' })).not.toBeInTheDocument();
@@ -200,14 +210,14 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '공지' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '지원' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '알림' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '인사문서' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '권역' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '지원' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '알림' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '인사문서' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '권역' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '정산 조회' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배차' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배송원' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배차' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배송원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사' })).not.toBeInTheDocument();
@@ -313,8 +323,74 @@ describe('Layout', () => {
 
     expect(screen.getByRole('link', { name: '대시보드' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '내 계정' })).toHaveLength(2);
-    expect(screen.getByRole('link', { name: '차량' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '차량' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '차량' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '배송원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
+  });
+
+  it('does not highlight 내 계정 when current route is 계정 요청', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/admin/account-requests']}>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'admin@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'company_super_admin',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const sidebarAccountLink = container.querySelector('a.console-home-link[href="/me"]');
+    expect(sidebarAccountLink).not.toBeNull();
+    expect(sidebarAccountLink).not.toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: '관리' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: '계정 요청' })).toHaveClass('is-active');
+  });
+
+  it('activates canonical menu policy routes without leaking to sibling items', () => {
+    render(
+      <MemoryRouter initialEntries={['/admin/menu-policy']}>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'sysadmin@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '시스템 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'system_admin',
+              accountId: '20000000-0000-0000-0000-000000000001',
+            },
+            availableAccountTypes: ['system_admin'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: '관리' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: '메뉴 정책' })).toHaveClass('is-active');
+    expect(screen.queryByRole('link', { name: '계정 요청' })?.className.includes('is-active')).toBeFalsy();
   });
 });

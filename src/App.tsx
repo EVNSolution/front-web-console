@@ -17,6 +17,7 @@ import {
   canAccessVehicleScope,
   canManageAnnouncementScope,
   canManageCompanyNavigationPolicy,
+  canManageManagerRoles,
   canManageCompanySuperAdmin,
   canManageDriverProfileScope,
   canManagePersonnelDocumentScope,
@@ -42,6 +43,7 @@ import { FleetDetailPage } from './pages/FleetDetailPage';
 import { FleetFormPage } from './pages/FleetFormPage';
 import { LoginPage } from './pages/LoginPage';
 import { ManagerNavigationPolicyPage } from './pages/ManagerNavigationPolicyPage';
+import { ManagerRolesPage } from './pages/ManagerRolesPage';
 import { ConsentRecoveryPage } from './pages/ConsentRecoveryPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { PersonnelDocumentDetailPage } from './pages/PersonnelDocumentDetailPage';
@@ -389,7 +391,7 @@ export default function App() {
           <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
             <Route path="/" element={<DashboardPage client={client} session={session} />} />
             <Route
-              path="/account"
+              path="/me"
               element={
                 <AccountPage
                   client={client}
@@ -401,23 +403,40 @@ export default function App() {
                 />
               }
             />
-            <Route path="/accounts" element={<AccountsPage client={client} session={session} />} />
+            <Route path="/account" element={<Navigate replace to="/me" />} />
+            <Route path="/admin/account-requests" element={<AccountsPage client={client} session={session} />} />
+            <Route path="/accounts" element={<Navigate replace to="/admin/account-requests" />} />
             <Route
-              path="/admin/navigation-policy"
+              path="/admin/menu-policy"
               element={
                 <RequireRoleScope
-                  message="관리자 권한 정책은 시스템 관리자만 관리할 수 있습니다."
+                  message="메뉴 정책은 시스템 관리자만 관리할 수 있습니다."
                   onLogout={handleLogout}
                   session={session}
-                  title="관리자 권한 정책 권한 필요"
+                  title="메뉴 정책 권한 필요"
                   when={canManageCompanySuperAdmin}
                 >
                   <ManagerNavigationPolicyPage client={client} />
                 </RequireRoleScope>
               }
             />
+            <Route path="/admin/navigation-policy" element={<Navigate replace to="/admin/menu-policy" />} />
             <Route
-              path="/company/navigation-policy"
+              path="/admin/manager-roles"
+              element={
+                <RequireRoleScope
+                  message="관리자 역할은 시스템 관리자와 회사 전체 관리자만 관리할 수 있습니다."
+                  onLogout={handleLogout}
+                  session={session}
+                  title="관리자 역할 권한 필요"
+                  when={canManageManagerRoles}
+                >
+                  <ManagerRolesPage client={client} session={session} />
+                </RequireRoleScope>
+              }
+            />
+            <Route
+              path="/company/menu-policy"
               element={
                 <RequireRoleScope
                   message="회사 메뉴 정책은 회사 전체 관리자만 관리할 수 있습니다."
@@ -430,6 +449,7 @@ export default function App() {
                 </RequireRoleScope>
               }
             />
+            <Route path="/company/navigation-policy" element={<Navigate replace to="/company/menu-policy" />} />
             <Route path="/organization" element={<Navigate replace to="/companies" />} />
             <Route path="/dispatch" element={<Navigate replace to="/dispatch/boards" />} />
             <Route

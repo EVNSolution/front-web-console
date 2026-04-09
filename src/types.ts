@@ -10,6 +10,7 @@ export type ActiveAccountSummary = {
   accountId: string;
   companyId?: string | null;
   roleType?: string | null;
+  roleDisplayName?: string | null;
 };
 
 export type IdentitySession = {
@@ -153,6 +154,7 @@ export type ManagerAccountSummary = {
   };
   company_id: string;
   role_type: string;
+  role_display_name?: string;
   status: string;
   created_at: string;
 };
@@ -174,6 +176,19 @@ export type Fleet = {
   public_ref?: string;
   company_id: string;
   name: string;
+};
+
+export type CompanyManagerRole = {
+  company_manager_role_id: string;
+  company_id: string;
+  code: string;
+  display_name: string;
+  is_system_required: boolean;
+  is_default: boolean;
+  allowed_nav_keys: string[];
+  assigned_count: number;
+  can_delete: boolean;
+  delete_block_reason: string | null;
 };
 
 export type Region = {

@@ -17,6 +17,7 @@ type IdentitySessionResponse = {
     account_id: string;
     company_id?: string | null;
     role_type?: string | null;
+    role_display_name?: string | null;
   } | null;
   available_account_types: string[];
 };
@@ -153,6 +154,7 @@ function toActiveAccountSummary(
     accountId: payload.account_id,
     companyId: payload.company_id ?? null,
     roleType: payload.role_type ?? null,
+    roleDisplayName: payload.role_display_name ?? null,
   };
 }
 

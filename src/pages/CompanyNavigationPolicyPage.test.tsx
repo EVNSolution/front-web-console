@@ -3,75 +3,92 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CompanyNavigationPolicyPage } from './CompanyNavigationPolicyPage';
 
-const getCompanyNavigationPolicies = vi.fn();
-const updateCompanyNavigationPolicies = vi.fn();
-const resetCompanyNavigationPolicy = vi.fn();
+const listCompanyManagerRoles = vi.fn();
+const updateCompanyManagerRole = vi.fn();
 
-vi.mock('../api/navigationPolicy', () => ({
-  getCompanyNavigationPolicies: (...args: unknown[]) => getCompanyNavigationPolicies(...args),
-  updateCompanyNavigationPolicies: (...args: unknown[]) => updateCompanyNavigationPolicies(...args),
-  resetCompanyNavigationPolicy: (...args: unknown[]) => resetCompanyNavigationPolicy(...args),
+vi.mock('../api/managerRoles', () => ({
+  listCompanyManagerRoles: (...args: unknown[]) => listCompanyManagerRoles(...args),
+  updateCompanyManagerRole: (...args: unknown[]) => updateCompanyManagerRole(...args),
 }));
 
 describe('CompanyNavigationPolicyPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getCompanyNavigationPolicies.mockResolvedValue({
-      policies: [
+    listCompanyManagerRoles.mockResolvedValue({
+      roles: [
         {
-          role_type: 'vehicle_manager',
+          company_manager_role_id: '80000000-0000-0000-0000-000000000001',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          code: 'company_super_admin',
+          display_name: '회사 전체 관리자',
+          is_system_required: true,
+          is_default: true,
+          allowed_nav_keys: ['dashboard', 'account', 'accounts', 'company_navigation_policy'],
+          assigned_count: 1,
+          can_delete: false,
+          delete_block_reason: '필수 역할입니다.',
+        },
+        {
+          company_manager_role_id: '80000000-0000-0000-0000-000000000002',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          code: 'vehicle_manager',
+          display_name: '차량 관리자',
+          is_system_required: false,
+          is_default: true,
           allowed_nav_keys: ['dashboard', 'vehicles'],
-          source: 'company_override',
+          assigned_count: 1,
+          can_delete: false,
+          delete_block_reason: '배정된 관리자가 있습니다.',
         },
         {
-          role_type: 'settlement_manager',
+          company_manager_role_id: '80000000-0000-0000-0000-000000000003',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          code: 'settlement_manager',
+          display_name: '정산 관리자',
+          is_system_required: false,
+          is_default: true,
           allowed_nav_keys: ['dashboard', 'settlements'],
-          source: 'global',
+          assigned_count: 0,
+          can_delete: true,
+          delete_block_reason: null,
         },
         {
-          role_type: 'fleet_manager',
+          company_manager_role_id: '80000000-0000-0000-0000-000000000004',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          code: 'custom_dispatch_manager',
+          display_name: '배차 운영 관리자',
+          is_system_required: false,
+          is_default: false,
           allowed_nav_keys: ['dashboard', 'dispatch'],
-          source: 'default',
+          assigned_count: 0,
+          can_delete: true,
+          delete_block_reason: null,
+        },
+        {
+          company_manager_role_id: '80000000-0000-0000-0000-000000000005',
+          company_id: '30000000-0000-0000-0000-000000000001',
+          code: 'fleet_manager',
+          display_name: '플릿 관리자',
+          is_system_required: false,
+          is_default: true,
+          allowed_nav_keys: ['dashboard', 'dispatch'],
+          assigned_count: 0,
+          can_delete: true,
+          delete_block_reason: null,
         },
       ],
     });
-    updateCompanyNavigationPolicies.mockResolvedValue({
-      policies: [
-        {
-          role_type: 'vehicle_manager',
-          allowed_nav_keys: ['dashboard', 'vehicles', 'vehicle_assignments'],
-          source: 'company_override',
-        },
-        {
-          role_type: 'settlement_manager',
-          allowed_nav_keys: ['dashboard', 'settlements'],
-          source: 'global',
-        },
-        {
-          role_type: 'fleet_manager',
-          allowed_nav_keys: ['dashboard', 'dispatch'],
-          source: 'default',
-        },
-      ],
-    });
-    resetCompanyNavigationPolicy.mockResolvedValue({
-      policies: [
-        {
-          role_type: 'vehicle_manager',
-          allowed_nav_keys: ['dashboard', 'vehicles'],
-          source: 'global',
-        },
-        {
-          role_type: 'settlement_manager',
-          allowed_nav_keys: ['dashboard', 'settlements'],
-          source: 'global',
-        },
-        {
-          role_type: 'fleet_manager',
-          allowed_nav_keys: ['dashboard', 'dispatch'],
-          source: 'default',
-        },
-      ],
+    updateCompanyManagerRole.mockResolvedValue({
+      company_manager_role_id: '80000000-0000-0000-0000-000000000002',
+      company_id: '30000000-0000-0000-0000-000000000001',
+      code: 'vehicle_manager',
+      display_name: '차량 관리자',
+      is_system_required: false,
+      is_default: true,
+      allowed_nav_keys: ['dashboard', 'vehicles', 'vehicle_assignments'],
+      assigned_count: 1,
+      can_delete: false,
+      delete_block_reason: '배정된 관리자가 있습니다.',
     });
   });
 
@@ -90,42 +107,32 @@ describe('CompanyNavigationPolicyPage', () => {
       accountId: '20000000-0000-0000-0000-000000000001',
       companyId: '30000000-0000-0000-0000-000000000001',
       roleType: 'company_super_admin',
+      roleDisplayName: '회사 전체 관리자',
     },
     availableAccountTypes: ['manager'],
   } as const;
 
-  it('loads company policies and saves an updated role override', async () => {
+  it('loads company manager roles and saves selected role policy', async () => {
     render(<CompanyNavigationPolicyPage client={{ request: vi.fn() }} session={session} />);
 
     await screen.findByRole('heading', { name: '회사 메뉴 정책' });
+    expect(listCompanyManagerRoles).toHaveBeenCalledWith(
+      expect.anything(),
+      '30000000-0000-0000-0000-000000000001',
+    );
+    expect(screen.getByRole('option', { name: '배차 운영 관리자' })).toBeInTheDocument();
+
     fireEvent.click(await screen.findByLabelText('차량 배정'));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => {
-      expect(updateCompanyNavigationPolicies).toHaveBeenCalledWith(
+      expect(updateCompanyManagerRole).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          policies: expect.arrayContaining([
-            expect.objectContaining({
-              role_type: 'vehicle_manager',
-              allowed_nav_keys: ['dashboard', 'vehicles', 'vehicle_assignments'],
-            }),
-          ]),
-        }),
+        '80000000-0000-0000-0000-000000000002',
+        {
+          allowedNavKeys: ['dashboard', 'vehicles', 'vehicle_assignments'],
+        },
       );
     });
   });
-
-  it('resets the selected role to inherited policy', async () => {
-    render(<CompanyNavigationPolicyPage client={{ request: vi.fn() }} session={session} />);
-
-    await screen.findByRole('heading', { name: '회사 메뉴 정책' });
-    fireEvent.click(screen.getByRole('button', { name: '전역 기본값으로 되돌리기' }));
-
-    await waitFor(() => {
-      expect(resetCompanyNavigationPolicy).toHaveBeenCalledWith(expect.anything(), {
-        role_type: 'vehicle_manager',
-      });
-    });
-  });
-}
+});

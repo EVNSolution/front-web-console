@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { approveManagedRequest, listManagedRequests, rejectManagedRequest } from '../api/authRequests';
 import { getErrorMessage, type HttpClient, type SessionPayload } from '../api/http';
 import { archiveManagerAccount, changeManagerAccountRole, listManageableManagerAccounts } from '../api/managerAccounts';
+import { listCompanyManagerRoles } from '../api/managerRoles';
 import { listCompanies } from '../api/organization';
-import { getAccountsScopeDescription, getManageableManagerRoleOptions } from '../authScopes';
+import { canManageCompanySuperAdmin, getAccountsScopeDescription } from '../authScopes';
 import { PageLayout } from '../components/PageLayout';
-import type { Company, IdentitySignupRequestSummary, ManagerAccountSummary } from '../types';
+import type { Company, CompanyManagerRole, IdentitySignupRequestSummary, ManagerAccountSummary } from '../types';
 import { formatAccountStatusLabel, formatRoleLabel } from '../uiLabels';
 
 type AccountsPageProps = {
@@ -14,24 +15,57 @@ type AccountsPageProps = {
   session: SessionPayload;
 };
 
+function getRoleCodeOptions(
+  companyRolesByCompanyId: Record<string, CompanyManagerRole[]>,
+  companyId: string,
+  options: {
+    includeCompanySuperAdmin: boolean;
+    currentRoleType?: string;
+  },
+) {
+  const { includeCompanySuperAdmin, currentRoleType } = options;
+  const roles = companyRolesByCompanyId[companyId] ?? [];
+  const filtered = roles.filter((role) => includeCompanySuperAdmin || role.code !== 'company_super_admin');
+  if (currentRoleType && filtered.some((role) => role.code === currentRoleType)) {
+    return filtered;
+  }
+  if (!currentRoleType) {
+    return filtered;
+  }
+  const currentRole = roles.find((role) => role.code === currentRoleType);
+  if (currentRole) {
+    return [currentRole, ...filtered];
+  }
+  return filtered;
+}
+
+function getDefaultRoleCode(
+  companyRolesByCompanyId: Record<string, CompanyManagerRole[]>,
+  companyId: string,
+  includeCompanySuperAdmin: boolean,
+) {
+  return getRoleCodeOptions(companyRolesByCompanyId, companyId, { includeCompanySuperAdmin })[0]?.code ?? 'vehicle_manager';
+}
+
 export function AccountsPage({ client, session }: AccountsPageProps) {
   const [requests, setRequests] = useState<IdentitySignupRequestSummary[]>([]);
   const [managerAccounts, setManagerAccounts] = useState<ManagerAccountSummary[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyRolesByCompanyId, setCompanyRolesByCompanyId] = useState<Record<string, CompanyManagerRole[]>>({});
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [setupRoles, setSetupRoles] = useState<Record<string, string>>({});
   const [managerRoles, setManagerRoles] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const tabs = useMemo(
-      () => [
+    () => [
       { value: 'pending', label: '대기' },
       { value: 'approved', label: '승인됨' },
       { value: 'rejected', label: '반려됨' },
     ],
     [],
   );
-  const roleOptions = useMemo(() => getManageableManagerRoleOptions(session), [session]);
+  const canAssignSuperAdmin = useMemo(() => canManageCompanySuperAdmin(session), [session]);
   const scopeDescription = useMemo(() => getAccountsScopeDescription(session), [session]);
   const pendingRequestCount = useMemo(
     () => requests.filter((request) => request.status === 'pending' || request.status === 'awaiting_setup').length,
@@ -46,6 +80,24 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
     [companies],
   );
 
+  function getRoleLabel(companyId: string, roleType: string | undefined, roleDisplayName?: string) {
+    if (roleDisplayName) {
+      return roleDisplayName;
+    }
+    const role = (companyRolesByCompanyId[companyId] ?? []).find((candidate) => candidate.code === roleType);
+    return role?.display_name ?? formatRoleLabel(roleType);
+  }
+
+  async function loadRoleCatalog(companyResponse: Company[]) {
+    const entries = await Promise.all(
+      companyResponse.map(async (company) => {
+        const response = await listCompanyManagerRoles(client, company.company_id);
+        return [company.company_id, response.roles] as const;
+      }),
+    );
+    return Object.fromEntries(entries);
+  }
+
   useEffect(() => {
     let ignore = false;
 
@@ -58,13 +110,18 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
           listManageableManagerAccounts(client),
           listCompanies(client),
         ]);
+        const roleCatalog = await loadRoleCatalog(companyResponse);
         if (!ignore) {
           setRequests(requestResponse.requests);
           setManagerAccounts(managerAccountResponse.accounts);
           setCompanies(companyResponse);
+          setCompanyRolesByCompanyId(roleCatalog);
           setSetupRoles(
             Object.fromEntries(
-              requestResponse.requests.map((request) => [request.identity_signup_request_id, roleOptions[0] ?? 'vehicle_manager']),
+              requestResponse.requests.map((request) => [
+                request.identity_signup_request_id,
+                getDefaultRoleCode(roleCatalog, request.company_id, canAssignSuperAdmin),
+              ]),
             ),
           );
           setManagerRoles(
@@ -88,7 +145,7 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client, roleOptions, statusFilter]);
+  }, [canAssignSuperAdmin, client, statusFilter]);
 
   async function reloadCurrentStatus() {
     const [requestResponse, managerAccountResponse, companyResponse] = await Promise.all([
@@ -96,15 +153,24 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
       listManageableManagerAccounts(client),
       listCompanies(client),
     ]);
+    const roleCatalog = await loadRoleCatalog(companyResponse);
     setRequests(requestResponse.requests);
     setManagerAccounts(managerAccountResponse.accounts);
     setCompanies(companyResponse);
-    setManagerRoles((current) => ({
-      ...Object.fromEntries(
+    setCompanyRolesByCompanyId(roleCatalog);
+    setSetupRoles(
+      Object.fromEntries(
+        requestResponse.requests.map((request) => [
+          request.identity_signup_request_id,
+          getDefaultRoleCode(roleCatalog, request.company_id, canAssignSuperAdmin),
+        ]),
+      ),
+    );
+    setManagerRoles(
+      Object.fromEntries(
         managerAccountResponse.accounts.map((account) => [account.manager_account_id, account.role_type]),
       ),
-      ...current,
-    }));
+    );
   }
 
   async function handleApprove(requestId: string, roleType?: string) {
@@ -210,6 +276,13 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
               </thead>
               <tbody>
                 {requests.map((request) => {
+                  const requestRoleOptions = getRoleCodeOptions(companyRolesByCompanyId, request.company_id, {
+                    includeCompanySuperAdmin: canAssignSuperAdmin,
+                    currentRoleType: setupRoles[request.identity_signup_request_id],
+                  });
+                  const selectedRequestRole =
+                    setupRoles[request.identity_signup_request_id] ??
+                    getDefaultRoleCode(companyRolesByCompanyId, request.company_id, canAssignSuperAdmin);
                   return (
                     <tr key={request.identity_signup_request_id}>
                       <td>{request.identity.name}</td>
@@ -229,11 +302,11 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                                     [request.identity_signup_request_id]: event.target.value,
                                   }))
                                 }
-                                value={setupRoles[request.identity_signup_request_id] ?? roleOptions[0] ?? 'vehicle_manager'}
+                                value={selectedRequestRole}
                               >
-                                {roleOptions.map((role) => (
-                                  <option key={role} value={role}>
-                                    {formatRoleLabel(role)}
+                                {requestRoleOptions.map((role) => (
+                                  <option key={role.company_manager_role_id} value={role.code}>
+                                    {role.display_name}
                                   </option>
                                 ))}
                               </select>
@@ -242,7 +315,7 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                                 onClick={() =>
                                   void handleApprove(
                                     request.identity_signup_request_id,
-                                    setupRoles[request.identity_signup_request_id] ?? roleOptions[0] ?? 'vehicle_manager',
+                                    selectedRequestRole,
                                   )
                                 }
                                 type="button"
@@ -304,40 +377,47 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                 </tr>
               </thead>
               <tbody>
-                {managerAccounts.map((account) => (
-                  <tr key={account.manager_account_id}>
-                    <td>{account.identity.name}</td>
-                    <td>{companyNameById[account.company_id] ?? account.company_id}</td>
-                    <td>{formatRoleLabel(account.role_type)}</td>
-                    <td>{formatAccountStatusLabel(account.status)}</td>
-                    <td>{new Date(account.created_at).toLocaleString('ko-KR')}</td>
-                    <td>
-                      <div className="inline-actions">
-                        <select
-                          onChange={(event) =>
-                            setManagerRoles((current) => ({
-                              ...current,
-                              [account.manager_account_id]: event.target.value,
-                            }))
-                          }
-                          value={managerRoles[account.manager_account_id] ?? account.role_type}
-                        >
-                          {roleOptions.map((role) => (
-                            <option key={role} value={role}>
-                              {formatRoleLabel(role)}
-                            </option>
-                          ))}
-                        </select>
-                        <button className="button ghost small" onClick={() => void handleChangeRole(account.manager_account_id)} type="button">
-                          권한 변경
-                        </button>
-                        <button className="button ghost small" onClick={() => void handleArchive(account.manager_account_id)} type="button">
-                          계정 종료
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {managerAccounts.map((account) => {
+                  const managerRoleOptions = getRoleCodeOptions(companyRolesByCompanyId, account.company_id, {
+                    includeCompanySuperAdmin: canAssignSuperAdmin,
+                    currentRoleType: managerRoles[account.manager_account_id] ?? account.role_type,
+                  });
+                  const selectedRoleType = managerRoles[account.manager_account_id] ?? account.role_type;
+                  return (
+                    <tr key={account.manager_account_id}>
+                      <td>{account.identity.name}</td>
+                      <td>{companyNameById[account.company_id] ?? account.company_id}</td>
+                      <td>{getRoleLabel(account.company_id, account.role_type, account.role_display_name)}</td>
+                      <td>{formatAccountStatusLabel(account.status)}</td>
+                      <td>{new Date(account.created_at).toLocaleString('ko-KR')}</td>
+                      <td>
+                        <div className="inline-actions">
+                          <select
+                            onChange={(event) =>
+                              setManagerRoles((current) => ({
+                                ...current,
+                                [account.manager_account_id]: event.target.value,
+                              }))
+                            }
+                            value={selectedRoleType}
+                          >
+                            {managerRoleOptions.map((role) => (
+                              <option key={role.company_manager_role_id} value={role.code}>
+                                {role.display_name}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="button ghost small" onClick={() => void handleChangeRole(account.manager_account_id)} type="button">
+                            권한 변경
+                          </button>
+                          <button className="button ghost small" onClick={() => void handleArchive(account.manager_account_id)} type="button">
+                            계정 종료
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </>

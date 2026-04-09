@@ -57,6 +57,54 @@ const session: SessionPayload = {
 };
 
 describe('AccountPage', () => {
+  it('shows custom manager role display name from session', async () => {
+    apiMocks.getIdentityProfile.mockResolvedValue({
+      identity_id: session.identity.identityId,
+      name: session.identity.name,
+      birth_date: session.identity.birthDate,
+      status: 'active',
+    });
+    apiMocks.getIdentityConsent.mockResolvedValue({
+      privacy_policy_version: 'v1',
+      privacy_policy_consented: true,
+      privacy_policy_consented_at: '2026-04-05T10:00:00Z',
+      location_policy_version: 'v1',
+      location_policy_consented: true,
+      location_policy_consented_at: '2026-04-05T10:00:00Z',
+    });
+    apiMocks.listIdentityLoginMethods.mockResolvedValue({ methods: [] });
+    apiMocks.listMySignupRequests.mockResolvedValue({
+      identity: {
+        identity_id: session.identity.identityId,
+        name: session.identity.name,
+        birth_date: session.identity.birthDate,
+        status: 'active',
+      },
+      inquiry_message: '',
+      requests: [],
+    });
+    apiMocks.listCompanies.mockResolvedValue([
+      { company_id: '30000000-0000-0000-0000-000000000001', name: '기존 회사' },
+    ]);
+
+    render(
+      <AccountPage
+        client={{ request: vi.fn() }}
+        session={{
+          ...session,
+          activeAccount: {
+            ...session.activeAccount!,
+            roleType: 'custom_dispatch_manager',
+            roleDisplayName: '배차 운영 관리자',
+          },
+        }}
+      />,
+    );
+
+    await screen.findByDisplayValue('관리자');
+    expect(screen.getByText(/현재 권한:\s*배차 운영 관리자/)).toBeInTheDocument();
+  });
+
   it('loads self-service data and supports profile update plus request create/cancel', async () => {
     apiMocks.getIdentityProfile.mockResolvedValue({
       identity_id: session.identity.identityId,
