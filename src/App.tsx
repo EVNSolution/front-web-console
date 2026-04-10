@@ -5,6 +5,7 @@ import { login, logout, signupRequestIntake } from './api/auth';
 import { createHttpClient, DEFAULT_API_BASE_URL, getErrorMessage, type HttpClient, type SessionPayload } from './api/http';
 import { listPublicCompanies } from './api/organization';
 import { Layout } from './components/Layout';
+import { TopNotificationBar, type TopNotification, type TopNotificationTone } from './components/TopNotificationBar';
 import { RequireAdmin } from './components/RequireAdmin';
 import { RequireRoleScope } from './components/RequireRoleScope';
 import { SettlementSectionLayout } from './components/SettlementSectionLayout';
@@ -59,6 +60,7 @@ import { SettlementOverviewPage } from './pages/SettlementOverviewPage';
 import { SettlementResultsPage } from './pages/SettlementResultsPage';
 import { SettlementRunsPage } from './pages/SettlementRunsPage';
 import { SupportPage } from './pages/SupportPage';
+import { TopNotificationPreviewPage } from './pages/TopNotificationPreviewPage';
 import { VehicleAssignmentDetailPage } from './pages/VehicleAssignmentDetailPage';
 import { VehicleAssignmentFormPage } from './pages/VehicleAssignmentFormPage';
 import { VehicleAssignmentsPage } from './pages/VehicleAssignmentsPage';
@@ -162,18 +164,51 @@ function NavigationPolicyRouteEffect({
   return null;
 }
 
+function PostLoginRouteEffect({ redirectTick }: { redirectTick: number }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (redirectTick === 0) {
+      return;
+    }
+    navigate('/', { replace: true });
+  }, [navigate, redirectTick]);
+
+  return null;
+}
+
+function isLocalDebugRouteEnabled() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
+
 export default function App() {
   const [session, setSession] = useState<SessionPayload | null>(() => loadStoredSession());
   const [authError, setAuthError] = useState<string | null>(null);
   const [authStatusMessage, setAuthStatusMessage] = useState<string | null>(null);
   const [companyErrorMessage, setCompanyErrorMessage] = useState<string | null>(null);
-  const [policyStatusMessage, setPolicyStatusMessage] = useState<string | null>(null);
+  const [topNotification, setTopNotification] = useState<TopNotification | null>(null);
   const [policyRedirectTick, setPolicyRedirectTick] = useState(0);
+  const [postLoginRedirectTick, setPostLoginRedirectTick] = useState(0);
   const [publicCompanies, setPublicCompanies] = useState<{ company_id: string; route_no?: number; name: string }[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const sessionRef = useRef<SessionPayload | null>(session);
   const clientRef = useRef<HttpClient | null>(null);
+  const notificationIdRef = useRef(0);
+  const isLocalDebugRouteVisible = isLocalDebugRouteEnabled();
+
+  function showTopNotification(message: string, tone: TopNotificationTone) {
+    notificationIdRef.current += 1;
+    setTopNotification({
+      id: notificationIdRef.current,
+      message,
+      tone,
+    });
+  }
 
   useEffect(() => {
     sessionRef.current = session;
@@ -231,7 +266,7 @@ export default function App() {
         setAuthError('세션이 만료되었습니다. 다시 로그인하세요.');
       },
       onNavigationForbidden: () => {
-        setPolicyStatusMessage('권한 정책이 변경되어 현재 화면을 유지할 수 없습니다. 허용된 메뉴로 이동합니다.');
+        showTopNotification('권한 정책이 변경되어 현재 화면을 유지할 수 없습니다. 허용된 메뉴로 이동합니다.', 'error');
         setPolicyRedirectTick((current) => current + 1);
       },
     });
@@ -248,7 +283,8 @@ export default function App() {
       const nextSession = await login(credentials);
       sessionRef.current = nextSession;
       setSession(nextSession);
-      setPolicyStatusMessage(null);
+      setPostLoginRedirectTick((current) => current + 1);
+      setTopNotification(null);
     } catch (error) {
       setAuthError(getErrorMessage(error, '로그인할 수 없습니다.'));
     } finally {
@@ -296,7 +332,7 @@ export default function App() {
     } finally {
       sessionRef.current = null;
       setSession(null);
-      setPolicyStatusMessage(null);
+      setTopNotification(null);
     }
   }
 
@@ -368,24 +404,24 @@ export default function App() {
 
   return (
     <BrowserRouter future={ROUTER_FUTURE}>
+      <PostLoginRouteEffect redirectTick={postLoginRedirectTick} />
       <NavigationPolicyRouteEffect
         allowedNavKeys={allowedNavKeys}
         isLoading={isNavigationPolicyLoading}
         onRedirect={() => {
-          setPolicyStatusMessage('권한 정책이 변경되어 현재 화면에 접근할 수 없습니다. 허용된 메뉴로 이동했습니다.');
+          showTopNotification('권한 정책이 변경되어 현재 화면에 접근할 수 없습니다. 허용된 메뉴로 이동했습니다.', 'error');
         }}
         redirectTick={policyRedirectTick}
         session={session}
       />
-      {policyStatusMessage ? (
-        <div role="status" style={{ padding: '12px 16px', background: '#fff7e6', borderBottom: '1px solid #f0d29b', color: '#5f370e' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <span>{policyStatusMessage}</span>
-            <button className="button ghost small" onClick={() => setPolicyStatusMessage(null)} type="button">
-              닫기
-            </button>
-          </div>
-        </div>
+      {topNotification ? (
+        <TopNotificationBar
+          key={topNotification.id}
+          notice={topNotification}
+          onDismiss={(notificationId) =>
+            setTopNotification((current) => (current?.id === notificationId ? null : current))
+          }
+        />
       ) : null}
       <RequireAdmin session={session} onLogout={handleLogout}>
         <Routes>
@@ -545,6 +581,16 @@ export default function App() {
             <Route
               path="/support"
               element={<SupportPage client={client} session={session} />}
+            />
+            <Route
+              path="/block"
+              element={
+                isLocalDebugRouteVisible ? (
+                  <TopNotificationPreviewPage onShowNotice={showTopNotification} />
+                ) : (
+                  <Navigate replace to="/" />
+                )
+              }
             />
             <Route
               path="/notifications"

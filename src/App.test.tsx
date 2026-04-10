@@ -1,7 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
+import { login as loginApi } from './api/auth';
+import { loadStoredSession } from './sessionPersistence';
 
 const session = {
   accessToken: 'token',
@@ -26,6 +29,12 @@ vi.mock('./sessionPersistence', () => ({
   clearStoredSession: vi.fn(),
   loadStoredSession: vi.fn(() => session),
   persistSession: vi.fn(),
+}));
+
+vi.mock('./api/auth', () => ({
+  login: vi.fn(),
+  logout: vi.fn(),
+  signupRequestIntake: vi.fn(),
 }));
 
 vi.mock('./api/organization', () => ({
@@ -160,9 +169,12 @@ vi.mock('./api/regions', () => ({
   listRegionDailyStatistics: vi.fn().mockResolvedValue([]),
   listRegionPerformanceSummaries: vi.fn().mockResolvedValue([]),
 }));
+
 describe('Admin App', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(loginApi).mockReset();
   });
 
   it('uses the unified dashboard as the root route', async () => {
@@ -256,5 +268,38 @@ describe('Admin App', () => {
     expect(screen.getByRole('link', { name: '정산 결과' })).toBeInTheDocument();
     expect(screen.getByLabelText('회사')).toBeInTheDocument();
     expect(screen.getByLabelText('플릿')).toBeInTheDocument();
+  });
+
+  it('redirects to the dashboard root after login regardless of the entry route', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+    vi.mocked(loginApi).mockResolvedValue(session);
+    window.history.replaceState({}, '', '/settlements/results');
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/아이디/i), 'manager@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/i), 'change-me');
+    await user.click(screen.getByRole('button', { name: /^로그인$/i }));
+
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+    expect(await screen.findByText('운영 요약')).toBeInTheDocument();
+  });
+
+  it('renders the local-only /block route and previews both top notice tones', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, '', '/block');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '상단 알림 미리보기' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '일반 알림 미리보기' }));
+    const successNotice = await screen.findByText('정상 흐름 로그 예시입니다. 상단 알림 템플릿을 확인하세요.');
+    expect(successNotice.closest('.top-notice')).toHaveAttribute('data-tone', 'success');
+
+    await user.click(screen.getByRole('button', { name: '오류 알림 미리보기' }));
+    const errorNotice = await screen.findByText('오류로 인해 허용된 화면으로 이동했습니다. 상단 알림 템플릿을 확인하세요.');
+    expect(errorNotice.closest('.top-notice')).toHaveAttribute('data-tone', 'error');
   });
 });

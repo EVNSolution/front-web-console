@@ -57,6 +57,108 @@ code {
   min-height: 100vh;
 }
 
+.top-notice-region {
+  position: relative;
+  z-index: 5;
+  overflow: hidden;
+  max-height: 4rem;
+  transition: max-height 240ms ease;
+}
+
+.top-notice-region.is-exiting {
+  max-height: 0;
+}
+
+.top-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 2.55rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid transparent;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  transform: translateY(-100%);
+  opacity: 0;
+  animation: top-notice-slide-in 240ms ease forwards;
+}
+
+.top-notice.is-exiting {
+  animation: top-notice-slide-out 240ms ease forwards;
+}
+
+.top-notice[data-tone='success'] {
+  background: linear-gradient(180deg, rgba(205, 222, 0, 0.36), rgba(205, 222, 0, 0.24));
+  color: var(--policy-allow-text);
+  border-bottom-color: var(--policy-allow-border);
+}
+
+.top-notice[data-tone='error'] {
+  background: linear-gradient(180deg, rgba(181, 41, 67, 0.22), rgba(181, 41, 67, 0.12));
+  color: var(--policy-deny-text);
+  border-bottom-color: var(--policy-deny-border);
+}
+
+.top-notice-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.35rem;
+  min-height: 1.4rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: rgba(23, 24, 23, 0.12);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.top-notice-message {
+  max-width: min(100%, 72rem);
+  text-align: center;
+}
+
+@keyframes top-notice-slide-in {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes top-notice-slide-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-notice,
+  .top-notice.is-exiting {
+    animation-duration: 1ms;
+  }
+
+  .top-notice-region {
+    transition-duration: 1ms;
+  }
+}
+
 .auth-shell {
   min-height: 100vh;
   min-width: 0;
@@ -466,7 +568,7 @@ textarea:focus {
 }
 
 .login-landing-frame {
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100dvh - 3rem);
   background: #ffffff;
   border-radius: 0;
   overflow: visible;
@@ -477,18 +579,23 @@ textarea:focus {
 .login-landing-content {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100dvh - 3rem);
+  height: calc(100dvh - 3rem);
 }
 
 .login-media-panel {
-  padding: 24px 0 24px 24px;
+  display: flex;
+  min-height: 0;
+  padding: clamp(16px, 3vh, 24px) 0 clamp(16px, 3vh, 24px) clamp(16px, 2vw, 24px);
 }
 
 .login-media-frame {
   position: relative;
+  flex: 1 1 auto;
   width: 100%;
   height: 100%;
-  min-height: 680px;
+  min-height: clamp(320px, calc(100dvh - 10rem), 680px);
+  max-height: 100%;
   overflow: hidden;
   border-radius: 12px;
   background: #d9dde4;
@@ -499,7 +606,7 @@ textarea:focus {
   position: absolute;
   inset: 0;
   background-image: var(--login-media-placeholder);
-  background-position: center;
+  background-position: center bottom;
   background-repeat: no-repeat;
   background-size: cover;
   opacity: 1;
@@ -514,6 +621,7 @@ textarea:focus {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center bottom;
   opacity: 0;
   transition: opacity 0.35s ease;
 }
@@ -547,6 +655,7 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
   padding: 2.5rem 2rem;
   background: #ffffff;
 }
@@ -1938,6 +2047,41 @@ textarea:focus {
 
   .login-media-frame {
     min-height: 420px;
+  }
+}
+
+@media (max-height: 820px) and (min-width: 981px) {
+  .login-media-panel {
+    padding: 16px 0 16px 16px;
+  }
+
+  .login-media-frame {
+    min-height: clamp(280px, calc(100dvh - 8rem), 540px);
+  }
+
+  .login-media-overlay {
+    left: 28px;
+    bottom: 28px;
+  }
+
+  .login-media-overlay strong {
+    font-size: clamp(2.2rem, 3vw, 2.6rem);
+  }
+
+  .login-media-overlay span {
+    font-size: 1rem;
+  }
+
+  .login-auth-panel {
+    padding: 1.5rem 1.5rem;
+  }
+
+  .login-form-shell {
+    gap: 1rem;
+  }
+
+  .login-page-title {
+    font-size: 1.75rem;
   }
 }
 
