@@ -219,16 +219,24 @@ test('dispatch upload page supports upload preview and confirm flow without a di
   await page.goto('/dispatch/uploads');
 
   await expect(page.getByRole('heading', { name: '배차표 업로드', level: 1 })).toBeVisible();
-  await expect(page.getByText('향후에는 배차 계획과 연동되지만, 1차 MVP에서는 업로드 배치만으로 정산 준비를 시작할 수 있습니다.')).toBeVisible();
-  await expect(page.getByText('배송매니저 이름은 배송원 external_user_name으로 매칭하고, 박스 수만 정산 근거로 사용합니다.')).toBeVisible();
+  await expect(page.getByLabel('회사')).toHaveCount(0);
+  await expect(page.getByLabel('플릿')).toBeVisible();
+  await expect(page.getByLabel('배차일')).toBeVisible();
 
   await page.getByLabel('배차표 업로드').setInputFiles(sampleUploadFile);
 
-  await expect(page.getByText('미리보기 완료')).toBeVisible();
+  await expect(page.getByText('감지된 배차일 2026-02-13')).toBeVisible();
+  await expect(page.getByRole('button', { name: '서버 검증' })).toBeDisabled();
+  await page.getByRole('button', { name: '감지된 날짜 적용' }).click();
+  await expect(page.getByLabel('배차일')).toHaveValue('2026-02-13');
+  await expect(page.getByRole('button', { name: '서버 검증' })).toBeEnabled();
+
+  await page.getByRole('button', { name: '서버 검증' }).click();
+  await expect(page.getByText('검증 완료')).toBeVisible();
   await expect(page.getByRole('button', { name: '업로드 확정' })).toBeVisible();
 
   await page.getByRole('button', { name: '업로드 확정' }).click();
 
   await expect(page.getByText('확정 완료')).toBeVisible();
-  await expect(page.getByText('업로드 확정 1건')).toBeVisible();
+  await expect(page.getByRole('button', { name: '정산 시작' })).toBeVisible();
 });
