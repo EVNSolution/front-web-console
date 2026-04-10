@@ -585,7 +585,7 @@ export default function App() {
                   title="배차 관리 권한 필요"
                   when={canAccessDispatchScope}
                 >
-                  <DispatchUploadsPage client={client} />
+                  <DispatchUploadsPage client={client} session={session} />
                 </RequireRoleScope>
               }
             />

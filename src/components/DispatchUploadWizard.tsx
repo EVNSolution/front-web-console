@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { read, utils } from 'xlsx';
 
 import type { DispatchUploadBatch } from '../types';
@@ -14,6 +14,7 @@ type DispatchUploadWizardProps = {
   companyId: string;
   fleetId: string;
   dispatchDate: string;
+  onDispatchDateDetected?: (dispatchDate: string) => void;
   dispatchPlanId?: string | null;
   confirmedBatches: DispatchUploadBatch[];
   isStartingSettlement?: boolean;
@@ -82,6 +83,25 @@ function summarizeBatch(batch: DispatchUploadBatch | null) {
   };
 }
 
+function extractDispatchDateFromFilename(filename: string) {
+  const normalized = filename.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const dottedMatch = normalized.match(/(20\d{2})[-_.](\d{2})[-_.](\d{2})/);
+  if (dottedMatch) {
+    return `${dottedMatch[1]}-${dottedMatch[2]}-${dottedMatch[3]}`;
+  }
+
+  const compactMatch = normalized.match(/(20\d{2})(\d{2})(\d{2})/);
+  if (compactMatch) {
+    return `${compactMatch[1]}-${compactMatch[2]}-${compactMatch[3]}`;
+  }
+
+  return null;
+}
+
 function summarizeEditableRows(rows: EditableUploadRow[], validatedBatch: DispatchUploadBatch | null) {
   const totalBoxCount = rows.reduce((sum, row) => sum + row.box_count, 0);
   const matchedCount = validatedBatch
@@ -120,6 +140,7 @@ export function DispatchUploadWizard({
   companyId,
   fleetId,
   dispatchDate,
+  onDispatchDateDetected,
   dispatchPlanId,
   confirmedBatches,
   isStartingSettlement = false,
@@ -127,6 +148,7 @@ export function DispatchUploadWizard({
   onStartSettlement,
 }: DispatchUploadWizardProps) {
   const [editableRows, setEditableRows] = useState<EditableUploadRow[]>([]);
+  const [pendingDetectedDispatchDate, setPendingDetectedDispatchDate] = useState<string | null>(null);
   const [uploadedFilename, setUploadedFilename] = useState<string | null>(null);
   const [previewBatch, setPreviewBatch] = useState<DispatchUploadBatch | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -143,21 +165,34 @@ export function DispatchUploadWizard({
   const canStartSettlement =
     Boolean(onStartSettlement) &&
     (previewBatch?.upload_status === 'confirmed' || confirmedBatches.length > 0);
+  const effectiveDispatchDate = dispatchDate;
+  const requiresDispatchDateConfirmation = Boolean(pendingDetectedDispatchDate && !dispatchDate);
   const toolbarMessage = editableRows.length
-    ? '시트 수정 후 서버 검증으로 배송원 매칭을 확인합니다.'
+    ? requiresDispatchDateConfirmation
+      ? `파일명에서 배차일 ${pendingDetectedDispatchDate}을 감지했습니다. 적용 후 검증하거나 직접 선택하세요.`
+      : effectiveDispatchDate
+      ? '시트 수정 후 서버 검증으로 배송원 매칭을 확인합니다.'
+      : '파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택한 뒤 검증하세요.'
     : canStartSettlement
       ? '확정된 업로드 기준으로 바로 정산을 시작할 수 있습니다.'
       : '파일을 올리면 시트에서 바로 수정하고 검증할 수 있습니다.';
 
+  useEffect(() => {
+    if (dispatchDate) {
+      setPendingDetectedDispatchDate(null);
+    }
+  }, [dispatchDate]);
+
   async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file || !companyId || !fleetId || !dispatchDate) {
+    if (!file || !companyId || !fleetId) {
       return;
     }
 
     setIsUploading(true);
     setErrorMessage(null);
     try {
+      const nextDetectedDispatchDate = !dispatchDate ? extractDispatchDateFromFilename(file.name) : null;
       const workbook = read(await file.arrayBuffer(), { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
@@ -168,6 +203,7 @@ export function DispatchUploadWizard({
         throw new Error('업로드할 배차 row가 없습니다.');
       }
       setUploadedFilename(file.name);
+      setPendingDetectedDispatchDate(nextDetectedDispatchDate);
       setEditableRows(rows.map((row, index) => ({ ...row, row_index: index + 1 })));
       setPreviewBatch(null);
     } catch (error) {
@@ -199,8 +235,20 @@ export function DispatchUploadWizard({
     setPreviewBatch(null);
   }
 
+  function handleApplyDetectedDispatchDate() {
+    if (!pendingDetectedDispatchDate) {
+      return;
+    }
+    onDispatchDateDetected?.(pendingDetectedDispatchDate);
+    setPendingDetectedDispatchDate(null);
+  }
+
+  function handleChooseDispatchDateManually() {
+    setPendingDetectedDispatchDate(null);
+  }
+
   async function handleValidateRows() {
-    if (!editableRows.length || !companyId || !fleetId || !dispatchDate) {
+    if (!editableRows.length || !companyId || !fleetId || !effectiveDispatchDate) {
       return;
     }
 
@@ -210,7 +258,7 @@ export function DispatchUploadWizard({
       const response = await previewDispatchUpload(client, {
         company_id: companyId,
         fleet_id: fleetId,
-        dispatch_date: dispatchDate,
+        dispatch_date: effectiveDispatchDate,
         ...(dispatchPlanId ? { dispatch_plan_id: dispatchPlanId } : {}),
         source_filename: uploadedFilename ?? undefined,
         rows: editableRows.map((row) => ({
@@ -259,7 +307,7 @@ export function DispatchUploadWizard({
           <input
             accept=".xlsx,.xls,.csv"
             aria-label="배차표 업로드"
-            disabled={!companyId || !fleetId || !dispatchDate || isUploading || isValidating || isConfirming}
+            disabled={!companyId || !fleetId || isUploading || isValidating || isConfirming}
             onChange={handleFileUpload}
             style={{ display: 'none' }}
             type="file"
@@ -273,7 +321,7 @@ export function DispatchUploadWizard({
             {editableRows.length > 0 ? (
               <button
                 className="button ghost small"
-                disabled={isValidating || isConfirming}
+                disabled={!effectiveDispatchDate || isValidating || isConfirming}
                 onClick={() => void handleValidateRows()}
                 type="button"
               >
@@ -306,6 +354,22 @@ export function DispatchUploadWizard({
           </div>
         ) : null}
       </div>
+      {requiresDispatchDateConfirmation ? (
+        <div className="dispatch-upload-date-detection">
+          <div>
+            <strong>감지된 배차일 {pendingDetectedDispatchDate}</strong>
+            <p>지원 패턴: YYYY-MM-DD, YYYY_MM_DD, YYYYMMDD</p>
+          </div>
+          <div className="panel-toolbar-actions">
+            <button className="button secondary small" onClick={handleApplyDetectedDispatchDate} type="button">
+              감지된 날짜 적용
+            </button>
+            <button className="button ghost small" onClick={handleChooseDispatchDateManually} type="button">
+              직접 선택
+            </button>
+          </div>
+        </div>
+      ) : null}
       {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
 
       {editableRows.length > 0 ? (

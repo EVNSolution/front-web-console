@@ -2,28 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { bootstrapDailySnapshotsFromDispatch } from '../api/deliveryRecords';
+import type { SessionPayload } from '../api/http';
 import { listDispatchUploadBatches } from '../api/dispatchRegistry';
 import { getErrorMessage, type HttpClient } from '../api/http';
 import { listCompanies, listFleets } from '../api/organization';
 import { DispatchUploadWizard } from '../components/DispatchUploadWizard';
 import { PageLayout } from '../components/PageLayout';
+import { isSystemAdmin } from '../authScopes';
 import type { Company, DispatchUploadBatch, Fleet } from '../types';
 
 type DispatchUploadsPageProps = {
   client: HttpClient;
+  session: SessionPayload;
 };
 
-function getTodayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export function DispatchUploadsPage({ client }: DispatchUploadsPageProps) {
+export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProps) {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [fleets, setFleets] = useState<Fleet[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedFleetId, setSelectedFleetId] = useState('');
-  const [dispatchDate, setDispatchDate] = useState(getTodayIsoDate());
+  const [dispatchDate, setDispatchDate] = useState('');
   const [confirmedBatches, setConfirmedBatches] = useState<DispatchUploadBatch[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -34,6 +33,7 @@ export function DispatchUploadsPage({ client }: DispatchUploadsPageProps) {
     () => fleets.filter((fleet) => !selectedCompanyId || fleet.company_id === selectedCompanyId),
     [fleets, selectedCompanyId],
   );
+  const showCompanySelector = isSystemAdmin(session);
   const uploadSummary = useMemo(() => {
     const matchedRowCount = confirmedBatches.reduce(
       (sum, batch) => sum + batch.rows.filter((row) => Boolean(row.matched_driver_id)).length,
@@ -63,7 +63,12 @@ export function DispatchUploadsPage({ client }: DispatchUploadsPageProps) {
         }
         setCompanies(companyResponse);
         setFleets(fleetResponse);
-        const nextCompanyId = companyResponse[0]?.company_id ?? '';
+        const lockedCompanyId =
+          !showCompanySelector && session.activeAccount?.companyId ? session.activeAccount.companyId : '';
+        const nextCompanyId =
+          lockedCompanyId && companyResponse.some((company) => company.company_id === lockedCompanyId)
+            ? lockedCompanyId
+            : companyResponse[0]?.company_id ?? '';
         const nextFleetId =
           fleetResponse.find((fleet) => fleet.company_id === nextCompanyId)?.fleet_id ??
           fleetResponse[0]?.fleet_id ??
@@ -85,7 +90,7 @@ export function DispatchUploadsPage({ client }: DispatchUploadsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client]);
+  }, [client, session, showCompanySelector]);
 
   async function loadConfirmedBatches() {
     if (!selectedCompanyId || !selectedFleetId || !dispatchDate) {
@@ -171,26 +176,28 @@ export function DispatchUploadsPage({ client }: DispatchUploadsPageProps) {
           ) : (
             <>
               <div className="dispatch-upload-scope-grid">
-                <label className="field">
-                  <select
-                    aria-label="회사"
-                    onChange={(event) => {
-                      const nextCompanyId = event.target.value;
-                      setSelectedCompanyId(nextCompanyId);
-                      const nextFleetId =
-                        fleets.find((fleet) => fleet.company_id === nextCompanyId)?.fleet_id ?? '';
-                      setSelectedFleetId(nextFleetId);
-                    }}
-                    value={selectedCompanyId}
-                  >
-                    <option value="">회사 선택</option>
-                    {companies.map((company) => (
-                      <option key={company.company_id} value={company.company_id}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {showCompanySelector ? (
+                  <label className="field">
+                    <select
+                      aria-label="회사"
+                      onChange={(event) => {
+                        const nextCompanyId = event.target.value;
+                        setSelectedCompanyId(nextCompanyId);
+                        const nextFleetId =
+                          fleets.find((fleet) => fleet.company_id === nextCompanyId)?.fleet_id ?? '';
+                        setSelectedFleetId(nextFleetId);
+                      }}
+                      value={selectedCompanyId}
+                    >
+                      <option value="">회사 선택</option>
+                      {companies.map((company) => (
+                        <option key={company.company_id} value={company.company_id}>
+                          {company.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 <label className="field">
                   <select
                     aria-label="플릿"
@@ -243,6 +250,7 @@ export function DispatchUploadsPage({ client }: DispatchUploadsPageProps) {
             companyId={selectedCompanyId}
             fleetId={selectedFleetId}
             dispatchDate={dispatchDate}
+            onDispatchDateDetected={setDispatchDate}
             confirmedBatches={confirmedBatches}
             isStartingSettlement={isBootstrapping}
             onConfirmed={loadConfirmedBatches}
