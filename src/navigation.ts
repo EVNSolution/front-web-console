@@ -161,10 +161,17 @@ const operationsItems: NavigationItem[] = [
 const dispatchItems: NavigationItem[] = [
   {
     key: 'dispatch',
-    label: '배차',
+    label: '배차 계획',
     to: '/dispatch/boards',
     isVisible: canAccessDispatchScope,
-    matchPrefixes: ['/dispatch'],
+    matchPrefixes: ['/dispatch/boards', '/dispatch/plans'],
+  },
+  {
+    key: 'dispatch',
+    label: '배차표 업로드',
+    to: '/dispatch/uploads',
+    isVisible: canAccessDispatchScope,
+    matchPrefixes: ['/dispatch/uploads'],
   },
 ];
 
@@ -223,7 +230,7 @@ export const navigationGroups: NavigationGroup[] = [
   },
   {
     key: 'dispatch',
-    label: '배차 계획',
+    label: '배차',
     isVisible: (session) => anyVisible(dispatchItems, session),
     items: dispatchItems,
   },

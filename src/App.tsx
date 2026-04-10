@@ -2,10 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import { login, logout, signupRequestIntake } from './api/auth';
-import { createHttpClient, DEFAULT_API_BASE_URL, getErrorMessage, type HttpClient, type SessionPayload } from './api/http';
+import {
+  createHttpClient,
+  DEFAULT_API_BASE_URL,
+  GENERIC_SERVER_ERROR_MESSAGE,
+  getErrorMessage,
+  type HttpClient,
+  type SessionPayload,
+} from './api/http';
 import { listPublicCompanies } from './api/organization';
 import { Layout } from './components/Layout';
-import { TopNotificationBar, type TopNotification, type TopNotificationTone } from './components/TopNotificationBar';
+import {
+  DISPLAY_DURATION_MS,
+  TopNotificationBar,
+  type TopNotification,
+  type TopNotificationTone,
+} from './components/TopNotificationBar';
+import {
+  resolveTopNotificationTemplate,
+  type TopNotificationTemplateKey,
+} from './components/topNotificationTemplates';
 import { RequireAdmin } from './components/RequireAdmin';
 import { RequireRoleScope } from './components/RequireRoleScope';
 import { SettlementSectionLayout } from './components/SettlementSectionLayout';
@@ -37,6 +53,7 @@ import { CompanyNavigationPolicyPage } from './pages/CompanyNavigationPolicyPage
 import { DispatchBoardDetailPage } from './pages/DispatchBoardDetailPage';
 import { DispatchBoardsPage } from './pages/DispatchBoardsPage';
 import { DispatchPlanFormPage } from './pages/DispatchPlanFormPage';
+import { DispatchUploadsPage } from './pages/DispatchUploadsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DriverDetailPage } from './pages/DriverDetailPage';
 import { DriverFormPage } from './pages/DriverFormPage';
@@ -199,15 +216,40 @@ export default function App() {
   const sessionRef = useRef<SessionPayload | null>(session);
   const clientRef = useRef<HttpClient | null>(null);
   const notificationIdRef = useRef(0);
+  const promotedServerErrorElementsRef = useRef(new WeakSet<HTMLElement>());
   const isLocalDebugRouteVisible = isLocalDebugRouteEnabled();
 
-  function showTopNotification(message: string, tone: TopNotificationTone) {
-    notificationIdRef.current += 1;
-    setTopNotification({
-      id: notificationIdRef.current,
-      message,
-      tone,
+  function showTopNotification(
+    message: string,
+    tone: TopNotificationTone,
+    options?: { dedupeKey?: string },
+  ) {
+    const nextExpiresAt = Date.now() + DISPLAY_DURATION_MS;
+    const dedupeKey = options?.dedupeKey ?? `message:${tone}:${message}`;
+    setTopNotification((current) => {
+      if (current && current.dedupeKey === dedupeKey) {
+        return {
+          ...current,
+          message,
+          tone,
+          expiresAt: nextExpiresAt,
+        };
+      }
+
+      notificationIdRef.current += 1;
+      return {
+        id: notificationIdRef.current,
+        dedupeKey,
+        message,
+        tone,
+        expiresAt: nextExpiresAt,
+      };
     });
+  }
+
+  function showTopNotificationTemplate(templateKey: TopNotificationTemplateKey) {
+    const template = resolveTopNotificationTemplate(templateKey);
+    showTopNotification(template.message, template.tone, { dedupeKey: template.dedupeKey });
   }
 
   useEffect(() => {
@@ -219,6 +261,44 @@ export default function App() {
 
     clearStoredSession();
   }, [session]);
+
+  useEffect(() => {
+    function maybePromoteServerErrorBanner() {
+      const serverErrorBanners = Array.from(
+        document.querySelectorAll<HTMLElement>('.error-banner, .form-error'),
+      ).filter((element) => element.textContent?.trim() === GENERIC_SERVER_ERROR_MESSAGE);
+
+      let shouldPromoteTemplate = false;
+      for (const element of serverErrorBanners) {
+        element.classList.add('is-suppressed-by-top-notice');
+        if (!promotedServerErrorElementsRef.current.has(element)) {
+          promotedServerErrorElementsRef.current.add(element);
+          shouldPromoteTemplate = true;
+        }
+      }
+
+      if (!shouldPromoteTemplate) {
+        return;
+      }
+
+      showTopNotificationTemplate('server-unavailable');
+    }
+
+    maybePromoteServerErrorBanner();
+    const observer = new MutationObserver(() => {
+      maybePromoteServerErrorBanner();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (session) {
@@ -266,7 +346,7 @@ export default function App() {
         setAuthError('세션이 만료되었습니다. 다시 로그인하세요.');
       },
       onNavigationForbidden: () => {
-        showTopNotification('권한 정책이 변경되어 현재 화면을 유지할 수 없습니다. 허용된 메뉴로 이동합니다.', 'error');
+        showTopNotificationTemplate('navigation-policy-updated');
         setPolicyRedirectTick((current) => current + 1);
       },
     });
@@ -336,18 +416,31 @@ export default function App() {
     }
   }
 
+  const topNotificationNode = topNotification ? (
+    <TopNotificationBar
+      key={topNotification.id}
+      notice={topNotification}
+      onDismiss={(notificationId) =>
+        setTopNotification((current) => (current?.id === notificationId ? null : current))
+      }
+    />
+  ) : null;
+
   if (!session) {
     return (
-      <LoginPage
-        companies={publicCompanies}
-        companyErrorMessage={companyErrorMessage}
-        errorMessage={authError}
-        isLoadingCompanies={isLoadingCompanies}
-        isSubmitting={isSubmitting}
-        onLogin={handleLogin}
-        onSignup={handleSignup}
-        statusMessage={authStatusMessage}
-      />
+      <>
+        {topNotificationNode}
+        <LoginPage
+          companies={publicCompanies}
+          companyErrorMessage={companyErrorMessage}
+          errorMessage={authError}
+          isLoadingCompanies={isLoadingCompanies}
+          isSubmitting={isSubmitting}
+          onLogin={handleLogin}
+          onSignup={handleSignup}
+          statusMessage={authStatusMessage}
+        />
+      </>
     );
   }
 
@@ -403,29 +496,22 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter future={ROUTER_FUTURE}>
-      <PostLoginRouteEffect redirectTick={postLoginRedirectTick} />
-      <NavigationPolicyRouteEffect
-        allowedNavKeys={allowedNavKeys}
-        isLoading={isNavigationPolicyLoading}
-        onRedirect={() => {
-          showTopNotification('권한 정책이 변경되어 현재 화면에 접근할 수 없습니다. 허용된 메뉴로 이동했습니다.', 'error');
-        }}
-        redirectTick={policyRedirectTick}
-        session={session}
-      />
-      {topNotification ? (
-        <TopNotificationBar
-          key={topNotification.id}
-          notice={topNotification}
-          onDismiss={(notificationId) =>
-            setTopNotification((current) => (current?.id === notificationId ? null : current))
-          }
+    <>
+      {topNotificationNode}
+      <BrowserRouter future={ROUTER_FUTURE}>
+        <PostLoginRouteEffect redirectTick={postLoginRedirectTick} />
+        <NavigationPolicyRouteEffect
+          allowedNavKeys={allowedNavKeys}
+          isLoading={isNavigationPolicyLoading}
+          onRedirect={() => {
+            showTopNotificationTemplate('navigation-redirected');
+          }}
+          redirectTick={policyRedirectTick}
+          session={session}
         />
-      ) : null}
-      <RequireAdmin session={session} onLogout={handleLogout}>
-        <Routes>
-          <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
+        <RequireAdmin session={session} onLogout={handleLogout}>
+          <Routes>
+            <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
             <Route path="/" element={<DashboardPage client={client} session={session} />} />
             <Route
               path="/me"
@@ -489,6 +575,20 @@ export default function App() {
             <Route path="/company/navigation-policy" element={<Navigate replace to="/company/menu-policy" />} />
             <Route path="/organization" element={<Navigate replace to="/companies" />} />
             <Route path="/dispatch" element={<Navigate replace to="/dispatch/boards" />} />
+            <Route
+              path="/dispatch/uploads"
+              element={
+                <RequireRoleScope
+                  message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
+                  onLogout={handleLogout}
+                  session={session}
+                  title="배차 관리 권한 필요"
+                  when={canAccessDispatchScope}
+                >
+                  <DispatchUploadsPage client={client} />
+                </RequireRoleScope>
+              }
+            />
             <Route
               path="/dispatch/boards"
               element={
@@ -998,10 +1098,11 @@ export default function App() {
               <Route path="runs" element={<SettlementRunsPage client={client} />} />
               <Route path="results" element={<SettlementResultsPage client={client} />} />
             </Route>
-            <Route path="*" element={<Navigate replace to="/" />} />
-          </Route>
-        </Routes>
-      </RequireAdmin>
-    </BrowserRouter>
+              <Route path="*" element={<Navigate replace to="/" />} />
+            </Route>
+          </Routes>
+        </RequireAdmin>
+      </BrowserRouter>
+    </>
   );
 }

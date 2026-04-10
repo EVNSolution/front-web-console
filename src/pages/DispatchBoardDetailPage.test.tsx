@@ -205,8 +205,8 @@ describe('DispatchBoardDetailPage', () => {
     );
 
     await screen.findByText('12가3456');
-    expect(screen.getByText('dispatch unit과 운영 입력을 함께 관리합니다.')).toBeInTheDocument();
-    expect(screen.getByText('정산 입력 스냅샷 완료')).toBeInTheDocument();
+    expect(screen.getByText('해당 날짜의 차량, 배송원, 예외를 운영합니다.')).toBeInTheDocument();
+    expect(screen.getByText('입력 준비 완료')).toBeInTheDocument();
     expect(screen.getAllByText('홍길동').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: '배정 해제' }));
     await waitFor(() => {
@@ -219,6 +219,42 @@ describe('DispatchBoardDetailPage', () => {
         }),
       );
     });
+  });
+
+  it('keeps the upload workflow visible even when no dispatch plan exists', async () => {
+    apiMocks.listDispatchPlans.mockResolvedValue([]);
+    apiMocks.getDispatchSummary.mockResolvedValue({
+      dispatch_date: '2026-03-24',
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      planned_volume: 0,
+      planned_assignment_count: 0,
+      matched_count: 0,
+      not_started_count: 0,
+      dispatch_unit_changed_count: 0,
+      unplanned_current_count: 0,
+    });
+    apiMocks.getDispatchBoard.mockResolvedValue([]);
+    apiMocks.listOutsourcedDrivers.mockResolvedValue([]);
+    apiMocks.listVehicleSchedules.mockResolvedValue([]);
+    apiMocks.listDispatchAssignments.mockResolvedValue([]);
+    apiMocks.listDispatchWorkRules.mockResolvedValue([]);
+    apiMocks.listDriverDayExceptions.mockResolvedValue([]);
+    apiMocks.listVehicleMasters.mockResolvedValue([]);
+    apiMocks.listDrivers.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={['/dispatch/boards/41/2026-03-24']}>
+        <Routes>
+          <Route
+            path="/dispatch/boards/:fleetRef/:dispatchDate"
+            element={<DispatchBoardDetailPage client={{ request: vi.fn() }} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '업로드 파일' })).toBeInTheDocument();
+    expect(screen.getByLabelText('배차표 업로드')).toBeInTheDocument();
   });
 
   it('bootstraps settlement input snapshots from dispatch context', async () => {
@@ -357,7 +393,7 @@ describe('DispatchBoardDetailPage', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: '배차표 업로드' });
+    await screen.findByRole('heading', { name: '업로드 파일' });
     expect(screen.getByText('dispatch.xlsx')).toBeInTheDocument();
     expect(screen.getByText(/ZD홍길동/)).toBeInTheDocument();
     expect(apiMocks.listDispatchUploadBatches).toHaveBeenCalledWith(expect.anything(), {
@@ -463,7 +499,7 @@ describe('DispatchBoardDetailPage', () => {
     );
 
     await screen.findByRole('heading', { name: '운영 기사', level: 3 });
-    expect(screen.getByText('dispatch unit과 운영 입력을 함께 관리합니다.')).toBeInTheDocument();
+    expect(screen.getByText('해당 날짜의 차량, 배송원, 예외를 운영합니다.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '아카이브 기사', level: 3 })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '운영 기사' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: '아카이브 기사' })).not.toBeInTheDocument();

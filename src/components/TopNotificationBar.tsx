@@ -4,8 +4,10 @@ export type TopNotificationTone = 'success' | 'error';
 
 export type TopNotification = {
   id: number;
+  dedupeKey: string;
   message: string;
   tone: TopNotificationTone;
+  expiresAt: number;
 };
 
 type TopNotificationBarProps = {
@@ -13,7 +15,7 @@ type TopNotificationBarProps = {
   onDismiss: (id: number) => void;
 };
 
-const DISPLAY_DURATION_MS = 3000;
+export const DISPLAY_DURATION_MS = 3000;
 const EXIT_DURATION_MS = 240;
 
 export function TopNotificationBar({ notice, onDismiss }: TopNotificationBarProps) {
@@ -21,14 +23,15 @@ export function TopNotificationBar({ notice, onDismiss }: TopNotificationBarProp
 
   useEffect(() => {
     setIsExiting(false);
+    const remainingMs = Math.max(notice.expiresAt - Date.now(), 0);
     const dismissTimer = window.setTimeout(() => {
       setIsExiting(true);
-    }, DISPLAY_DURATION_MS);
+    }, remainingMs);
 
     return () => {
       window.clearTimeout(dismissTimer);
     };
-  }, [notice.id]);
+  }, [notice.expiresAt, notice.id]);
 
   useEffect(() => {
     if (!isExiting) {

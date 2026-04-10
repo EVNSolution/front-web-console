@@ -268,7 +268,10 @@ export type DispatchUploadRow = {
 
 export type DispatchUploadBatch = {
   upload_batch_id: string;
-  dispatch_plan_id: string;
+  dispatch_plan_id: string | null;
+  company_id: string;
+  fleet_id: string;
+  dispatch_date: string;
   source_filename: string;
   upload_status: 'draft' | 'confirmed';
   rows: DispatchUploadRow[];

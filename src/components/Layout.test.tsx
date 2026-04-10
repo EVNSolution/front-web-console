@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -40,12 +40,12 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '차량' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '배송원' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '배차' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '조직 관리' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: '차량' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: '배송원' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: '운영' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: '배차 계획' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '배차' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('link', { name: '회사 메뉴 정책' })).not.toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '권역' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배차' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배차 계획' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '내 계정' })).toHaveLength(2);
     expect(container.querySelector('.console-home-icon')).toBeNull();
   });
@@ -89,6 +89,39 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '메뉴 정책' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '관리자 역할' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사 메뉴 정책' })).not.toBeInTheDocument();
+  });
+
+  it('shows separate dispatch planning and upload links when the dispatch group expands', () => {
+    render(
+      <MemoryRouter>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'dispatch@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '배차 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'company_super_admin',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '배차' }));
+
+    expect(screen.getByRole('link', { name: '배차 계획' })).toHaveAttribute('href', '/dispatch/boards');
+    expect(screen.getByRole('link', { name: '배차표 업로드' })).toHaveAttribute('href', '/dispatch/uploads');
   });
 
   it('prefers roleDisplayName over static role code in the topbar summary', () => {
@@ -163,7 +196,7 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '차량 배정' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '배송원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '정산' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '배차 계획' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '배차' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '회사' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '관리자 역할' })).not.toBeInTheDocument();
   });
@@ -200,7 +233,7 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '배차' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '지원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '알림' })).not.toBeInTheDocument();
@@ -247,7 +280,7 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '운영' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: '배차 계획' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '배차' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '지원' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '알림' })).not.toBeInTheDocument();

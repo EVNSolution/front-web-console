@@ -626,7 +626,7 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
           </Link>
         </div>
       }
-      subtitle="dispatch unit과 운영 입력을 함께 관리합니다."
+      subtitle="해당 날짜의 차량, 배송원, 예외를 운영합니다."
       title={fleet?.name ?? '배차 보드'}
     >
       <section className="panel">
@@ -665,22 +665,22 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
               <dt>정산 입력</dt>
               <dd>
                 {hasActiveDailySnapshot
-                  ? '정산 입력 스냅샷 완료'
+                  ? '입력 준비 완료'
                   : hasDraftDailySnapshot
-                    ? '정산 입력 draft snapshot 생성'
-                    : '정산 입력 스냅샷 대기'}
+                    ? '입력 초안 생성'
+                    : '입력 대기'}
               </dd>
             </div>
             <div>
               <dt>배차 업로드</dt>
-              <dd>{confirmedUploadBatches.length ? `업로드 확정 ${confirmedUploadBatches.length}건` : '배차 업로드 대기'}</dd>
+              <dd>{confirmedUploadBatches.length ? `확정 ${confirmedUploadBatches.length}건` : '업로드 대기'}</dd>
             </div>
             <div>
-              <dt>draft snapshot</dt>
+              <dt>입력 초안</dt>
               <dd>{draftDailySnapshotCount}</dd>
             </div>
             <div>
-              <dt>활성 snapshot</dt>
+              <dt>입력 준비</dt>
               <dd>{activeDailySnapshotCount}</dd>
             </div>
           </dl>
@@ -689,6 +689,9 @@ export function DispatchBoardDetailPage({ client }: DispatchBoardDetailPageProps
 
       <DispatchUploadWizard
         client={client}
+        companyId={fleet?.company_id ?? ''}
+        fleetId={fleet?.fleet_id ?? ''}
+        dispatchDate={dispatchDate ?? ''}
         confirmedBatches={confirmedUploadBatches}
         dispatchPlanId={dispatchPlan?.dispatch_plan_id ?? null}
         onConfirmed={reloadBoard}

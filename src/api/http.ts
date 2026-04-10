@@ -48,6 +48,8 @@ export class ApiError extends Error {
   }
 }
 
+export const GENERIC_SERVER_ERROR_MESSAGE = '서버 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+
 export const DEFAULT_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
 
 export function resolveApiUrl(baseUrl: string, path: string): string {
@@ -117,9 +119,15 @@ export function toApiError(response: Response, payload: unknown): ApiError {
 
 export function getErrorMessage(error: unknown, fallback = 'Request failed.'): string {
   if (error instanceof ApiError) {
+    if (error.status >= 500) {
+      return GENERIC_SERVER_ERROR_MESSAGE;
+    }
     return error.message;
   }
   if (error instanceof Error) {
+    if (error.message === 'Failed to fetch') {
+      return GENERIC_SERVER_ERROR_MESSAGE;
+    }
     return error.message;
   }
   return fallback;

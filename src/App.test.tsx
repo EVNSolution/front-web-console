@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
 import { login as loginApi } from './api/auth';
+import { ApiError, GENERIC_SERVER_ERROR_MESSAGE } from './api/http';
 import { loadStoredSession } from './sessionPersistence';
+import { listPublicCompanies } from './api/organization';
 
 const session = {
   accessToken: 'token',
@@ -50,12 +52,61 @@ vi.mock('./api/organization', () => ({
     },
   ]),
   listPublicCompanies: vi.fn().mockResolvedValue([]),
+  getFleet: vi.fn().mockResolvedValue({
+    fleet_id: '40000000-0000-0000-0000-000000000001',
+    route_no: 1,
+    company_id: '30000000-0000-0000-0000-000000000001',
+    name: 'Seed Fleet',
+  }),
 }));
 
 vi.mock('./api/settlementOps', () => ({
   listSettlementReadRuns: vi.fn().mockResolvedValue([]),
   listSettlementReadItems: vi.fn().mockResolvedValue([]),
   getDriverLatestSettlement: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('./api/dispatchOps', () => ({
+  getDispatchBoard: vi.fn().mockResolvedValue([]),
+  getDispatchSummary: vi.fn().mockResolvedValue({
+    dispatch_date: '2026-03-24',
+    fleet_id: '40000000-0000-0000-0000-000000000001',
+    planned_volume: 0,
+    planned_assignment_count: 0,
+    matched_count: 0,
+    not_started_count: 0,
+    dispatch_unit_changed_count: 0,
+    unplanned_current_count: 0,
+  }),
+}));
+
+vi.mock('./api/dispatchRegistry', () => ({
+  listDispatchPlans: vi.fn().mockResolvedValue([]),
+  listDispatchUploadBatches: vi.fn().mockResolvedValue([]),
+  previewDispatchUpload: vi.fn(),
+  confirmDispatchUpload: vi.fn(),
+  listDispatchAssignments: vi.fn().mockResolvedValue([]),
+  createDispatchAssignment: vi.fn(),
+  updateDispatchAssignment: vi.fn(),
+  listDispatchWorkRules: vi.fn().mockResolvedValue([]),
+  createDispatchWorkRule: vi.fn(),
+  updateDispatchWorkRule: vi.fn(),
+  removeDispatchWorkRule: vi.fn(),
+  listDriverDayExceptions: vi.fn().mockResolvedValue([]),
+  createDriverDayException: vi.fn(),
+  removeDriverDayException: vi.fn(),
+  listOutsourcedDrivers: vi.fn().mockResolvedValue([]),
+  createOutsourcedDriver: vi.fn(),
+  archiveOutsourcedDriver: vi.fn(),
+  updateOutsourcedDriver: vi.fn(),
+  listVehicleSchedules: vi.fn().mockResolvedValue([]),
+  createDispatchPlan: vi.fn(),
+  getDispatchPlan: vi.fn(),
+  updateDispatchPlan: vi.fn(),
+}));
+
+vi.mock('./api/vehicles', () => ({
+  listVehicleMasters: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('./api/settlementRegistry', () => ({
@@ -131,7 +182,7 @@ vi.mock('./api/deliveryRecords', () => ({
   createDailyDeliveryInputSnapshot: vi.fn(),
   updateDailyDeliveryInputSnapshot: vi.fn(),
   deleteDailyDeliveryInputSnapshot: vi.fn(),
-  bootstrapDispatchSnapshots: vi.fn(),
+  bootstrapDailySnapshotsFromDispatch: vi.fn(),
 }));
 
 vi.mock('./api/personnelDocuments', () => ({
@@ -245,6 +296,14 @@ describe('Admin App', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/settlements/overview'));
   });
 
+  it('renders the standalone dispatch upload route', async () => {
+    window.history.replaceState({}, '', '/dispatch/uploads');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+  });
+
   it('renders settlement overview without process tabs or context selectors', async () => {
     window.history.replaceState({}, '', '/settlements/overview');
 
@@ -301,5 +360,20 @@ describe('Admin App', () => {
     await user.click(screen.getByRole('button', { name: '오류 알림 미리보기' }));
     const errorNotice = await screen.findByText('오류로 인해 허용된 화면으로 이동했습니다. 상단 알림 템플릿을 확인하세요.');
     expect(errorNotice.closest('.top-notice')).toHaveAttribute('data-tone', 'error');
+  });
+
+  it('promotes generic server errors to the top notification bar instead of keeping them visible inline', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+    vi.mocked(listPublicCompanies).mockRejectedValue(
+      new ApiError(502, 'http_502', 'Bad Gateway', null),
+    );
+    window.history.replaceState({}, '', '/');
+
+    render(<App />);
+
+    const topNotice = await screen.findByRole('alert');
+    expect(topNotice).toHaveTextContent(GENERIC_SERVER_ERROR_MESSAGE);
+    expect(topNotice).toHaveAttribute('data-tone', 'error');
+    expect(document.querySelector('.error-banner.is-suppressed-by-top-notice')).not.toBeNull();
   });
 });

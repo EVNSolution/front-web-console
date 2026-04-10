@@ -31,7 +31,7 @@ describe('DispatchUploadWizard', () => {
     vi.clearAllMocks();
   });
 
-  it('shows upload preview rows with driver match and box count', async () => {
+  it('lets users edit uploaded rows before running server validation', async () => {
     xlsxMocks.read.mockReturnValue({
       SheetNames: ['Sheet1'],
       Sheets: { Sheet1: {} },
@@ -47,7 +47,10 @@ describe('DispatchUploadWizard', () => {
     ]);
     dispatchRegistryMocks.previewDispatchUpload.mockResolvedValue({
       upload_batch_id: 'upload-batch-1',
-      dispatch_plan_id: 'dispatch-plan-1',
+      dispatch_plan_id: null,
+      company_id: 'company-1',
+      fleet_id: 'fleet-1',
+      dispatch_date: '2026-03-24',
       source_filename: 'dispatch.xlsx',
       upload_status: 'draft',
       created_at: '2026-03-24T09:00:00Z',
@@ -56,10 +59,10 @@ describe('DispatchUploadWizard', () => {
         {
           upload_row_id: 'upload-row-1',
           row_index: 1,
-          external_user_name: 'ZD홍길동',
+          external_user_name: 'ZD김영희',
           small_region_text: '10H2',
           detailed_region_text: '10H2-가',
-          box_count: 133,
+          box_count: 144,
           household_count: 90,
           matched_driver_id: 'driver-1',
         },
@@ -70,7 +73,9 @@ describe('DispatchUploadWizard', () => {
       <DispatchUploadWizard
         client={{ request: vi.fn() }}
         confirmedBatches={[]}
-        dispatchPlanId="dispatch-plan-1"
+        companyId="company-1"
+        fleetId="fleet-1"
+        dispatchDate="2026-03-24"
       />,
     );
 
@@ -84,21 +89,34 @@ describe('DispatchUploadWizard', () => {
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
 
-    expect(await screen.findByText('ZD홍길동')).toBeInTheDocument();
-    expect(screen.getAllByText('133')).toHaveLength(2);
+    expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('133')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('90')).toBeInTheDocument();
+    expect(dispatchRegistryMocks.previewDispatchUpload).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByLabelText('배송매니저 이름 1'));
+    await user.type(screen.getByLabelText('배송매니저 이름 1'), 'ZD김영희');
+    await user.clear(screen.getByLabelText('박스 수 1'));
+    await user.type(screen.getByLabelText('박스 수 1'), '144');
+    await user.click(screen.getByRole('button', { name: '서버 검증' }));
+
     expect(dispatchRegistryMocks.previewDispatchUpload).toHaveBeenCalledWith(expect.anything(), {
-      dispatch_plan_id: 'dispatch-plan-1',
+      company_id: 'company-1',
+      fleet_id: 'fleet-1',
+      dispatch_date: '2026-03-24',
       source_filename: 'dispatch.xlsx',
       rows: [
         {
-          delivery_manager_name: 'ZD홍길동',
+          delivery_manager_name: 'ZD김영희',
           small_region_text: '10H2',
           detailed_region_text: '10H2-가',
-          box_count: 133,
+          box_count: 144,
           household_count: 90,
         },
       ],
     });
+    expect(await screen.findByText('검증 완료')).toBeInTheDocument();
+    expect(screen.getByText('ZD김영희 · driver-1')).toBeInTheDocument();
   });
 
   it('confirms a draft preview batch and calls the page callback', async () => {
@@ -117,7 +135,10 @@ describe('DispatchUploadWizard', () => {
     ]);
     dispatchRegistryMocks.previewDispatchUpload.mockResolvedValue({
       upload_batch_id: 'upload-batch-1',
-      dispatch_plan_id: 'dispatch-plan-1',
+      dispatch_plan_id: null,
+      company_id: 'company-1',
+      fleet_id: 'fleet-1',
+      dispatch_date: '2026-03-24',
       source_filename: 'dispatch.xlsx',
       upload_status: 'draft',
       created_at: '2026-03-24T09:00:00Z',
@@ -137,7 +158,10 @@ describe('DispatchUploadWizard', () => {
     });
     dispatchRegistryMocks.confirmDispatchUpload.mockResolvedValue({
       upload_batch_id: 'upload-batch-1',
-      dispatch_plan_id: 'dispatch-plan-1',
+      dispatch_plan_id: null,
+      company_id: 'company-1',
+      fleet_id: 'fleet-1',
+      dispatch_date: '2026-03-24',
       source_filename: 'dispatch.xlsx',
       upload_status: 'confirmed',
       created_at: '2026-03-24T09:00:00Z',
@@ -161,7 +185,9 @@ describe('DispatchUploadWizard', () => {
       <DispatchUploadWizard
         client={{ request: vi.fn() }}
         confirmedBatches={[]}
-        dispatchPlanId="dispatch-plan-1"
+        companyId="company-1"
+        fleetId="fleet-1"
+        dispatchDate="2026-03-24"
         onConfirmed={handleConfirmed}
       />,
     );
@@ -175,6 +201,7 @@ describe('DispatchUploadWizard', () => {
     });
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
+    await user.click(screen.getByRole('button', { name: '서버 검증' }));
     await user.click(await screen.findByRole('button', { name: '업로드 확정' }));
 
     await waitFor(() => {

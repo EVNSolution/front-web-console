@@ -1,35 +1,31 @@
 import { describe, expect, it } from 'vitest';
 
-import { deserializeSessionPayload } from './http';
+import { ApiError, getErrorMessage } from './http';
 
-describe('deserializeSessionPayload', () => {
-  it('maps role_display_name into activeAccount.roleDisplayName', () => {
-    const session = deserializeSessionPayload({
-      access_token: 'token',
-      session_kind: 'normal',
-      email: 'custom-role@example.com',
-      identity: {
-        identity_id: '10000000-0000-0000-0000-000000000001',
-        name: '커스텀 관리자',
-        birth_date: '1990-01-02',
-        status: 'active',
-      },
-      active_account: {
-        account_type: 'manager',
-        account_id: '20000000-0000-0000-0000-000000000001',
-        company_id: '30000000-0000-0000-0000-000000000001',
-        role_type: 'custom_dispatch_manager',
-        role_display_name: '배차 운영 관리자',
-      },
-      available_account_types: ['manager'],
+describe('http error messaging', () => {
+  it('masks 5xx api errors behind a generic user-facing message', () => {
+    const error = new ApiError(500, 'http_500', 'database stack trace', {
+      debug: 'should not leak',
     });
 
-    expect(session.activeAccount).toEqual({
-      accountType: 'manager',
-      accountId: '20000000-0000-0000-0000-000000000001',
-      companyId: '30000000-0000-0000-0000-000000000001',
-      roleType: 'custom_dispatch_manager',
-      roleDisplayName: '배차 운영 관리자',
-    });
+    expect(getErrorMessage(error)).toBe('서버 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+  });
+
+  it('masks gateway failures behind the same generic message', () => {
+    const error = new ApiError(502, 'http_502', 'Bad Gateway', null);
+
+    expect(getErrorMessage(error)).toBe('서버 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+  });
+
+  it('keeps 4xx api messages intact', () => {
+    const error = new ApiError(403, 'forbidden', 'Permission denied.', null);
+
+    expect(getErrorMessage(error)).toBe('Permission denied.');
+  });
+
+  it('maps fetch failures to a generic user-facing message', () => {
+    expect(getErrorMessage(new TypeError('Failed to fetch'))).toBe(
+      '서버 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    );
   });
 });

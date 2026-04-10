@@ -33,3 +33,11 @@
 - `npm run dev`는 host 개발용 `http://localhost:5174`를 소유한다.
 - Docker image는 `npm run dev`를 띄우지 않고, `npm run build` 결과물을 정적으로 서빙한다.
 - 통합 확인용 `http://localhost:8080`은 gateway 뒤의 built frontend 기준으로 본다.
+
+원격 API 개발 모드:
+- `VITE_DEV_PROXY_TARGET`을 사용하면 `5174`의 `/api`를 remote gateway로 프록시할 수 있다.
+- `.env.local`은 실데이터 remote target에 붙을 때만 사용한다.
+- `.env.local-test`는 dev/staging 같은 더 안전한 remote target에 우선 사용한다.
+- `npm run dev:local-test`는 `local-test` mode로 실행되어 `.env.local-test`를 읽는다.
+- 현재 실데이터 remote target 기본값은 `https://hub.evnlogistics.com`이다.
+- 경고: 현재 로컬 프론트 테스트의 CRUD는 실제 DB에 영향을 줍니다. 변경을 원하면, PROXY TARGET을 변경하십시오.

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5174",
+    "dev:local-test": "vite --mode local-test --host 0.0.0.0 --port 5174",
     "build": "tsc --noEmit && vite build",
     "test": "vitest --config vitest.config.ts",
     "test:e2e": "playwright test"

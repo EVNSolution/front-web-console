@@ -58,7 +58,10 @@ export type DispatchUploadPreviewRowPayload = {
 };
 
 export type DispatchUploadPreviewPayload = {
-  dispatch_plan_id: string;
+  company_id: string;
+  fleet_id: string;
+  dispatch_date: string;
+  dispatch_plan_id?: string | null;
   source_filename?: string;
   rows: DispatchUploadPreviewRowPayload[];
 };

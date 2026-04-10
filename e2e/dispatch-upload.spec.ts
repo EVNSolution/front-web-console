@@ -57,13 +57,26 @@ async function mockDispatchUploadApis(page: Page) {
     ]);
   });
 
-  await page.route('**/api/org/fleets/41/', async (route) => {
-    await mockJson(route, {
-      fleet_id: '40000000-0000-0000-0000-000000000001',
-      route_no: 41,
-      company_id: '30000000-0000-0000-0000-000000000001',
-      name: 'Seed Fleet',
-    });
+  await page.route('**/api/org/fleets/**', async (route) => {
+    const url = route.request().url();
+    if (url.match(/\/api\/org\/fleets\/[^/]+\/?$/)) {
+      await mockJson(route, {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 41,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'Seed Fleet',
+      });
+      return;
+    }
+
+    await mockJson(route, [
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 41,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'Seed Fleet',
+      },
+    ]);
   });
 
   await page.route('**/api/drivers/', async (route) => {
@@ -139,7 +152,10 @@ async function mockDispatchUploadApis(page: Page) {
 
   await page.route('**/api/dispatch/upload-batches/preview/', async (route) => {
     const request = route.request().postDataJSON() as {
-      dispatch_plan_id: string;
+      dispatch_plan_id?: string | null;
+      company_id: string;
+      fleet_id: string;
+      dispatch_date: string;
       source_filename?: string;
       rows: Array<{
         delivery_manager_name: string;
@@ -152,7 +168,10 @@ async function mockDispatchUploadApis(page: Page) {
 
     const previewBatch = {
       upload_batch_id: 'upload-batch-1',
-      dispatch_plan_id: request.dispatch_plan_id,
+      dispatch_plan_id: request.dispatch_plan_id ?? null,
+      company_id: request.company_id,
+      fleet_id: request.fleet_id,
+      dispatch_date: request.dispatch_date,
       source_filename: request.source_filename ?? 'dispatch.xlsx',
       upload_status: 'draft',
       created_at: '2026-03-24T09:00:00Z',
@@ -191,15 +210,16 @@ async function mockDispatchUploadApis(page: Page) {
   });
 }
 
-test('dispatch board detail keeps upload preview and confirm flow inside the board context', async ({
+test('dispatch upload page supports upload preview and confirm flow without a dispatch plan', async ({
   page,
 }) => {
   await primeConsoleSession(page);
   await mockDispatchUploadApis(page);
 
-  await page.goto('/dispatch/boards/41/2026-03-24');
+  await page.goto('/dispatch/uploads');
 
-  await expect(page.getByRole('heading', { name: '배차표 업로드' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '배차표 업로드', level: 1 })).toBeVisible();
+  await expect(page.getByText('향후에는 배차 계획과 연동되지만, 1차 MVP에서는 업로드 배치만으로 정산 준비를 시작할 수 있습니다.')).toBeVisible();
   await expect(page.getByText('배송매니저 이름은 배송원 external_user_name으로 매칭하고, 박스 수만 정산 근거로 사용합니다.')).toBeVisible();
 
   await page.getByLabel('배차표 업로드').setInputFiles(sampleUploadFile);

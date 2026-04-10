@@ -78,12 +78,13 @@ describe('DispatchBoardsPage', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: '배차 보드' });
+    await screen.findByRole('heading', { name: '배차 계획' });
     await screen.findByText('알파 회사');
     expect(screen.getByText('서울 플릿')).toBeInTheDocument();
     expect(screen.getByText('2026-03-24')).toBeInTheDocument();
     expect(screen.getByText('120')).toBeInTheDocument();
-    expect(screen.getByText('정산 입력 완료')).toBeInTheDocument();
+    expect(screen.queryByText('정산 입력 완료')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '배차표 업로드' })).toHaveAttribute('href', '/dispatch/uploads');
     expect(screen.getByRole('link', { name: '보드 열기' })).toHaveAttribute(
       'href',
       '/dispatch/boards/41/2026-03-24',
@@ -92,5 +93,7 @@ describe('DispatchBoardsPage', () => {
       'href',
       '/dispatch/plans/dispatch-plan-1/edit',
     );
+    expect(screen.queryByText(/1차 MVP/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/정산 handoff/i)).not.toBeInTheDocument();
   });
 });

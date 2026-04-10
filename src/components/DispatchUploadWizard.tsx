@@ -11,9 +11,18 @@ import { getErrorMessage, type HttpClient } from '../api/http';
 
 type DispatchUploadWizardProps = {
   client: HttpClient;
-  dispatchPlanId: string | null;
+  companyId: string;
+  fleetId: string;
+  dispatchDate: string;
+  dispatchPlanId?: string | null;
   confirmedBatches: DispatchUploadBatch[];
+  isStartingSettlement?: boolean;
   onConfirmed?: () => Promise<void> | void;
+  onStartSettlement?: () => Promise<void> | void;
+};
+
+type EditableUploadRow = DispatchUploadPreviewRowPayload & {
+  row_index: number;
 };
 
 function parseNumericCell(value: unknown) {
@@ -73,21 +82,76 @@ function summarizeBatch(batch: DispatchUploadBatch | null) {
   };
 }
 
+function summarizeEditableRows(rows: EditableUploadRow[], validatedBatch: DispatchUploadBatch | null) {
+  const totalBoxCount = rows.reduce((sum, row) => sum + row.box_count, 0);
+  const matchedCount = validatedBatch
+    ? validatedBatch.rows.filter((row) => Boolean(row.matched_driver_id)).length
+    : 0;
+  return {
+    matchedCount,
+    unmatchedCount: Math.max(rows.length - matchedCount, 0),
+    totalBoxCount,
+  };
+}
+
+function formatValidatedMatchLabel(row: DispatchUploadBatch['rows'][number] | undefined) {
+  if (!row) {
+    return {
+      status: '검증 전',
+      detail: '서버 검증 전',
+    };
+  }
+
+  if (row.matched_driver_id) {
+    return {
+      status: '매칭 완료',
+      detail: `${row.external_user_name} · ${row.matched_driver_id}`,
+    };
+  }
+
+  return {
+    status: '미매칭',
+    detail: '연결된 배송원 없음',
+  };
+}
+
 export function DispatchUploadWizard({
   client,
+  companyId,
+  fleetId,
+  dispatchDate,
   dispatchPlanId,
   confirmedBatches,
+  isStartingSettlement = false,
   onConfirmed,
+  onStartSettlement,
 }: DispatchUploadWizardProps) {
+  const [editableRows, setEditableRows] = useState<EditableUploadRow[]>([]);
+  const [uploadedFilename, setUploadedFilename] = useState<string | null>(null);
   const [previewBatch, setPreviewBatch] = useState<DispatchUploadBatch | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const previewSummary = useMemo(() => summarizeBatch(previewBatch), [previewBatch]);
+  const previewSummary = useMemo(
+    () =>
+      editableRows.length > 0
+        ? summarizeEditableRows(editableRows, previewBatch)
+        : summarizeBatch(previewBatch),
+    [editableRows, previewBatch],
+  );
+  const canStartSettlement =
+    Boolean(onStartSettlement) &&
+    (previewBatch?.upload_status === 'confirmed' || confirmedBatches.length > 0);
+  const toolbarMessage = editableRows.length
+    ? '시트 수정 후 서버 검증으로 배송원 매칭을 확인합니다.'
+    : canStartSettlement
+      ? '확정된 업로드 기준으로 바로 정산을 시작할 수 있습니다.'
+      : '파일을 올리면 시트에서 바로 수정하고 검증할 수 있습니다.';
 
   async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file || !dispatchPlanId) {
+    if (!file || !companyId || !fleetId || !dispatchDate) {
       return;
     }
 
@@ -103,18 +167,65 @@ export function DispatchUploadWizard({
       if (!rows.length) {
         throw new Error('업로드할 배차 row가 없습니다.');
       }
-
-      const response = await previewDispatchUpload(client, {
-        dispatch_plan_id: dispatchPlanId,
-        source_filename: file.name,
-        rows,
-      });
-      setPreviewBatch(response);
+      setUploadedFilename(file.name);
+      setEditableRows(rows.map((row, index) => ({ ...row, row_index: index + 1 })));
+      setPreviewBatch(null);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsUploading(false);
       event.target.value = '';
+    }
+  }
+
+  function updateEditableRow(
+    rowIndex: number,
+    field: keyof DispatchUploadPreviewRowPayload,
+    value: string | number,
+  ) {
+    setEditableRows((currentRows) =>
+      currentRows.map((row) =>
+        row.row_index === rowIndex
+          ? {
+              ...row,
+              [field]:
+                field === 'box_count' || field === 'household_count'
+                  ? Number.parseInt(String(value), 10) || 0
+                  : String(value),
+            }
+          : row,
+      ),
+    );
+    setPreviewBatch(null);
+  }
+
+  async function handleValidateRows() {
+    if (!editableRows.length || !companyId || !fleetId || !dispatchDate) {
+      return;
+    }
+
+    setIsValidating(true);
+    setErrorMessage(null);
+    try {
+      const response = await previewDispatchUpload(client, {
+        company_id: companyId,
+        fleet_id: fleetId,
+        dispatch_date: dispatchDate,
+        ...(dispatchPlanId ? { dispatch_plan_id: dispatchPlanId } : {}),
+        source_filename: uploadedFilename ?? undefined,
+        rows: editableRows.map((row) => ({
+          delivery_manager_name: row.delivery_manager_name,
+          small_region_text: row.small_region_text,
+          detailed_region_text: row.detailed_region_text,
+          box_count: row.box_count,
+          household_count: row.household_count,
+        })),
+      });
+      setPreviewBatch(response);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsValidating(false);
     }
   }
 
@@ -137,18 +248,18 @@ export function DispatchUploadWizard({
   }
 
   return (
-    <section className="panel">
+    <section className="panel dispatch-upload-panel">
       <div className="panel-header panel-header-inline">
         <div>
           <p className="panel-kicker">배차 업로드</p>
-          <h2>배차표 업로드</h2>
+          <h2>업로드 파일</h2>
         </div>
         <label className="button primary">
           배차표 업로드
           <input
             accept=".xlsx,.xls,.csv"
             aria-label="배차표 업로드"
-            disabled={!dispatchPlanId || isUploading || isConfirming}
+            disabled={!companyId || !fleetId || !dispatchDate || isUploading || isValidating || isConfirming}
             onChange={handleFileUpload}
             style={{ display: 'none' }}
             type="file"
@@ -156,13 +267,25 @@ export function DispatchUploadWizard({
         </label>
       </div>
       <div className="panel-toolbar">
-        <span className="table-meta">배송매니저 이름은 배송원 external_user_name으로 매칭하고, 박스 수만 정산 근거로 사용합니다.</span>
-        {previewBatch ? (
+        <span className="table-meta">{toolbarMessage}</span>
+        {editableRows.length > 0 || canStartSettlement ? (
           <div className="panel-toolbar-actions">
-            <span className="status-badge">{previewBatch.upload_status === 'confirmed' ? '확정 완료' : '미리보기 완료'}</span>
-            {previewBatch.upload_status === 'draft' ? (
+            {editableRows.length > 0 ? (
               <button
                 className="button ghost small"
+                disabled={isValidating || isConfirming}
+                onClick={() => void handleValidateRows()}
+                type="button"
+              >
+                {isValidating ? '검증 중...' : '서버 검증'}
+              </button>
+            ) : null}
+            {previewBatch ? (
+              <span className="status-badge">{previewBatch.upload_status === 'confirmed' ? '확정 완료' : '검증 완료'}</span>
+            ) : null}
+            {previewBatch?.upload_status === 'draft' ? (
+              <button
+                className="button primary small"
                 disabled={isConfirming}
                 onClick={() => void handleConfirmUpload()}
                 type="button"
@@ -170,37 +293,43 @@ export function DispatchUploadWizard({
                 업로드 확정
               </button>
             ) : null}
+            {canStartSettlement ? (
+              <button
+                className="button ghost small"
+                disabled={isStartingSettlement}
+                onClick={() => void onStartSettlement?.()}
+                type="button"
+              >
+                {isStartingSettlement ? '정산 준비 중...' : '정산 시작'}
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
       {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
 
-      {previewBatch ? (
+      {editableRows.length > 0 ? (
         <div className="stack">
-          <div className="summary-strip">
-            <article className="summary-item">
-              <span>파일</span>
-              <strong>{previewBatch.source_filename || '이름 없음'}</strong>
-              <small>현재 미리보기 기준 업로드 파일</small>
+          <div className="dispatch-upload-sheet-summary">
+            <article className="metric-card">
+              <span>업로드 파일</span>
+              <strong>{uploadedFilename || previewBatch?.source_filename || '이름 없음'}</strong>
             </article>
-            <article className="summary-item">
-              <span>검증 요약</span>
+            <article className="metric-card">
+              <span>배송원 매칭 row</span>
               <strong>{previewSummary?.matchedCount ?? 0}</strong>
-              <small>배송원 매칭 완료 row</small>
             </article>
-            <article className="summary-item">
-              <span>미매칭</span>
+            <article className="metric-card">
+              <span>확인 필요 row</span>
               <strong>{previewSummary?.unmatchedCount ?? 0}</strong>
-              <small>용차/수동 보정이 필요한 row</small>
             </article>
-            <article className="summary-item">
-              <span>총 박스 수</span>
+            <article className="metric-card">
+              <span>현재 박스 수</span>
               <strong>{previewSummary?.totalBoxCount ?? 0}</strong>
-              <small>정산 snapshot에 들어갈 box 기준 수량</small>
             </article>
           </div>
 
-          <table className="table compact">
+          <table className="table dispatch-upload-sheet">
             <thead>
               <tr>
                 <th>#</th>
@@ -213,30 +342,72 @@ export function DispatchUploadWizard({
               </tr>
             </thead>
             <tbody>
-              {previewBatch.rows.map((row) => (
-                <tr key={row.upload_row_id}>
-                  <td>{row.row_index}</td>
-                  <td>{row.external_user_name}</td>
-                  <td>{row.small_region_text || '-'}</td>
-                  <td>{row.detailed_region_text || '-'}</td>
-                  <td>{row.box_count}</td>
-                  <td>{row.household_count}</td>
-                  <td>{row.matched_driver_id ? row.matched_driver_id : '미매칭'}</td>
-                </tr>
-              ))}
+              {editableRows.map((row) => {
+                const validatedRow = previewBatch?.rows.find((candidate) => candidate.row_index === row.row_index);
+                const matchLabel = formatValidatedMatchLabel(validatedRow);
+
+                return (
+                  <tr key={row.row_index}>
+                    <td>{row.row_index}</td>
+                    <td>
+                      <input
+                        aria-label={`배송매니저 이름 ${row.row_index}`}
+                        onChange={(event) => updateEditableRow(row.row_index, 'delivery_manager_name', event.target.value)}
+                        value={row.delivery_manager_name}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`소분류 권역 ${row.row_index}`}
+                        onChange={(event) => updateEditableRow(row.row_index, 'small_region_text', event.target.value)}
+                        value={row.small_region_text}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`세분류 권역 ${row.row_index}`}
+                        onChange={(event) =>
+                          updateEditableRow(row.row_index, 'detailed_region_text', event.target.value)
+                        }
+                        value={row.detailed_region_text}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`박스 수 ${row.row_index}`}
+                        inputMode="numeric"
+                        onChange={(event) => updateEditableRow(row.row_index, 'box_count', event.target.value)}
+                        value={row.box_count}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`가구 수 ${row.row_index}`}
+                        inputMode="numeric"
+                        onChange={(event) => updateEditableRow(row.row_index, 'household_count', event.target.value)}
+                        value={row.household_count}
+                      />
+                    </td>
+                    <td>
+                      <div className="dispatch-upload-match-cell">
+                        <strong>{matchLabel.status}</strong>
+                        <small>{matchLabel.detail}</small>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       ) : confirmedBatches.length ? (
-        <div className="stack tight">
+        <div className="dispatch-upload-history">
           {confirmedBatches.map((batch) => (
             <div className="list-card" key={batch.upload_batch_id}>
               <div className="list-card-header">
                 <div>
                   <h3>{batch.source_filename || '업로드 파일'}</h3>
-                  <p>
-                    {batch.rows.length}개 row · {batch.rows.filter((row) => Boolean(row.matched_driver_id)).length}개 매칭
-                  </p>
+                  <p>{batch.rows.length}개 row · {batch.rows.filter((row) => Boolean(row.matched_driver_id)).length}개 매칭</p>
                 </div>
                 <span className="status-badge">확정됨</span>
               </div>
@@ -251,7 +422,7 @@ export function DispatchUploadWizard({
           ))}
         </div>
       ) : (
-        <p className="empty-state">확정된 배차 업로드가 없습니다. 파일을 올려 preview 후 확정하세요.</p>
+        <p className="empty-state">확정된 업로드가 없습니다. 파일을 올려 확인 후 확정하세요.</p>
       )}
     </section>
   );
