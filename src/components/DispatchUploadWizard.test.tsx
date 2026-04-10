@@ -32,6 +32,22 @@ describe('DispatchUploadWizard', () => {
     vi.clearAllMocks();
   });
 
+  function mockSingleWorksheetRow() {
+    xlsxMocks.read.mockReturnValue({
+      SheetNames: ['Sheet1'],
+      Sheets: { Sheet1: {} },
+    });
+    xlsxMocks.sheetToJson.mockReturnValue([
+      {
+        '배송매니저 이름': 'ZD홍길동',
+        '소분류 권역': '10H2',
+        '세분류 권역': '10H2-가',
+        '박스 수': 133,
+        '가구 수': 90,
+      },
+    ]);
+  }
+
   it('lets users edit uploaded rows before running server validation', async () => {
     xlsxMocks.read.mockReturnValue({
       SheetNames: ['Sheet1'],
@@ -121,19 +137,7 @@ describe('DispatchUploadWizard', () => {
   });
 
   it('asks for confirmation before using a detected dispatch date from the filename', async () => {
-    xlsxMocks.read.mockReturnValue({
-      SheetNames: ['Sheet1'],
-      Sheets: { Sheet1: {} },
-    });
-    xlsxMocks.sheetToJson.mockReturnValue([
-      {
-        '배송매니저 이름': 'ZD홍길동',
-        '소분류 권역': '10H2',
-        '세분류 권역': '10H2-가',
-        '박스 수': 133,
-        '가구 수': 90,
-      },
-    ]);
+    mockSingleWorksheetRow();
     dispatchRegistryMocks.previewDispatchUpload.mockResolvedValue({
       upload_batch_id: 'upload-batch-1',
       dispatch_plan_id: null,
@@ -206,20 +210,53 @@ describe('DispatchUploadWizard', () => {
     });
   });
 
-  it('falls back to manual date selection when the filename does not match a supported pattern', async () => {
-    xlsxMocks.read.mockReturnValue({
-      SheetNames: ['Sheet1'],
-      Sheets: { Sheet1: {} },
+  it.each([
+    ['underscore pattern', '배차현황_2026_02_13.xlsx', '2026-02-13'],
+    ['compact pattern', '배차현황_20260213.xlsx', '2026-02-13'],
+  ])('detects dispatch date from %s', async (_label, filename, expectedDate) => {
+    mockSingleWorksheetRow();
+    const handleDispatchDateDetected = vi.fn();
+
+    function StatefulWizard() {
+      const [dispatchDate, setDispatchDate] = useState('');
+
+      return (
+        <DispatchUploadWizard
+          client={{ request: vi.fn() }}
+          companyId="company-1"
+          confirmedBatches={[]}
+          dispatchDate={dispatchDate}
+          fleetId="fleet-1"
+          onDispatchDateDetected={(nextDispatchDate) => {
+            handleDispatchDateDetected(nextDispatchDate);
+            setDispatchDate(nextDispatchDate);
+          }}
+        />
+      );
+    }
+
+    render(<StatefulWizard />);
+
+    const user = userEvent.setup();
+    const file = new File(['dummy'], filename, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-    xlsxMocks.sheetToJson.mockReturnValue([
-      {
-        '배송매니저 이름': 'ZD홍길동',
-        '소분류 권역': '10H2',
-        '세분류 권역': '10H2-가',
-        '박스 수': 133,
-        '가구 수': 90,
-      },
-    ]);
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+    });
+
+    await user.upload(screen.getByLabelText('배차표 업로드'), file);
+
+    expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
+    expect(screen.getByText(`감지된 배차일 ${expectedDate}`)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '감지된 날짜 적용' }));
+
+    expect(handleDispatchDateDetected).toHaveBeenCalledWith(expectedDate);
+  });
+
+  it('falls back to manual date selection when the filename does not match a supported pattern', async () => {
+    mockSingleWorksheetRow();
 
     render(
       <DispatchUploadWizard
