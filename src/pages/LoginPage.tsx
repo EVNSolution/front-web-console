@@ -1,8 +1,39 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { SocialAuthButton } from '../components/SocialAuthButton';
 import type { Company } from '../types';
 import loginSideImage from '../assets/login-side-image.svg';
 import loginSideImageSmall from '../assets/login-side-image-small.jpg';
+
+const EMAIL_HINT_TEXT = '이메일 형식으로 입력하세요.';
+const PASSWORD_RULE_TEXT = '비밀번호는 영문 대문자, 소문자, 기호를 각각 1개 이상 포함해야 합니다.';
+
+function satisfiesPasswordRule(password: string) {
+  return /[A-Z]/.test(password) && /[a-z]/.test(password) && /[^A-Za-z0-9]/.test(password);
+}
+
+function hasInput(value: string) {
+  return value.trim().length > 0;
+}
+
+function shouldShowEmailHint(value: string) {
+  return hasInput(value) && !value.includes('@');
+}
+
+function shouldShowPasswordHint(value: string) {
+  return hasInput(value) && !satisfiesPasswordRule(value);
+}
+
+function SocialLoginButtons({ signup = false }: { signup?: boolean }) {
+  return (
+    <div className="auth-social-stack" aria-label={signup ? '소셜 회원가입' : '소셜 로그인'}>
+      <div className="auth-social-buttons" role="group" aria-label={signup ? '소셜 회원가입 버튼' : '소셜 로그인 버튼'}>
+        <SocialAuthButton disabled label="google 로그인" provider="google" />
+        <SocialAuthButton disabled label="카카오 로그인" provider="kakao" />
+      </div>
+    </div>
+  );
+}
 
 type SignupFormPayload = {
   name: string;
@@ -61,6 +92,7 @@ export function LoginPage({
     passwordConfirm: '',
   });
   const [isLoginMediaLoaded, setIsLoginMediaLoaded] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
   const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
   const [passwordResetStatus, setPasswordResetStatus] = useState<string | null>(null);
 
@@ -92,11 +124,16 @@ export function LoginPage({
 
   async function handleSignupSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSignupError(null);
     const requestTypes = [
       signupManagerRequested ? 'manager_account_create' : null,
       signupDriverRequested ? 'driver_account_create' : null,
     ].filter(Boolean) as string[];
     if (!signupCompanyId || requestTypes.length === 0) {
+      return;
+    }
+    if (!satisfiesPasswordRule(signupPassword)) {
+      setSignupError(PASSWORD_RULE_TEXT);
       return;
     }
     await onSignup({
@@ -115,6 +152,10 @@ export function LoginPage({
     event.preventDefault();
     setPasswordResetError(null);
     setPasswordResetStatus(null);
+    if (!satisfiesPasswordRule(passwordResetDraft.password)) {
+      setPasswordResetError(PASSWORD_RULE_TEXT);
+      return;
+    }
     if (passwordResetDraft.password !== passwordResetDraft.passwordConfirm) {
       setPasswordResetError('새 비밀번호가 일치하지 않습니다.');
       return;
@@ -152,6 +193,7 @@ export function LoginPage({
               {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
               {statusMessage ? <div className="success-banner">{statusMessage}</div> : null}
               {companyErrorMessage ? <div className="error-banner">{companyErrorMessage}</div> : null}
+              {signupError ? <div className="error-banner">{signupError}</div> : null}
               {passwordResetError ? <div className="error-banner">{passwordResetError}</div> : null}
               {passwordResetStatus ? <div className="success-banner">{passwordResetStatus}</div> : null}
 
@@ -159,8 +201,8 @@ export function LoginPage({
                 <>
                   <form className="stack login-form-stack" onSubmit={(event) => void handleLoginSubmit(event)}>
                     <label className="field">
-                      <span>아이디</span>
                       <input
+                        aria-label="아이디"
                         autoComplete="email"
                         name="email"
                         onChange={(event) => setEmail(event.target.value)}
@@ -169,9 +211,10 @@ export function LoginPage({
                         value={email}
                       />
                     </label>
+                    {shouldShowEmailHint(email) ? <p className="auth-field-hint">{EMAIL_HINT_TEXT}</p> : null}
                     <label className="field">
-                      <span>비밀번호</span>
                       <input
+                        aria-label="비밀번호"
                         autoComplete="current-password"
                         name="password"
                         onChange={(event) => setPassword(event.target.value)}
@@ -180,10 +223,13 @@ export function LoginPage({
                         value={password}
                       />
                     </label>
+                    {shouldShowPasswordHint(password) ? <p className="auth-field-hint">{PASSWORD_RULE_TEXT}</p> : null}
                     <button className="button primary" disabled={isSubmitting} type="submit">
                       {isSubmitting ? '로그인 중...' : '로그인'}
                     </button>
                   </form>
+
+                  <SocialLoginButtons />
 
                   <div className="auth-link-row" aria-label="로그인 보조 링크">
                     <button className="auth-text-link" onClick={() => setView('signup')} type="button">
@@ -200,40 +246,40 @@ export function LoginPage({
                 <>
                   <form className="stack login-form-stack" onSubmit={(event) => void handleSignupSubmit(event)}>
                     <label className="field">
-                      <span>이름</span>
-                      <input aria-label="이름" onChange={(event) => setSignupName(event.target.value)} value={signupName} />
+                      <input aria-label="이름" onChange={(event) => setSignupName(event.target.value)} placeholder="이름" value={signupName} />
                     </label>
                     <label className="field">
-                      <span>생년월일</span>
                       <input
                         aria-label="생년월일"
                         onChange={(event) => setSignupBirthDate(event.target.value)}
+                        placeholder="생년월일"
                         type="date"
                         value={signupBirthDate}
                       />
                     </label>
                     <label className="field">
-                      <span>가입 이메일</span>
                       <input
                         aria-label="가입 이메일"
                         autoComplete="email"
                         onChange={(event) => setSignupEmail(event.target.value)}
+                        placeholder="가입 이메일"
                         type="email"
                         value={signupEmail}
                       />
                     </label>
+                    {shouldShowEmailHint(signupEmail) ? <p className="auth-field-hint">{EMAIL_HINT_TEXT}</p> : null}
                     <label className="field">
-                      <span>가입 비밀번호</span>
                       <input
                         aria-label="가입 비밀번호"
                         autoComplete="new-password"
                         onChange={(event) => setSignupPassword(event.target.value)}
+                        placeholder="가입 비밀번호"
                         type="password"
                         value={signupPassword}
                       />
                     </label>
+                    {shouldShowPasswordHint(signupPassword) ? <p className="auth-field-hint">{PASSWORD_RULE_TEXT}</p> : null}
                     <label className="field">
-                      <span>회사 검색</span>
                       <input
                         aria-label="회사 검색"
                         onChange={(event) => setCompanySearch(event.target.value)}
@@ -242,7 +288,6 @@ export function LoginPage({
                       />
                     </label>
                     <label className="field">
-                      <span>회사 선택</span>
                       <select
                         aria-label="회사 선택"
                         disabled={isLoadingCompanies || filteredCompanies.length === 0}
@@ -298,6 +343,8 @@ export function LoginPage({
                     </button>
                   </form>
 
+                  <SocialLoginButtons signup />
+
                   <div className="auth-link-row" aria-label="회원가입 보조 링크">
                     <button className="auth-text-link" onClick={() => setView('login')} type="button">
                       로그인
@@ -313,37 +360,39 @@ export function LoginPage({
                 <>
                   <form className="stack login-form-stack" onSubmit={(event) => void handlePasswordResetSubmit(event)}>
                     <label className="field">
-                      <span>변경 이메일</span>
                       <input
                         aria-label="변경 이메일"
                         autoComplete="email"
                         onChange={(event) =>
                           setPasswordResetDraft((current) => ({ ...current, email: event.target.value }))
                         }
+                        placeholder="변경 이메일"
                         type="email"
                         value={passwordResetDraft.email}
                       />
                     </label>
+                    {shouldShowEmailHint(passwordResetDraft.email) ? <p className="auth-field-hint">{EMAIL_HINT_TEXT}</p> : null}
                     <label className="field">
-                      <span>새 비밀번호</span>
                       <input
                         aria-label="새 비밀번호"
                         autoComplete="new-password"
                         onChange={(event) =>
                           setPasswordResetDraft((current) => ({ ...current, password: event.target.value }))
                         }
+                        placeholder="새 비밀번호"
                         type="password"
                         value={passwordResetDraft.password}
                       />
                     </label>
+                    {shouldShowPasswordHint(passwordResetDraft.password) ? <p className="auth-field-hint">{PASSWORD_RULE_TEXT}</p> : null}
                     <label className="field">
-                      <span>새 비밀번호 확인</span>
                       <input
                         aria-label="새 비밀번호 확인"
                         autoComplete="new-password"
                         onChange={(event) =>
                           setPasswordResetDraft((current) => ({ ...current, passwordConfirm: event.target.value }))
                         }
+                        placeholder="새 비밀번호 확인"
                         type="password"
                         value={passwordResetDraft.passwordConfirm}
                       />
@@ -366,7 +415,7 @@ export function LoginPage({
 
               <div className="login-support-note">
                 <span>문의가 필요하시면</span>
-                <strong>info@evnsolution.com</strong>
+                <strong>seed-admin@example.com</strong>
               </div>
             </div>
           </section>

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const adminEmail = process.env.PLAYWRIGHT_ADMIN_EMAIL ?? 'seed-admin@example.com';
-const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD ?? 'imjing12!';
+const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD ?? 'ChangeMe123!';
 
 test('logged-in console pages keep outer content padding', async ({ page }) => {
   await page.goto('/');

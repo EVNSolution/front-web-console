@@ -6,10 +6,10 @@ const sampleUploadFile =
 const sessionPayload = {
   accessToken: 'playwright-token',
   sessionKind: 'manager',
-  email: 'seed-settlement-manager@example.com',
+  email: 'seed-admin@example.com',
   identity: {
     identityId: 'identity-1',
-    name: 'Seed Settlement Manager',
+    name: 'System Admin',
     birthDate: '1990-01-01',
     status: 'active',
   },
