@@ -89,14 +89,34 @@ function extractDispatchDateFromFilename(filename: string) {
     return null;
   }
 
+  function toValidDispatchDate(year: string, month: string, day: string) {
+    const monthNumber = Number.parseInt(month, 10);
+    const dayNumber = Number.parseInt(day, 10);
+    if (monthNumber < 1 || monthNumber > 12 || dayNumber < 1 || dayNumber > 31) {
+      return null;
+    }
+
+    const candidate = new Date(`${year}-${month}-${day}T00:00:00Z`);
+    if (
+      Number.isNaN(candidate.getTime()) ||
+      candidate.getUTCFullYear() !== Number.parseInt(year, 10) ||
+      candidate.getUTCMonth() + 1 !== monthNumber ||
+      candidate.getUTCDate() !== dayNumber
+    ) {
+      return null;
+    }
+
+    return `${year}-${month}-${day}`;
+  }
+
   const dottedMatch = normalized.match(/(20\d{2})[-_.](\d{2})[-_.](\d{2})/);
   if (dottedMatch) {
-    return `${dottedMatch[1]}-${dottedMatch[2]}-${dottedMatch[3]}`;
+    return toValidDispatchDate(dottedMatch[1], dottedMatch[2], dottedMatch[3]);
   }
 
   const compactMatch = normalized.match(/(20\d{2})(\d{2})(\d{2})/);
   if (compactMatch) {
-    return `${compactMatch[1]}-${compactMatch[2]}-${compactMatch[3]}`;
+    return toValidDispatchDate(compactMatch[1], compactMatch[2], compactMatch[3]);
   }
 
   return null;

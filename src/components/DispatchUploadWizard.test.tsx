@@ -286,6 +286,41 @@ describe('DispatchUploadWizard', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    '배차현황_2026-13-40.xlsx',
+    '배차현황_2026_02_31.xlsx',
+    '배차현황_20260230.xlsx',
+  ])('falls back to manual date selection when filename contains an invalid calendar date: %s', async (filename) => {
+    mockSingleWorksheetRow();
+
+    render(
+      <DispatchUploadWizard
+        client={{ request: vi.fn() }}
+        companyId="company-1"
+        confirmedBatches={[]}
+        dispatchDate=""
+        fleetId="fleet-1"
+      />,
+    );
+
+    const user = userEvent.setup();
+    const file = new File(['dummy'], filename, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+    });
+
+    await user.upload(screen.getByLabelText('배차표 업로드'), file);
+
+    expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
+    expect(screen.queryByText(/감지된 배차일/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '서버 검증' })).toBeDisabled();
+    expect(
+      screen.getByText('파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택한 뒤 검증하세요.'),
+    ).toBeInTheDocument();
+  });
+
   it('confirms a draft preview batch and calls the page callback', async () => {
     xlsxMocks.read.mockReturnValue({
       SheetNames: ['Sheet1'],
