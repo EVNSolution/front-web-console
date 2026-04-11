@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { canManageDriverProfileScope } from '../authScopes';
-import { listDriverAccountLinks } from '../api/driverAccountLinks';
+import { listManageableDriverAccounts } from '../api/driverAccounts';
+import { createDriverAccountLink, listDriverAccountLinks, unlinkDriverAccountLink } from '../api/driverAccountLinks';
 import { getDriver360 } from '../api/driver360';
 import { deleteDriver, getDriver } from '../api/drivers';
 import { getErrorMessage, type HttpClient, type SessionPayload } from '../api/http';
 import { listCompanies, listFleets } from '../api/organization';
 import { PageLayout } from '../components/PageLayout';
 import { getDriverRouteRef } from '../routeRefs';
-import type { Company, Driver360Summary, DriverAccountLinkSummary, DriverProfile, Fleet } from '../types';
+import type { Company, Driver360Summary, DriverAccountLinkSummary, DriverAccountSummary, DriverProfile, Fleet } from '../types';
 import { formatAccountStatusLabel, formatPayoutStatusLabel, formatSettlementStatusLabel } from '../uiLabels';
 
 type DriverDetailPageProps = {
@@ -22,12 +23,15 @@ export function DriverDetailPage({ client, session }: DriverDetailPageProps) {
   const { driverRef } = useParams();
   const [driver, setDriver] = useState<DriverProfile | null>(null);
   const [driverAccountLinks, setDriverAccountLinks] = useState<DriverAccountLinkSummary[]>([]);
+  const [manageableDriverAccounts, setManageableDriverAccounts] = useState<DriverAccountSummary[]>([]);
+  const [selectedDriverAccountId, setSelectedDriverAccountId] = useState('');
   const [driverSummary, setDriverSummary] = useState<Driver360Summary | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [fleets, setFleets] = useState<Fleet[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [driverSummaryError, setDriverSummaryError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingDriverAccountLink, setIsSavingDriverAccountLink] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const canManageDriverProfiles = canManageDriverProfileScope(session);
 
@@ -56,9 +60,13 @@ export function DriverDetailPage({ client, session }: DriverDetailPageProps) {
         setDriver(driverResponse);
         setCompanies(companyResponse);
         setFleets(fleetResponse);
-        const driverAccountLinkResponse = await listDriverAccountLinks(client, { driverId: driverResponse.driver_id });
+        const [driverAccountLinkResponse, driverAccountResponse] = await Promise.all([
+          listDriverAccountLinks(client, { driverId: driverResponse.driver_id }),
+          listManageableDriverAccounts(client),
+        ]);
         if (!ignore) {
           setDriverAccountLinks(driverAccountLinkResponse);
+          setManageableDriverAccounts(driverAccountResponse.accounts);
         }
         try {
           const summaryResponse = await getDriver360(client, selectedDriverRef);
@@ -97,7 +105,58 @@ export function DriverDetailPage({ client, session }: DriverDetailPageProps) {
     return fleets.find((fleet) => fleet.fleet_id === fleetId)?.name ?? '미확인 플릿';
   }
 
-  const activeDriverAccountLink = driverAccountLinks[0] ?? null;
+  const activeDriverAccountLink = driverAccountLinks.find((link) => link.unlinked_at == null) ?? null;
+  const availableDriverAccounts = driver
+    ? manageableDriverAccounts.filter(
+        (account) =>
+          account.company_id === driver.company_id &&
+          (account.active_driver_id == null || account.active_driver_id === driver.driver_id),
+      )
+    : [];
+
+  async function reloadDriverAccountCard(driverId: string) {
+    const [driverAccountLinkResponse, driverAccountResponse] = await Promise.all([
+      listDriverAccountLinks(client, { driverId }),
+      listManageableDriverAccounts(client),
+    ]);
+    setDriverAccountLinks(driverAccountLinkResponse);
+    setManageableDriverAccounts(driverAccountResponse.accounts);
+    setSelectedDriverAccountId('');
+  }
+
+  async function handleLinkDriverAccount() {
+    if (!driver || !selectedDriverAccountId) {
+      return;
+    }
+
+    setIsSavingDriverAccountLink(true);
+    setErrorMessage(null);
+    try {
+      await createDriverAccountLink(client, selectedDriverAccountId, driver.driver_id);
+      await reloadDriverAccountCard(driver.driver_id);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSavingDriverAccountLink(false);
+    }
+  }
+
+  async function handleUnlinkDriverAccount(linkId: string) {
+    if (!driver) {
+      return;
+    }
+
+    setIsSavingDriverAccountLink(true);
+    setErrorMessage(null);
+    try {
+      await unlinkDriverAccountLink(client, linkId);
+      await reloadDriverAccountCard(driver.driver_id);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSavingDriverAccountLink(false);
+    }
+  }
 
   async function handleDelete() {
     if (!driverRef || !driver) {
@@ -182,37 +241,60 @@ export function DriverDetailPage({ client, session }: DriverDetailPageProps) {
                 <p className="panel-kicker">배송원 계정</p>
                 <h3>연결된 배송원 계정</h3>
               </div>
-              {driverSummary?.driver_account_id ? (
-                <dl className="detail-list">
-                  <div>
-                    <dt>이름</dt>
-                    <dd>{driverSummary.driver_account_identity_name}</dd>
-                  </div>
-                  <div>
-                    <dt>이메일</dt>
-                    <dd>{driverSummary.driver_account_email}</dd>
-                  </div>
-                  <div>
-                    <dt>상태</dt>
-                    <dd>{formatAccountStatusLabel(driverSummary.driver_account_status)}</dd>
-                  </div>
-                </dl>
-              ) : (
-                <dl className="detail-list">
-                  <div>
-                    <dt>배송원 계정</dt>
-                    <dd>{activeDriverAccountLink?.email ?? '미연결'}</dd>
-                  </div>
-                  <div>
-                    <dt>계정 이름</dt>
-                    <dd>{activeDriverAccountLink?.identity_name ?? '미연결'}</dd>
-                  </div>
-                  <div>
-                    <dt>계정 상태</dt>
-                    <dd>{formatAccountStatusLabel(activeDriverAccountLink?.account_status)}</dd>
-                  </div>
-                </dl>
-              )}
+              <dl className="detail-list">
+                <div>
+                  <dt>배송원 계정</dt>
+                  <dd>{activeDriverAccountLink?.email ?? driverSummary?.driver_account_email ?? '미연결'}</dd>
+                </div>
+                <div>
+                  <dt>계정 이름</dt>
+                  <dd>{activeDriverAccountLink?.identity_name ?? driverSummary?.driver_account_identity_name ?? '미연결'}</dd>
+                </div>
+                <div>
+                  <dt>계정 상태</dt>
+                  <dd>{formatAccountStatusLabel(activeDriverAccountLink?.account_status ?? driverSummary?.driver_account_status)}</dd>
+                </div>
+              </dl>
+              {canManageDriverProfiles ? (
+                <div className="stack">
+                  {activeDriverAccountLink ? (
+                    <button
+                      className="button ghost small"
+                      disabled={isSavingDriverAccountLink}
+                      onClick={() => void handleUnlinkDriverAccount(activeDriverAccountLink.driver_account_link_id)}
+                      type="button"
+                    >
+                      {isSavingDriverAccountLink ? '처리 중...' : '연결 해제'}
+                    </button>
+                  ) : (
+                    <div className="inline-actions">
+                      <label className="field">
+                        <select
+                          aria-label="배송원 계정 선택"
+                          disabled={isSavingDriverAccountLink || availableDriverAccounts.length === 0}
+                          onChange={(event) => setSelectedDriverAccountId(event.target.value)}
+                          value={selectedDriverAccountId}
+                        >
+                          <option value="">배송원 계정 선택</option>
+                          {availableDriverAccounts.map((account) => (
+                            <option key={account.driver_account_id} value={account.driver_account_id}>
+                              {account.identity.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        className="button ghost small"
+                        disabled={isSavingDriverAccountLink || !selectedDriverAccountId}
+                        onClick={() => void handleLinkDriverAccount()}
+                        type="button"
+                      >
+                        {isSavingDriverAccountLink ? '처리 중...' : '계정 연결'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </article>
           </div>
 

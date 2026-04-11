@@ -1,30 +1,16 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DriversPage } from './DriversPage';
 
 const apiMocks = vi.hoisted(() => ({
-  listDriverAccountLinks: vi.fn(),
-  listManageableDriverAccounts: vi.fn(),
-  createDriverAccountLink: vi.fn(),
-  unlinkDriverAccountLink: vi.fn(),
   listDrivers: vi.fn(),
   createDriver: vi.fn(),
   deleteDriver: vi.fn(),
   updateDriver: vi.fn(),
   listCompanies: vi.fn(),
   listFleets: vi.fn(),
-}));
-
-vi.mock('../api/driverAccountLinks', () => ({
-  listDriverAccountLinks: apiMocks.listDriverAccountLinks,
-  createDriverAccountLink: apiMocks.createDriverAccountLink,
-  unlinkDriverAccountLink: apiMocks.unlinkDriverAccountLink,
-}));
-
-vi.mock('../api/driverAccounts', () => ({
-  listManageableDriverAccounts: apiMocks.listManageableDriverAccounts,
 }));
 
 vi.mock('../api/drivers', () => ({
@@ -40,7 +26,7 @@ vi.mock('../api/organization', () => ({
 }));
 
 describe('Admin DriversPage', () => {
-  it('renders driver list with account link and unlink controls', async () => {
+  it('renders driver list as operational status only', async () => {
     apiMocks.listDrivers.mockResolvedValue([
       {
         driver_id: '90000000-0000-0000-0000-000000000001',
@@ -65,71 +51,6 @@ describe('Admin DriversPage', () => {
         address: 'Busan',
       },
     ]);
-    apiMocks.listDriverAccountLinks.mockResolvedValue([
-      {
-        driver_account_link_id: '21000000-0000-0000-0000-000000000001',
-        driver_account_id: '20000000-0000-0000-0000-000000000001',
-        driver_id: '90000000-0000-0000-0000-000000000001',
-        identity_id: '22000000-0000-0000-0000-000000000001',
-        identity_name: 'Kim Driver',
-        email: 'driver@example.com',
-        account_status: 'active',
-        linked_at: '2026-04-01T00:00:00Z',
-        unlinked_at: null,
-      },
-    ]);
-    apiMocks.listManageableDriverAccounts.mockResolvedValue({
-      accounts: [
-        {
-          driver_account_id: '20000000-0000-0000-0000-000000000001',
-          identity: {
-            identity_id: '22000000-0000-0000-0000-000000000001',
-            name: 'Kim Driver',
-            birth_date: '1990-01-01',
-            status: 'active',
-          },
-          company_id: '30000000-0000-0000-0000-000000000001',
-          status: 'active',
-          created_at: '2026-04-01T00:00:00Z',
-          active_driver_id: '90000000-0000-0000-0000-000000000001',
-        },
-        {
-          driver_account_id: '20000000-0000-0000-0000-000000000002',
-          identity: {
-            identity_id: '22000000-0000-0000-0000-000000000002',
-            name: 'Lee Driver Account',
-            birth_date: '1991-01-01',
-            status: 'active',
-          },
-          company_id: '30000000-0000-0000-0000-000000000001',
-          status: 'active',
-          created_at: '2026-04-01T00:10:00Z',
-          active_driver_id: null,
-        },
-      ],
-    });
-    apiMocks.createDriverAccountLink.mockResolvedValue({
-      driver_account_link_id: '21000000-0000-0000-0000-000000000002',
-      driver_account_id: '20000000-0000-0000-0000-000000000002',
-      driver_id: '90000000-0000-0000-0000-000000000002',
-      identity_id: '22000000-0000-0000-0000-000000000002',
-      identity_name: 'Lee Driver Account',
-      email: 'lee-driver@example.com',
-      account_status: 'active',
-      linked_at: '2026-04-01T00:20:00Z',
-      unlinked_at: null,
-    });
-    apiMocks.unlinkDriverAccountLink.mockResolvedValue({
-      driver_account_link_id: '21000000-0000-0000-0000-000000000001',
-      driver_account_id: '20000000-0000-0000-0000-000000000001',
-      driver_id: '90000000-0000-0000-0000-000000000001',
-      identity_id: '22000000-0000-0000-0000-000000000001',
-      identity_name: 'Kim Driver',
-      email: 'driver@example.com',
-      account_status: 'active',
-      linked_at: '2026-04-01T00:00:00Z',
-      unlinked_at: '2026-04-01T00:30:00Z',
-    });
     apiMocks.listCompanies.mockResolvedValue([{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Company' }]);
     apiMocks.listFleets.mockResolvedValue([
       {
@@ -165,42 +86,24 @@ describe('Admin DriversPage', () => {
     );
 
     await screen.findByRole('heading', { name: '배송원' });
-    expect(screen.getByText('배송원 정본과 계정 연결 상태를 같은 화면에서 관리합니다.')).toBeInTheDocument();
+    expect(screen.getByText('배송원 운영 현황을 확인하고, 계정 연결은 상세 화면에서 관리합니다.')).toBeInTheDocument();
     const row = screen.getByText('Kim Driver').closest('tr');
     expect(screen.getByRole('link', { name: /배송원 생성/i })).toHaveAttribute('href', '/drivers/new');
     expect(row).toHaveAttribute('data-detail-path', '/drivers/1');
     expect(screen.getByText('원청 앱 사용자명')).toBeInTheDocument();
     expect(screen.getByText('ZD김기사')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '연결 해제' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '계정 연결' })).toBeInTheDocument();
+    expect(screen.getAllByText('상세에서 관리')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '계정 연결' })).not.toBeInTheDocument();
+    expect(screen.queryByText('driver@example.com')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '보기' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '수정' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/이름/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/org unit id/i)).not.toBeInTheDocument();
-
-    fireEvent.change(screen.getByDisplayValue('Lee Driver Account'), { target: { value: '20000000-0000-0000-0000-000000000002' } });
-    fireEvent.click(screen.getByRole('button', { name: '계정 연결' }));
-    await waitFor(() => {
-      expect(apiMocks.createDriverAccountLink).toHaveBeenCalledWith(
-        expect.anything(),
-        '20000000-0000-0000-0000-000000000002',
-        '90000000-0000-0000-0000-000000000002',
-      );
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: '연결 해제' }));
-    await waitFor(() => {
-      expect(apiMocks.unlinkDriverAccountLink).toHaveBeenCalledWith(
-        expect.anything(),
-        '21000000-0000-0000-0000-000000000001',
-      );
-    });
   });
 
   it('hides driver create action for vehicle managers', async () => {
     apiMocks.listDrivers.mockResolvedValue([]);
-    apiMocks.listDriverAccountLinks.mockResolvedValue([]);
-    apiMocks.listManageableDriverAccounts.mockResolvedValue({ accounts: [] });
     apiMocks.listCompanies.mockResolvedValue([]);
     apiMocks.listFleets.mockResolvedValue([]);
 
