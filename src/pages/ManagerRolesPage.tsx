@@ -8,6 +8,7 @@ import {
 } from '../api/managerRoles';
 import type { HttpClient, SessionPayload } from '../api/http';
 import { getErrorMessage } from '../api/http';
+import { PageLayout } from '../components/PageLayout';
 import { listCompanies } from '../api/organization';
 import type { Company, CompanyManagerRole } from '../types';
 
@@ -300,40 +301,43 @@ export function ManagerRolesPage({ client, session }: Props) {
   }
 
   return (
-    <div className="stack page-shell role-catalog-page">
-      <section className="panel role-catalog-toolbar-panel">
-        <div className="role-catalog-toolbar">
-          <label className="field policy-role-field">
-            <span>회사</span>
-            <RoleDropdown
-              ariaLabel="회사"
-              disabled={isCompanyFixed || companyOptions.length === 0}
-              isOpen={openDropdown === 'company'}
-              onClose={() => setOpenDropdown(null)}
-              onSelect={(value) => {
-                setSelectedCompanyId(value);
-                setStatusMessage(null);
-              }}
-              onToggle={() => setOpenDropdown((current) => (current === 'company' ? null : 'company'))}
-              options={companyOptions}
-              value={selectedCompanyId}
-            />
-          </label>
-          <div className="role-catalog-toolbar-actions">
-            <h1>관리자 역할</h1>
-            <button
-              className="button primary"
-              disabled={!selectedCompanyId || isLoading || isMutating}
-              onClick={() => void handleAddRole()}
-              type="button"
-            >
-              역할 추가
-            </button>
-          </div>
-        </div>
-        {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
-        {statusMessage ? <p className="form-success">{statusMessage}</p> : null}
-      </section>
+    <PageLayout
+      actions={
+        <button
+          className="button primary"
+          disabled={!selectedCompanyId || isLoading || isMutating}
+          onClick={() => void handleAddRole()}
+          type="button"
+        >
+          역할 추가
+        </button>
+      }
+      contentClassName="stack role-catalog-content"
+      filters={
+        <label className="field policy-role-field">
+          <span>회사</span>
+          <RoleDropdown
+            ariaLabel="회사"
+            disabled={isCompanyFixed || companyOptions.length === 0}
+            isOpen={openDropdown === 'company'}
+            onClose={() => setOpenDropdown(null)}
+            onSelect={(value) => {
+              setSelectedCompanyId(value);
+              setStatusMessage(null);
+            }}
+            onToggle={() => setOpenDropdown((current) => (current === 'company' ? null : 'company'))}
+            options={companyOptions}
+            value={selectedCompanyId}
+          />
+        </label>
+      }
+      layoutClassName="role-catalog-page"
+      subtitle="회사별 관리자 역할과 배정 상태를 같은 흐름에서 관리합니다."
+      template="workbench"
+      title="관리자 역할"
+    >
+      {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
+      {statusMessage ? <p className="form-success">{statusMessage}</p> : null}
 
       <section className="panel role-catalog-panel">
         <div className="panel-header">
@@ -396,6 +400,6 @@ export function ManagerRolesPage({ client, session }: Props) {
           ))}
         </div>
       </section>
-    </div>
+    </PageLayout>
   );
 }

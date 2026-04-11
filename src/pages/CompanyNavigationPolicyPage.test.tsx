@@ -117,6 +117,7 @@ describe('CompanyNavigationPolicyPage', () => {
     render(<CompanyNavigationPolicyPage client={{ request: vi.fn() }} session={session} />);
 
     await screen.findByRole('heading', { name: '회사 메뉴 정책' });
+    expect(document.querySelector('.page-layout.page-layout-template-workbench')).not.toBeNull();
     expect(listCompanyManagerRoles).toHaveBeenCalledWith(
       expect.anything(),
       '30000000-0000-0000-0000-000000000001',

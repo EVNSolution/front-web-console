@@ -55,6 +55,7 @@ describe('SettlementSectionLayout', () => {
     );
 
     await screen.findByRole('heading', { name: '정산 처리' });
+    expect(document.querySelector('.page-layout.page-layout-template-workbench')).not.toBeNull();
     expect(screen.getByRole('link', { name: '정산 기준' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산 실행' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '정산 조회' })).not.toBeInTheDocument();

@@ -95,6 +95,7 @@ describe('ManagerRolesPage', () => {
     render(<ManagerRolesPage client={client} session={systemAdminSession} />);
 
     expect(await screen.findByRole('heading', { name: '관리자 역할' })).toBeInTheDocument();
+    expect(document.querySelector('.page-layout.page-layout-template-workbench')).not.toBeNull();
     await waitFor(() =>
       expect(listCompanyManagerRoles).toHaveBeenCalledWith(client, 'company-a'),
     );

@@ -112,7 +112,11 @@ describe('Admin DriversPage', () => {
     renderDriversPage();
 
     await screen.findByRole('heading', { name: '배송원' });
+    expect(document.querySelector('.page-layout.page-layout-fill')).not.toBeNull();
+    expect(document.querySelector('.page-layout.driver-list-layout')).not.toBeNull();
+    expect(document.querySelector('.page-layout.page-layout-template-workbench')).not.toBeNull();
     expect(screen.getByText('배송원 운영 현황을 확인하고, 계정 연결은 상세 화면에서 관리합니다.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '배송원 목록' })).not.toBeInTheDocument();
     const row = screen.getByText('Kim Driver').closest('tr');
     expect(screen.getByRole('link', { name: /배송원 생성/i })).toHaveAttribute('href', '/drivers/new');
     expect(row).toHaveAttribute('data-detail-path', '/drivers/1');
@@ -168,7 +172,12 @@ describe('Admin DriversPage', () => {
       createDriver(9, { name: '김기사 9', external_user_name: 'AA김기사9', fleet_id: '40000000-0000-0000-0000-000000000001' }),
       createDriver(10, { name: '김기사 10', external_user_name: 'AA김기사10', fleet_id: '40000000-0000-0000-0000-000000000001' }),
       createDriver(11, { name: '김기사 11', external_user_name: 'AA김기사11', fleet_id: '40000000-0000-0000-0000-000000000001' }),
-      createDriver(12, { name: '박기사 12', external_user_name: 'BB박기사12', fleet_id: '40000000-0000-0000-0000-000000000002' }),
+      createDriver(12, { name: '김기사 12', external_user_name: 'AA김기사12', fleet_id: '40000000-0000-0000-0000-000000000001' }),
+      createDriver(13, { name: '김기사 13', external_user_name: 'AA김기사13', fleet_id: '40000000-0000-0000-0000-000000000001' }),
+      createDriver(14, { name: '김기사 14', external_user_name: 'AA김기사14', fleet_id: '40000000-0000-0000-0000-000000000001' }),
+      createDriver(15, { name: '김기사 15', external_user_name: 'AA김기사15', fleet_id: '40000000-0000-0000-0000-000000000001' }),
+      createDriver(16, { name: '김기사 16', external_user_name: 'AA김기사16', fleet_id: '40000000-0000-0000-0000-000000000001' }),
+      createDriver(17, { name: '박기사 17', external_user_name: 'BB박기사17', fleet_id: '40000000-0000-0000-0000-000000000002' }),
     ]);
     apiMocks.listDriverAccountLinks.mockResolvedValue([]);
     apiMocks.listCompanies.mockResolvedValue([{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Company' }]);
@@ -184,19 +193,22 @@ describe('Admin DriversPage', () => {
     fireEvent.change(screen.getByLabelText('플릿'), { target: { value: '40000000-0000-0000-0000-000000000001' } });
     fireEvent.change(screen.getByLabelText('검색'), { target: { value: '김기사' } });
 
-    expect(screen.getByText('11명')).toBeInTheDocument();
-    expect(screen.getAllByText('1-10 / 11')).toHaveLength(2);
+    expect(screen.queryByText('16명')).not.toBeInTheDocument();
+    expect(screen.queryByText('1-15 / 16')).not.toBeInTheDocument();
+    expect(screen.queryByText(/검색어:/)).not.toBeInTheDocument();
     expect(screen.getByText('김기사 1')).toBeInTheDocument();
-    expect(screen.getByText('김기사 10')).toBeInTheDocument();
-    expect(screen.queryByText('김기사 11')).not.toBeInTheDocument();
-    expect(screen.queryByText('박기사 12')).not.toBeInTheDocument();
+    expect(screen.getByText('김기사 15')).toBeInTheDocument();
+    expect(screen.queryByText('김기사 16')).not.toBeInTheDocument();
+    expect(screen.queryByText('박기사 17')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '2' })).toBeEnabled();
 
-    fireEvent.click(screen.getByRole('button', { name: '다음 페이지' }));
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
 
-    expect(screen.getAllByText('11-11 / 11')).toHaveLength(2);
-    expect(screen.getByText('김기사 11')).toBeInTheDocument();
+    expect(screen.getByText('김기사 16')).toBeInTheDocument();
     expect(screen.queryByText('김기사 1')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '이전 페이지' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '1' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '2' })).toBeDisabled();
   });
 
   it('supports the all page-size option', async () => {
@@ -215,13 +227,97 @@ describe('Admin DriversPage', () => {
 
     await screen.findByRole('heading', { name: '배송원' });
 
-    fireEvent.change(screen.getByLabelText('노출 수'), { target: { value: 'all' } });
+    fireEvent.change(screen.getByLabelText('페이지 당 행 수'), { target: { value: 'all' } });
 
-    expect(screen.getAllByText('1-3 / 3')).toHaveLength(2);
     expect(screen.getByText('한기사')).toBeInTheDocument();
     expect(screen.getByText('두기사')).toBeInTheDocument();
     expect(screen.getByText('세기사')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '다음 페이지' })).toBeDisabled();
+    expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument();
+  });
+
+  it('aligns footer page-size control without top count duplication', async () => {
+    apiMocks.listDrivers.mockResolvedValue([
+      createDriver(1, { name: '한기사', external_user_name: 'ZX한기사' }),
+      createDriver(2, { name: '두기사', external_user_name: 'ZX두기사' }),
+    ]);
+    apiMocks.listDriverAccountLinks.mockResolvedValue([]);
+    apiMocks.listCompanies.mockResolvedValue([{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Company' }]);
+    apiMocks.listFleets.mockResolvedValue([
+      { fleet_id: '40000000-0000-0000-0000-000000000001', company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Fleet' },
+    ]);
+
+    renderDriversPage();
+
+    await screen.findByRole('heading', { name: '배송원' });
+
+    expect(screen.queryByText('2명')).not.toBeInTheDocument();
+    expect(screen.getByText('페이지 당 행 수')).toBeInTheDocument();
+    expect(screen.getByLabelText('페이지 당 행 수')).toBeInTheDocument();
+    expect(screen.queryByText('1-2 / 2')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('페이지 번호')).not.toBeInTheDocument();
+  });
+
+  it('compresses long page lists into leading pages and last page', async () => {
+    apiMocks.listDrivers.mockResolvedValue(
+      Array.from({ length: 151 }, (_, index) =>
+        createDriver(index + 1, {
+          name: `장기사 ${index + 1}`,
+          external_user_name: `CC장기사${index + 1}`,
+        }),
+      ),
+    );
+    apiMocks.listDriverAccountLinks.mockResolvedValue([]);
+    apiMocks.listCompanies.mockResolvedValue([{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Company' }]);
+    apiMocks.listFleets.mockResolvedValue([
+      { fleet_id: '40000000-0000-0000-0000-000000000001', company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Fleet' },
+    ]);
+
+    renderDriversPage();
+
+    await screen.findByRole('heading', { name: '배송원' });
+
+    expect(screen.getByRole('button', { name: '1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '3' })).toBeInTheDocument();
+    expect(screen.getByText('…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '11' })).toBeInTheDocument();
+  });
+
+  it('renders the footer controls at the bottom of the outer list container', async () => {
+    apiMocks.listDrivers.mockResolvedValue([
+      createDriver(1, { name: '한기사', external_user_name: 'ZX한기사' }),
+      createDriver(2, { name: '두기사', external_user_name: 'ZX두기사' }),
+      createDriver(3, { name: '세기사', external_user_name: 'ZX세기사' }),
+      createDriver(4, { name: '네기사', external_user_name: 'ZX네기사' }),
+      createDriver(5, { name: '다섯기사', external_user_name: 'ZX다섯기사' }),
+      createDriver(6, { name: '여섯기사', external_user_name: 'ZX여섯기사' }),
+      createDriver(7, { name: '일곱기사', external_user_name: 'ZX일곱기사' }),
+      createDriver(8, { name: '여덟기사', external_user_name: 'ZX여덟기사' }),
+      createDriver(9, { name: '아홉기사', external_user_name: 'ZX아홉기사' }),
+      createDriver(10, { name: '열기사', external_user_name: 'ZX열기사' }),
+      createDriver(11, { name: '열한기사', external_user_name: 'ZX열한기사' }),
+      createDriver(12, { name: '열두기사', external_user_name: 'ZX열두기사' }),
+      createDriver(13, { name: '열세기사', external_user_name: 'ZX열세기사' }),
+      createDriver(14, { name: '열네기사', external_user_name: 'ZX열네기사' }),
+      createDriver(15, { name: '열다섯기사', external_user_name: 'ZX열다섯기사' }),
+      createDriver(16, { name: '열여섯기사', external_user_name: 'ZX열여섯기사' }),
+    ]);
+    apiMocks.listDriverAccountLinks.mockResolvedValue([]);
+    apiMocks.listCompanies.mockResolvedValue([{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Company' }]);
+    apiMocks.listFleets.mockResolvedValue([
+      { fleet_id: '40000000-0000-0000-0000-000000000001', company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Fleet' },
+    ]);
+
+    renderDriversPage();
+
+    await screen.findByRole('heading', { name: '배송원' });
+
+    const tableShell = screen.getByRole('table').closest('.driver-list-table-shell');
+    const listShell = screen.getByRole('table').closest('.driver-list-shell');
+    expect(tableShell).not.toBeNull();
+    expect(listShell).not.toBeNull();
+    expect(tableShell?.querySelector('.driver-list-footer')).toBeNull();
+    expect(listShell?.querySelector(':scope > .driver-list-footer')).not.toBeNull();
   });
 });

@@ -72,6 +72,7 @@ export function SettlementSectionLayout({ client }: SettlementSectionLayoutProps
     <SettlementFlowProvider client={client}>
       <PageLayout
         filters={<SettlementContextBar />}
+        subtitle="회사와 플릿 문맥을 고정한 상태로 정산 기준부터 결과까지 이어서 운영합니다."
         tabs={
           <div className="settlement-tab-strip" role="tablist" aria-label="정산 단계">
             {SETTLEMENT_NAV_ITEMS.map((item, index) => (
@@ -89,6 +90,7 @@ export function SettlementSectionLayout({ client }: SettlementSectionLayoutProps
             ))}
           </div>
         }
+        template="workbench"
         title="정산 처리"
       >
         <Outlet />

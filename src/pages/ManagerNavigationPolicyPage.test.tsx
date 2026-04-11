@@ -108,6 +108,7 @@ describe('ManagerNavigationPolicyPage', () => {
     );
 
     await screen.findByRole('heading', { name: '메뉴 정책' });
+    expect(document.querySelector('.page-layout.page-layout-template-workbench')).not.toBeNull();
     await waitFor(() =>
       expect(listCompanyManagerRoles).toHaveBeenCalledWith(expect.anything(), 'company-a'),
     );

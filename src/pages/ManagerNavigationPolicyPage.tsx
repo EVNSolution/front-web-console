@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { PageLayout } from '../components/PageLayout';
 import type { HttpClient } from '../api/http';
 import { getErrorMessage } from '../api/http';
 import { listCompanyManagerRoles, updateCompanyManagerRole } from '../api/managerRoles';
@@ -410,15 +411,9 @@ export function ManagerNavigationPolicyPage({ client }: Props) {
   const isLoading = isBootstrapping || isRolesLoading;
 
   return (
-    <div className="stack page-shell policy-workbench">
-      <section className="panel">
-        <div className="policy-hero-header">
-          <div>
-            <h1>메뉴 정책</h1>
-          </div>
-        </div>
-        {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
-        {statusMessage ? <p className="form-success">{statusMessage}</p> : null}
+    <PageLayout
+      contentClassName="stack policy-workbench-content"
+      filters={
         <div className="policy-role-toolbar">
           <label className="field policy-role-field">
             <span>회사</span>
@@ -445,7 +440,14 @@ export function ManagerNavigationPolicyPage({ client }: Props) {
             />
           </label>
         </div>
-      </section>
+      }
+      layoutClassName="policy-workbench"
+      subtitle="회사와 역할을 기준으로 사이드바 노출 정책을 조정합니다."
+      template="workbench"
+      title="메뉴 정책"
+    >
+      {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
+      {statusMessage ? <p className="form-success">{statusMessage}</p> : null}
 
       <section className="panel policy-layout">
         <div className="policy-editor">
@@ -612,6 +614,6 @@ export function ManagerNavigationPolicyPage({ client }: Props) {
           </div>
         </aside>
       </section>
-    </div>
+    </PageLayout>
   );
 }

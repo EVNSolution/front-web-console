@@ -4,18 +4,40 @@ type PageLayoutProps = {
   actions?: ReactNode;
   children: ReactNode;
   contentClassName?: string;
+  fillContent?: boolean;
   filters?: ReactNode;
+  layoutClassName?: string;
   subtitle?: ReactNode;
   tabs?: ReactNode;
+  template?: 'default' | 'workbench';
   title?: ReactNode;
 };
 
-export function PageLayout({ actions, children, contentClassName, filters, subtitle, tabs, title }: PageLayoutProps) {
+export function PageLayout({
+  actions,
+  children,
+  contentClassName,
+  fillContent = false,
+  filters,
+  layoutClassName,
+  subtitle,
+  tabs,
+  template = 'default',
+  title,
+}: PageLayoutProps) {
   const hasHeader = Boolean(title) || Boolean(subtitle);
   const hasToolbar = Boolean(filters) || Boolean(actions);
+  const pageLayoutClassName = [
+    'page-layout',
+    fillContent ? 'page-layout-fill' : null,
+    template !== 'default' ? `page-layout-template-${template}` : null,
+    layoutClassName,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div className="page-layout">
+    <div className={pageLayoutClassName}>
       {hasHeader ? (
         <div className="page-layout-header">
           {title ? <h1 className="page-layout-title">{title}</h1> : null}

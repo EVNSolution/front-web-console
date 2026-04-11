@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { PageLayout } from '../components/PageLayout';
 import type { HttpClient, SessionPayload } from '../api/http';
 import { getErrorMessage } from '../api/http';
 import { listCompanyManagerRoles, updateCompanyManagerRole } from '../api/managerRoles';
@@ -165,22 +166,25 @@ export function CompanyNavigationPolicyPage({ client, session }: Props) {
   }
 
   return (
-    <div className="stack page-shell">
-      <section className="panel">
-        <h1>회사 메뉴 정책</h1>
-        <p className="hero-copy">현재 회사 역할에만 적용되는 메뉴 공개 범위를 조정합니다.</p>
-        <p className="hero-copy">회사 식별값: {formatProtectedIdentifier(activeCompanyId)}</p>
-        {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
-        {statusMessage ? <p className="form-success">{statusMessage}</p> : null}
-      </section>
-
-      <section className="panel stack gap-md">
+    <PageLayout
+      actions={
+        <button
+          className="button primary"
+          disabled={isLoading || isSaving || !selectedRole}
+          onClick={() => void handleSave()}
+          type="button"
+        >
+          {isSaving ? '저장 중...' : '저장'}
+        </button>
+      }
+      contentClassName="stack"
+      filters={
         <label className="field">
           <span>관리자 역할</span>
           <select
             disabled={isLoading || isSaving || editableRoles.length === 0}
-            value={selectedRole?.company_manager_role_id ?? ''}
             onChange={(event) => setSelectedRoleId(event.target.value)}
+            value={selectedRole?.company_manager_role_id ?? ''}
           >
             {editableRoles.map((role) => (
               <option key={role.company_manager_role_id} value={role.company_manager_role_id}>
@@ -189,6 +193,16 @@ export function CompanyNavigationPolicyPage({ client, session }: Props) {
             ))}
           </select>
         </label>
+      }
+      subtitle="현재 회사 역할에만 적용되는 메뉴 공개 범위를 조정합니다."
+      template="workbench"
+      title="회사 메뉴 정책"
+    >
+      <p className="helper-text">회사 식별값: {formatProtectedIdentifier(activeCompanyId)}</p>
+      {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
+      {statusMessage ? <p className="form-success">{statusMessage}</p> : null}
+
+      <section className="panel stack gap-md">
 
         {selectedRole ? (
           <p className="helper-text">
@@ -219,18 +233,7 @@ export function CompanyNavigationPolicyPage({ client, session }: Props) {
             </div>
           </section>
         ))}
-
-        <div className="inline-actions">
-          <button
-            className="button primary"
-            disabled={isLoading || isSaving || !selectedRole}
-            onClick={() => void handleSave()}
-            type="button"
-          >
-            {isSaving ? '저장 중...' : '저장'}
-          </button>
-        </div>
       </section>
-    </div>
+    </PageLayout>
   );
 }
