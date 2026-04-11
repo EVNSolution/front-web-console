@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DispatchUploadsPage } from './DispatchUploadsPage';
-import type { SessionPayload } from '../api/http';
+import { ApiError, GENERIC_SERVER_ERROR_MESSAGE, type SessionPayload } from '../api/http';
 
 const dispatchRegistryMocks = vi.hoisted(() => ({
   listDispatchUploadBatches: vi.fn(),
@@ -415,6 +415,43 @@ describe('DispatchUploadsPage', () => {
       });
     });
     expect(await screen.findByText('배송원 1명을 생성했습니다.')).toBeInTheDocument();
+  });
+
+  it('uses the generic server error message when missing driver creation is not supported by the backend yet', async () => {
+    organizationMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 41,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'H',
+      },
+    ]);
+    mockWorksheetRows([
+      {
+        '배송매니저 이름': 'ZD홍길동',
+        '소분류 권역': '10H2',
+        '세분류 권역': '10H2-가',
+        '박스 수': 133,
+        '가구 수': 90,
+      },
+    ]);
+    driverMocks.ensureDriversByExternalUserNames.mockRejectedValue(
+      new ApiError(405, 'method_not_allowed', 'Method "POST" not allowed.', null),
+    );
+
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('배차표 업로드'), createSpreadsheetFile('dispatch.xlsx'));
+    await user.click(screen.getByRole('button', { name: '배송원 생성' }));
+
+    expect(await screen.findByText(GENERIC_SERVER_ERROR_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText('Method "POST" not allowed.')).not.toBeInTheDocument();
   });
 
   it('keeps the upload page copy short and emphasizes upload actions', async () => {

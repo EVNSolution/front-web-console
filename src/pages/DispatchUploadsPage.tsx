@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { bootstrapDailySnapshotsFromDispatch } from '../api/deliveryRecords';
 import { ensureDriversByExternalUserNames, listDrivers } from '../api/drivers';
-import type { SessionPayload } from '../api/http';
+import { ApiError, GENERIC_SERVER_ERROR_MESSAGE, type SessionPayload } from '../api/http';
 import { listDispatchUploadBatches } from '../api/dispatchRegistry';
 import { getErrorMessage, type HttpClient } from '../api/http';
 import { createFleet, listCompanies, listFleets } from '../api/organization';
@@ -16,6 +16,14 @@ type DispatchUploadsPageProps = {
   client: HttpClient;
   session: SessionPayload;
 };
+
+function getDispatchUploadPageErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && (error.status === 404 || error.status === 405)) {
+    return GENERIC_SERVER_ERROR_MESSAGE;
+  }
+
+  return getErrorMessage(error);
+}
 
 export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProps) {
   const navigate = useNavigate();
@@ -295,7 +303,7 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
       });
       setStatusMessage(`배송원 ${response.created_external_user_names.length}명을 생성했습니다.`);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(getDispatchUploadPageErrorMessage(error));
     } finally {
       setIsCreatingMissingDrivers(false);
     }
