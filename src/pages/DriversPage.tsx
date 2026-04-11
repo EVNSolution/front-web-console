@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { canManageDriverProfileScope } from '../authScopes';
+import { listDriverAccountLinks } from '../api/driverAccountLinks';
 import { listDrivers } from '../api/drivers';
 import { listCompanies, listFleets } from '../api/organization';
 import { PageLayout } from '../components/PageLayout';
 import { getErrorMessage, type HttpClient, type SessionPayload } from '../api/http';
 import { getDriverRouteRef } from '../routeRefs';
-import type { Company, DriverProfile, Fleet } from '../types';
+import type { Company, DriverAccountLinkSummary, DriverProfile, Fleet } from '../types';
 
 type DriversPageProps = {
   client: HttpClient;
@@ -16,6 +17,7 @@ type DriversPageProps = {
 
 export function DriversPage({ client, session }: DriversPageProps) {
   const navigate = useNavigate();
+  const [driverAccountLinks, setDriverAccountLinks] = useState<DriverAccountLinkSummary[]>([]);
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [fleets, setFleets] = useState<Fleet[]>([]);
@@ -30,8 +32,9 @@ export function DriversPage({ client, session }: DriversPageProps) {
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        const [driverResponse, companyResponse, fleetResponse] = await Promise.all([
+        const [driverResponse, driverAccountLinkResponse, companyResponse, fleetResponse] = await Promise.all([
           listDrivers(client),
+          listDriverAccountLinks(client),
           listCompanies(client),
           listFleets(client),
         ]);
@@ -39,6 +42,7 @@ export function DriversPage({ client, session }: DriversPageProps) {
           return;
         }
         setDrivers(driverResponse);
+        setDriverAccountLinks(driverAccountLinkResponse);
         setCompanies(companyResponse);
         setFleets(fleetResponse);
       } catch (error) {
@@ -64,6 +68,10 @@ export function DriversPage({ client, session }: DriversPageProps) {
 
   function getFleetName(fleetId: string) {
     return fleets.find((fleet) => fleet.fleet_id === fleetId)?.name ?? '미확인 플릿';
+  }
+
+  function getActiveDriverAccountLink(driverId: string) {
+    return driverAccountLinks.find((entry) => entry.driver_id === driverId && entry.unlinked_at == null) ?? null;
   }
 
   function handleRowKeyDown(event: React.KeyboardEvent<HTMLTableRowElement>, detailPath: string) {
@@ -102,6 +110,7 @@ export function DriversPage({ client, session }: DriversPageProps) {
             <tbody>
               {drivers.map((driver) => {
                 const detailPath = driver.route_no != null ? `/drivers/${getDriverRouteRef(driver)}` : null;
+                const activeLink = getActiveDriverAccountLink(driver.driver_id);
 
                 return (
                   <tr
@@ -116,7 +125,7 @@ export function DriversPage({ client, session }: DriversPageProps) {
                     <td>{driver.external_user_name || '미입력'}</td>
                     <td>{getCompanyName(driver.company_id)}</td>
                     <td>{getFleetName(driver.fleet_id)}</td>
-                    <td onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>상세에서 관리</td>
+                    <td onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>{activeLink?.identity_name ?? ''}</td>
                   </tr>
                 );
               })}

@@ -5,12 +5,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { DriversPage } from './DriversPage';
 
 const apiMocks = vi.hoisted(() => ({
+  listDriverAccountLinks: vi.fn(),
   listDrivers: vi.fn(),
   createDriver: vi.fn(),
   deleteDriver: vi.fn(),
   updateDriver: vi.fn(),
   listCompanies: vi.fn(),
   listFleets: vi.fn(),
+}));
+
+vi.mock('../api/driverAccountLinks', () => ({
+  listDriverAccountLinks: apiMocks.listDriverAccountLinks,
 }));
 
 vi.mock('../api/drivers', () => ({
@@ -59,6 +64,19 @@ describe('Admin DriversPage', () => {
         name: 'Seed Fleet',
       },
     ]);
+    apiMocks.listDriverAccountLinks.mockResolvedValue([
+      {
+        driver_account_link_id: '21000000-0000-0000-0000-000000000001',
+        driver_account_id: '20000000-0000-0000-0000-000000000001',
+        driver_id: '90000000-0000-0000-0000-000000000001',
+        identity_id: '22000000-0000-0000-0000-000000000001',
+        identity_name: '김기사 계정',
+        email: 'driver@example.com',
+        account_status: 'active',
+        linked_at: '2026-04-01T00:00:00Z',
+        unlinked_at: null,
+      },
+    ]);
     render(
       <MemoryRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <DriversPage
@@ -92,7 +110,8 @@ describe('Admin DriversPage', () => {
     expect(row).toHaveAttribute('data-detail-path', '/drivers/1');
     expect(screen.getByText('원청 앱 사용자명')).toBeInTheDocument();
     expect(screen.getByText('ZD김기사')).toBeInTheDocument();
-    expect(screen.getAllByText('상세에서 관리')).toHaveLength(2);
+    expect(screen.getByText('김기사 계정')).toBeInTheDocument();
+    expect(screen.queryByText('상세에서 관리')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '계정 연결' })).not.toBeInTheDocument();
     expect(screen.queryByText('driver@example.com')).not.toBeInTheDocument();
@@ -104,6 +123,7 @@ describe('Admin DriversPage', () => {
 
   it('hides driver create action for vehicle managers', async () => {
     apiMocks.listDrivers.mockResolvedValue([]);
+    apiMocks.listDriverAccountLinks.mockResolvedValue([]);
     apiMocks.listCompanies.mockResolvedValue([]);
     apiMocks.listFleets.mockResolvedValue([]);
 
