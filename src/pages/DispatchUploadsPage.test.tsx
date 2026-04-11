@@ -205,7 +205,10 @@ describe('DispatchUploadsPage', () => {
     expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('배차일'), '2026-03-24');
-    await user.click(await screen.findByRole('button', { name: '정산 시작' }));
+    const settlementStartButton = await screen.findByRole('button', { name: '정산 시작하기' });
+    expect(settlementStartButton).toBeEnabled();
+    expect(screen.getAllByRole('button', { name: '정산 시작하기' })).toHaveLength(1);
+    await user.click(settlementStartButton);
 
     await waitFor(() => {
       expect(deliveryRecordMocks.bootstrapDailySnapshotsFromDispatch).toHaveBeenCalledWith(
@@ -217,6 +220,21 @@ describe('DispatchUploadsPage', () => {
         },
       );
     });
+  });
+
+  it('keeps the settlement handoff CTA at the top and disables it before confirmed uploads exist', async () => {
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+
+    const settlementStartButton = screen.getByRole('button', { name: '정산 시작하기' });
+    expect(settlementStartButton).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: '정산 시작하기' })).toHaveLength(1);
+    expect(screen.getByText('정규화 완료 후 정산으로 넘어갑니다.')).toBeInTheDocument();
   });
 
   it('renders compact scope stats once confirmed upload data is loaded', async () => {
@@ -475,7 +493,7 @@ describe('DispatchUploadsPage', () => {
     expect(screen.queryByText(/^회사$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^플릿$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^배차일$/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '정산 시작' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정산 시작하기' })).toBeDisabled();
     expect(screen.queryByText(/1차 MVP/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/phase 1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/정산 근거로 사용합니다/i)).not.toBeInTheDocument();

@@ -28,9 +28,7 @@ type DispatchUploadWizardProps = {
   onExternalUserNamesChanged?: (externalUserNames: string[]) => void;
   dispatchPlanId?: string | null;
   confirmedBatches: DispatchUploadBatch[];
-  isStartingSettlement?: boolean;
   onConfirmed?: () => Promise<void> | void;
-  onStartSettlement?: () => Promise<void> | void;
 };
 
 type EditableUploadRow = DispatchUploadPreviewRowPayload & {
@@ -223,9 +221,7 @@ export function DispatchUploadWizard({
   onExternalUserNamesChanged,
   dispatchPlanId,
   confirmedBatches,
-  isStartingSettlement = false,
   onConfirmed,
-  onStartSettlement,
 }: DispatchUploadWizardProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
@@ -294,9 +290,6 @@ export function DispatchUploadWizard({
   const isUploadDisabled = !companyId || isUploading || isValidating || isConfirming;
   const requiresFleetConfirmation = Boolean(pendingDetectedFleetCode);
   const requiresMissingDriverCreation = pendingMissingDriverNames.length > 0;
-  const canStartSettlement =
-    Boolean(onStartSettlement) &&
-    (previewBatch?.upload_status === 'confirmed' || confirmedBatches.length > 0);
   const effectiveDispatchDate = dispatchDate;
   const requiresDispatchDateConfirmation = Boolean(pendingDetectedDispatchDate && !dispatchDate);
   const toolbarMessage = editableRows.length
@@ -309,8 +302,8 @@ export function DispatchUploadWizard({
           ? '시트 수정 후 서버 검증으로 배송원 매칭을 확인합니다.'
           : '플릿을 선택하거나 감지된 플릿을 승인한 뒤 서버 검증하세요.'
         : '파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택한 뒤 검증하세요.'
-    : canStartSettlement
-      ? '확정된 업로드 기준으로 바로 정산을 시작할 수 있습니다.'
+    : confirmedBatches.length > 0
+      ? '확정 업로드 내역입니다. 위쪽에서 정산 준비 상태를 확인하세요.'
       : '파일을 올리면 시트에서 바로 수정하고 검증할 수 있습니다.';
 
   useEffect(() => {
@@ -530,7 +523,7 @@ export function DispatchUploadWizard({
       />
       <div className="panel-toolbar">
         <span className="table-meta">{toolbarMessage}</span>
-        {editableRows.length > 0 || canStartSettlement ? (
+        {editableRows.length > 0 ? (
           <div className="panel-toolbar-actions">
             {editableRows.length > 0 ? (
               <button
@@ -553,16 +546,6 @@ export function DispatchUploadWizard({
                 type="button"
               >
                 업로드 확정
-              </button>
-            ) : null}
-            {canStartSettlement ? (
-              <button
-                className="button ghost small"
-                disabled={isStartingSettlement}
-                onClick={() => void onStartSettlement?.()}
-                type="button"
-              >
-                {isStartingSettlement ? '정산 준비 중...' : '정산 시작'}
               </button>
             ) : null}
           </div>

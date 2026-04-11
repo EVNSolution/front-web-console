@@ -2499,6 +2499,41 @@ textarea:focus {
   gap: 0.55rem;
 }
 
+.dispatch-upload-handoff {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(28, 32, 43, 0.08);
+  border-radius: 0.9rem;
+  background: #fbfbfc;
+}
+
+.dispatch-upload-handoff-kicker {
+  margin: 0;
+  color: #6a7280;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dispatch-upload-handoff strong {
+  color: #181818;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.dispatch-upload-handoff-meta {
+  margin: 0;
+  color: #616976;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.dispatch-upload-handoff .button {
+  width: 100%;
+}
+
 .dispatch-upload-sidebar-actions .button {
   width: 100%;
   min-height: 2.2rem;
