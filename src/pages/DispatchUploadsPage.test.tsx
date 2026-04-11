@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DispatchUploadsPage } from './DispatchUploadsPage';
-import { ApiError, GENERIC_SERVER_ERROR_MESSAGE, type SessionPayload } from '../api/http';
+import { ApiError, type SessionPayload } from '../api/http';
 
 const dispatchRegistryMocks = vi.hoisted(() => ({
   listDispatchUploadBatches: vi.fn(),
@@ -42,10 +42,14 @@ vi.mock('../api/deliveryRecords', () => ({
   bootstrapDailySnapshotsFromDispatch: deliveryRecordMocks.bootstrapDailySnapshotsFromDispatch,
 }));
 
-vi.mock('../api/drivers', () => ({
-  listDrivers: driverMocks.listDrivers,
-  ensureDriversByExternalUserNames: driverMocks.ensureDriversByExternalUserNames,
-}));
+vi.mock('../api/drivers', async () => {
+  const actual = await vi.importActual<typeof import('../api/drivers')>('../api/drivers');
+  return {
+    ...actual,
+    listDrivers: driverMocks.listDrivers,
+    ensureDriversByExternalUserNames: driverMocks.ensureDriversByExternalUserNames,
+  };
+});
 
 vi.mock('../api/organization', () => ({
   listCompanies: organizationMocks.listCompanies,
@@ -417,7 +421,7 @@ describe('DispatchUploadsPage', () => {
     expect(await screen.findByText('배송원 1명을 생성했습니다.')).toBeInTheDocument();
   });
 
-  it('uses the generic server error message when missing driver creation is not supported by the backend yet', async () => {
+  it('shows a contextual message when missing driver creation is not supported by the backend yet', async () => {
     organizationMocks.listFleets.mockResolvedValue([
       {
         fleet_id: '40000000-0000-0000-0000-000000000001',
@@ -450,7 +454,9 @@ describe('DispatchUploadsPage', () => {
     await user.upload(screen.getByLabelText('배차표 업로드'), createSpreadsheetFile('dispatch.xlsx'));
     await user.click(screen.getByRole('button', { name: '배송원 생성' }));
 
-    expect(await screen.findByText(GENERIC_SERVER_ERROR_MESSAGE)).toBeInTheDocument();
+    expect(
+      await screen.findByText('현재 배송원 자동 생성 API가 POST 요청을 처리하지 못하고 있습니다. 서비스 배포 상태를 확인해 주세요.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Method "POST" not allowed.')).not.toBeInTheDocument();
   });
 
