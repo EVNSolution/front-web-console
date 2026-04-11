@@ -1,12 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
 import { login as loginApi } from './api/auth';
 import { ApiError, GENERIC_SERVER_ERROR_MESSAGE } from './api/http';
 import { loadStoredSession } from './sessionPersistence';
 import { listPublicCompanies } from './api/organization';
+import { listVehicleMasters } from './api/vehicles';
 
 const session = {
   accessToken: 'token',
@@ -26,6 +27,15 @@ const session = {
   },
   availableAccountTypes: ['manager'],
 };
+
+function jsonResponse(body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
 
 vi.mock('./sessionPersistence', () => ({
   clearStoredSession: vi.fn(),
@@ -222,10 +232,15 @@ vi.mock('./api/regions', () => ({
 }));
 
 describe('Admin App', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
     vi.mocked(loadStoredSession).mockReturnValue(session);
     vi.mocked(loginApi).mockReset();
+    vi.mocked(listVehicleMasters).mockResolvedValue([]);
   });
 
   it('uses the unified dashboard as the root route', async () => {
@@ -343,6 +358,95 @@ describe('Admin App', () => {
 
     await waitFor(() => expect(window.location.pathname).toBe('/'));
     expect(await screen.findByText('운영 요약')).toBeInTheDocument();
+  });
+
+  it('lets users move to another tab after the post-login redirect has completed', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+    vi.mocked(loginApi).mockResolvedValue(session);
+    window.history.replaceState({}, '', '/settlements/results');
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/아이디/i), 'manager@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/i), 'change-me');
+    await user.click(screen.getByRole('button', { name: /^로그인$/i }));
+
+    expect(await screen.findByText('운영 요약')).toBeInTheDocument();
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+
+    await user.click(screen.getByRole('button', { name: '배송원' }));
+    await user.click(screen.getByRole('link', { name: '배송원' }));
+
+    await waitFor(() => expect(window.location.pathname).toBe('/drivers'));
+    expect(await screen.findByRole('heading', { name: '배송원 목록' })).toBeInTheDocument();
+  });
+
+  it('normalizes the browser URL to the root route while showing the login screen', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+    window.history.replaceState({}, '', '/settlements/overview');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+  });
+
+  it('re-fetches navigation policy after a route permission error and updates the available tabs without a refresh', async () => {
+    const user = userEvent.setup();
+    let navigationPolicyRequestCount = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/api/auth/identity-navigation-policy/')) {
+        navigationPolicyRequestCount += 1;
+        return jsonResponse({
+          allowed_nav_keys:
+            navigationPolicyRequestCount === 1
+              ? ['dashboard', 'account', 'vehicles', 'drivers']
+              : ['dashboard', 'account', 'drivers'],
+          source: navigationPolicyRequestCount === 1 ? 'initial-policy' : 'updated-policy',
+        });
+      }
+
+      if (url.endsWith('/api/vehicles/vehicle-masters/')) {
+        return new Response(
+          JSON.stringify({
+            code: 'nav_policy_denied',
+            message: 'This API is not allowed by current navigation policy.',
+            details: {},
+          }),
+          {
+            status: 403,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+      }
+
+      throw new Error(`Unexpected fetch request in test: ${url}`);
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+    vi.mocked(listVehicleMasters).mockImplementationOnce((client) =>
+      client.request('/vehicles/vehicle-masters/'),
+    );
+    window.history.replaceState({}, '', '/vehicles');
+
+    render(<App />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+    expect(await screen.findByText('운영 요약')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '차량' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '배송원' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '배송원' }));
+    await user.click(screen.getByRole('link', { name: '배송원' }));
+
+    await waitFor(() => expect(window.location.pathname).toBe('/drivers'));
+    expect(await screen.findByRole('heading', { name: '배송원 목록' })).toBeInTheDocument();
   });
 
   it('renders the local-only /block route and previews both top notice tones', async () => {

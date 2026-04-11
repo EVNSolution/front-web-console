@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import { login, logout, signupRequestIntake } from './api/auth';
@@ -86,7 +86,7 @@ import { VehicleFormPage } from './pages/VehicleFormPage';
 import { VehicleOperatorAccessFormPage } from './pages/VehicleOperatorAccessFormPage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { clearStoredSession, loadStoredSession, persistSession } from './sessionPersistence';
-import { useNavigationPolicy } from './hooks/useNavigationPolicy';
+import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { accountItem, dashboardItem, isNavigationItemActive, navigationGroups } from './navigation';
 import type { NavItemKey } from './authScopes';
 
@@ -141,7 +141,6 @@ type NavigationPolicyRouteEffectProps = {
   session: SessionPayload;
   allowedNavKeys: NavItemKey[];
   isLoading: boolean;
-  redirectTick: number;
   onRedirect: () => void;
 };
 
@@ -149,7 +148,6 @@ function NavigationPolicyRouteEffect({
   session,
   allowedNavKeys,
   isLoading,
-  redirectTick,
   onRedirect,
 }: NavigationPolicyRouteEffectProps) {
   const location = useLocation();
@@ -176,18 +174,25 @@ function NavigationPolicyRouteEffect({
 
     onRedirect();
     navigate(nextPath, { replace: true });
-  }, [allowedNavKeys, isLoading, location.pathname, navigate, onRedirect, redirectTick, session]);
+  }, [allowedNavKeys, isLoading, location.pathname, navigate, onRedirect, session]);
 
   return null;
 }
 
 function PostLoginRouteEffect({ redirectTick }: { redirectTick: number }) {
   const navigate = useNavigate();
+  const handledRedirectTickRef = useRef(0);
 
   useEffect(() => {
     if (redirectTick === 0) {
       return;
     }
+
+    if (handledRedirectTickRef.current === redirectTick) {
+      return;
+    }
+
+    handledRedirectTickRef.current = redirectTick;
     navigate('/', { replace: true });
   }, [navigate, redirectTick]);
 
@@ -219,11 +224,11 @@ export default function App() {
   const promotedServerErrorElementsRef = useRef(new WeakSet<HTMLElement>());
   const isLocalDebugRouteVisible = isLocalDebugRouteEnabled();
 
-  function showTopNotification(
+  const showTopNotification = useCallback((
     message: string,
     tone: TopNotificationTone,
     options?: { dedupeKey?: string },
-  ) {
+  ) => {
     const nextExpiresAt = Date.now() + DISPLAY_DURATION_MS;
     const dedupeKey = options?.dedupeKey ?? `message:${tone}:${message}`;
     setTopNotification((current) => {
@@ -245,12 +250,16 @@ export default function App() {
         expiresAt: nextExpiresAt,
       };
     });
-  }
+  }, []);
 
-  function showTopNotificationTemplate(templateKey: TopNotificationTemplateKey) {
+  const showTopNotificationTemplate = useCallback((templateKey: TopNotificationTemplateKey) => {
     const template = resolveTopNotificationTemplate(templateKey);
     showTopNotification(template.message, template.tone, { dedupeKey: template.dedupeKey });
-  }
+  }, [showTopNotification]);
+
+  const handleNavigationRedirect = useCallback(() => {
+    showTopNotificationTemplate('navigation-redirected');
+  }, [showTopNotificationTemplate]);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -298,7 +307,7 @@ export default function App() {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [showTopNotificationTemplate]);
 
   useEffect(() => {
     if (session) {
@@ -332,6 +341,18 @@ export default function App() {
     };
   }, [session]);
 
+  useEffect(() => {
+    if (session !== null || typeof window === 'undefined') {
+      return;
+    }
+
+    if (window.location.pathname === '/' && window.location.search === '' && window.location.hash === '') {
+      return;
+    }
+
+    window.history.replaceState(window.history.state, '', '/');
+  }, [session]);
+
   if (clientRef.current === null) {
     clientRef.current = createHttpClient({
       baseUrl: DEFAULT_API_BASE_URL,
@@ -353,7 +374,11 @@ export default function App() {
   }
 
   const client = clientRef.current as HttpClient;
-  const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicy(client, session);
+  const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
+    client,
+    session,
+    policyRedirectTick,
+  );
 
   async function handleLogin(credentials: { email: string; password: string }) {
     setIsSubmitting(true);
@@ -503,10 +528,7 @@ export default function App() {
         <NavigationPolicyRouteEffect
           allowedNavKeys={allowedNavKeys}
           isLoading={isNavigationPolicyLoading}
-          onRedirect={() => {
-            showTopNotificationTemplate('navigation-redirected');
-          }}
-          redirectTick={policyRedirectTick}
+          onRedirect={handleNavigationRedirect}
           session={session}
         />
         <RequireAdmin session={session} onLogout={handleLogout}>

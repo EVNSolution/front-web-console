@@ -387,6 +387,12 @@ export type DriverProfile = {
   address: string;
 };
 
+export type EnsureDriversByExternalUserNamesResult = {
+  drivers: DriverProfile[];
+  created_external_user_names: string[];
+  existing_external_user_names: string[];
+};
+
 export type PersonnelDocument = {
   personnel_document_id: string;
   driver_id: string;

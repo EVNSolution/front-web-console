@@ -41,7 +41,8 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
         .map((group) => ({
           ...group,
           items: group.items.filter((item) => item.isVisible(session) && effectiveAllowedNavKeys.has(item.key)),
-        })),
+        }))
+        .filter((group) => group.items.length > 0),
     [effectiveAllowedNavKeys, session],
   );
 

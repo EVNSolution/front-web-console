@@ -14,9 +14,20 @@ const deliveryRecordMocks = vi.hoisted(() => ({
   bootstrapDailySnapshotsFromDispatch: vi.fn(),
 }));
 
+const driverMocks = vi.hoisted(() => ({
+  listDrivers: vi.fn(),
+  ensureDriversByExternalUserNames: vi.fn(),
+}));
+
 const organizationMocks = vi.hoisted(() => ({
   listCompanies: vi.fn(),
   listFleets: vi.fn(),
+  createFleet: vi.fn(),
+}));
+
+const xlsxMocks = vi.hoisted(() => ({
+  read: vi.fn(),
+  sheetToJson: vi.fn(),
 }));
 
 vi.mock('../api/dispatchRegistry', async () => {
@@ -31,9 +42,22 @@ vi.mock('../api/deliveryRecords', () => ({
   bootstrapDailySnapshotsFromDispatch: deliveryRecordMocks.bootstrapDailySnapshotsFromDispatch,
 }));
 
+vi.mock('../api/drivers', () => ({
+  listDrivers: driverMocks.listDrivers,
+  ensureDriversByExternalUserNames: driverMocks.ensureDriversByExternalUserNames,
+}));
+
 vi.mock('../api/organization', () => ({
   listCompanies: organizationMocks.listCompanies,
   listFleets: organizationMocks.listFleets,
+  createFleet: organizationMocks.createFleet,
+}));
+
+vi.mock('xlsx', () => ({
+  read: xlsxMocks.read,
+  utils: {
+    sheet_to_json: xlsxMocks.sheetToJson,
+  },
 }));
 
 const systemAdminSession: SessionPayload = {
@@ -72,6 +96,17 @@ const companyManagerSession: SessionPayload = {
 describe('DispatchUploadsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    driverMocks.listDrivers.mockReset();
+    driverMocks.ensureDriversByExternalUserNames.mockReset();
+    organizationMocks.createFleet.mockReset();
+    xlsxMocks.read.mockReset();
+    xlsxMocks.sheetToJson.mockReset();
+    driverMocks.listDrivers.mockResolvedValue([]);
+    driverMocks.ensureDriversByExternalUserNames.mockResolvedValue({
+      drivers: [],
+      created_external_user_names: [],
+      existing_external_user_names: [],
+    });
     organizationMocks.listCompanies.mockResolvedValue([
       {
         company_id: '30000000-0000-0000-0000-000000000001',
@@ -104,7 +139,31 @@ describe('DispatchUploadsPage', () => {
       skipped_count: 0,
       created_snapshot_ids: ['snapshot-1'],
     });
+    organizationMocks.createFleet.mockResolvedValue({
+      fleet_id: '40000000-0000-0000-0000-000000000003',
+      route_no: 43,
+      company_id: '30000000-0000-0000-0000-000000000001',
+      name: 'H',
+    });
   });
+
+  function mockWorksheetRows(rows: Record<string, unknown>[]) {
+    xlsxMocks.read.mockReturnValue({
+      SheetNames: ['Sheet1'],
+      Sheets: { Sheet1: {} },
+    });
+    xlsxMocks.sheetToJson.mockReturnValue(rows);
+  }
+
+  function createSpreadsheetFile(name: string) {
+    const file = new File(['dummy'], name, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+    });
+    return file;
+  }
 
   it('boots settlement preparation from the upload scope without a dispatch plan', async () => {
     dispatchRegistryMocks.listDispatchUploadBatches.mockResolvedValue([
@@ -154,6 +213,208 @@ describe('DispatchUploadsPage', () => {
         },
       );
     });
+  });
+
+  it('renders compact scope stats once confirmed upload data is loaded', async () => {
+    dispatchRegistryMocks.listDispatchUploadBatches.mockResolvedValue([
+      {
+        upload_batch_id: 'upload-batch-1',
+        dispatch_plan_id: null,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        dispatch_date: '2026-03-24',
+        source_filename: 'dispatch.xlsx',
+        upload_status: 'confirmed',
+        created_at: '2026-03-24T09:00:00Z',
+        updated_at: '2026-03-24T09:10:00Z',
+        rows: [
+          {
+            upload_row_id: 'upload-row-1',
+            row_index: 1,
+            external_user_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+            matched_driver_id: 'driver-1',
+          },
+        ],
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('배차일'), '2026-03-24');
+
+    expect(await screen.findByText('확정 1')).toBeInTheDocument();
+    expect(screen.getByText('매칭 1')).toBeInTheDocument();
+    expect(screen.getByText('박스 133')).toBeInTheDocument();
+  });
+
+  it('asks for approval before switching to a detected existing fleet', async () => {
+    organizationMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000010',
+        route_no: 41,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'C',
+      },
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000011',
+        route_no: 42,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'H',
+      },
+    ]);
+    mockWorksheetRows([
+      {
+        '배송매니저 이름': 'ZD홍길동',
+        '소분류 권역': '10H2',
+        '세분류 권역': '10H2-가',
+        '박스 수': 133,
+        '가구 수': 90,
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('배차표 업로드'), createSpreadsheetFile('dispatch.xlsx'));
+
+    expect(await screen.findByText('감지된 플릿 H')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '감지된 플릿 적용' }));
+
+    expect(screen.getByLabelText('플릿')).toHaveValue('40000000-0000-0000-0000-000000000011');
+  });
+
+  it('asks for approval before creating a missing detected fleet', async () => {
+    organizationMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000010',
+        route_no: 41,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'C',
+      },
+    ]);
+    mockWorksheetRows([
+      {
+        '배송매니저 이름': 'ZD홍길동',
+        '소분류 권역': '10H2',
+        '세분류 권역': '10H2-가',
+        '박스 수': 133,
+        '가구 수': 90,
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('배차표 업로드'), createSpreadsheetFile('dispatch.xlsx'));
+
+    expect(await screen.findByText('감지된 플릿 H')).toBeInTheDocument();
+    expect(screen.getByText('현재 회사에 일치하는 플릿이 없습니다. 생성하시겠습니까?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '플릿 생성' }));
+
+    await waitFor(() => {
+      expect(organizationMocks.createFleet).toHaveBeenCalledWith(expect.anything(), {
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'H',
+      });
+    });
+    expect(screen.getByLabelText('플릿')).toHaveValue('40000000-0000-0000-0000-000000000003');
+  });
+
+  it('asks for approval before creating missing drivers detected from uploaded external user names', async () => {
+    organizationMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 41,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'H',
+      },
+    ]);
+    mockWorksheetRows([
+      {
+        '배송매니저 이름': 'ZD홍길동',
+        '소분류 권역': '10H2',
+        '세분류 권역': '10H2-가',
+        '박스 수': 133,
+        '가구 수': 90,
+      },
+    ]);
+    driverMocks.listDrivers
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          driver_id: '10000000-0000-0000-0000-000000000001',
+          route_no: 81,
+          company_id: '30000000-0000-0000-0000-000000000001',
+          fleet_id: '40000000-0000-0000-0000-000000000001',
+          name: 'ZD홍길동',
+          external_user_name: 'ZD홍길동',
+          ev_id: '',
+          phone_number: '',
+          address: '',
+        },
+      ]);
+    driverMocks.ensureDriversByExternalUserNames.mockResolvedValue({
+      drivers: [
+        {
+          driver_id: '10000000-0000-0000-0000-000000000001',
+          route_no: 81,
+          company_id: '30000000-0000-0000-0000-000000000001',
+          fleet_id: '40000000-0000-0000-0000-000000000001',
+          name: 'ZD홍길동',
+          external_user_name: 'ZD홍길동',
+          ev_id: '',
+          phone_number: '',
+          address: '',
+        },
+      ],
+      created_external_user_names: ['ZD홍길동'],
+      existing_external_user_names: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('배차표 업로드'), createSpreadsheetFile('dispatch.xlsx'));
+
+    expect(await screen.findByText('미등록 배송원 1명')).toBeInTheDocument();
+    expect(screen.getByText('ZD홍길동')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '배송원 생성' }));
+
+    await waitFor(() => {
+      expect(driverMocks.ensureDriversByExternalUserNames).toHaveBeenCalledWith(expect.anything(), {
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        external_user_names: ['ZD홍길동'],
+      });
+    });
+    expect(await screen.findByText('배송원 1명을 생성했습니다.')).toBeInTheDocument();
   });
 
   it('keeps the upload page copy short and emphasizes upload actions', async () => {

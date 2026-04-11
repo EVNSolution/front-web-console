@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { bootstrapDailySnapshotsFromDispatch } from '../api/deliveryRecords';
+import { ensureDriversByExternalUserNames, listDrivers } from '../api/drivers';
 import type { SessionPayload } from '../api/http';
 import { listDispatchUploadBatches } from '../api/dispatchRegistry';
 import { getErrorMessage, type HttpClient } from '../api/http';
-import { listCompanies, listFleets } from '../api/organization';
+import { createFleet, listCompanies, listFleets } from '../api/organization';
 import { DispatchUploadWizard } from '../components/DispatchUploadWizard';
 import { PageLayout } from '../components/PageLayout';
 import { isSystemAdmin } from '../authScopes';
-import type { Company, DispatchUploadBatch, Fleet } from '../types';
+import type { Company, DispatchUploadBatch, DriverProfile, Fleet } from '../types';
 
 type DispatchUploadsPageProps = {
   client: HttpClient;
@@ -28,11 +29,43 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBootstrapping, setIsBootstrapping] = useState(false);
+  const [pendingDetectedFleetCode, setPendingDetectedFleetCode] = useState<string | null>(null);
+  const [isCreatingDetectedFleet, setIsCreatingDetectedFleet] = useState(false);
+  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
+  const [detectedExternalUserNames, setDetectedExternalUserNames] = useState<string[]>([]);
+  const [isCreatingMissingDrivers, setIsCreatingMissingDrivers] = useState(false);
 
   const visibleFleets = useMemo(
     () => fleets.filter((fleet) => !selectedCompanyId || fleet.company_id === selectedCompanyId),
     [fleets, selectedCompanyId],
   );
+  const detectedFleet = useMemo(() => {
+    if (!pendingDetectedFleetCode) {
+      return null;
+    }
+
+    return (
+      visibleFleets.find((fleet) => fleet.name.trim().toUpperCase() === pendingDetectedFleetCode) ?? null
+    );
+  }, [pendingDetectedFleetCode, visibleFleets]);
+  const requiresDetectedFleetCreation = Boolean(pendingDetectedFleetCode && !detectedFleet);
+  const missingDriverNames = useMemo(() => {
+    if (
+      !selectedCompanyId ||
+      !selectedFleetId ||
+      detectedExternalUserNames.length === 0 ||
+      pendingDetectedFleetCode
+    ) {
+      return [];
+    }
+
+    const existingExternalUserNames = new Set(
+      drivers
+        .map((driver) => driver.external_user_name.trim())
+        .filter(Boolean),
+    );
+    return detectedExternalUserNames.filter((externalUserName) => !existingExternalUserNames.has(externalUserName));
+  }, [detectedExternalUserNames, drivers, pendingDetectedFleetCode, selectedCompanyId, selectedFleetId]);
   const showCompanySelector = isSystemAdmin(session);
   const uploadSummary = useMemo(() => {
     const matchedRowCount = confirmedBatches.reduce(
@@ -70,11 +103,10 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
             ? lockedCompanyId
             : companyResponse[0]?.company_id ?? '';
         const nextFleetId =
-          fleetResponse.find((fleet) => fleet.company_id === nextCompanyId)?.fleet_id ??
-          fleetResponse[0]?.fleet_id ??
-          '';
+          fleetResponse.find((fleet) => fleet.company_id === nextCompanyId)?.fleet_id ?? '';
         setSelectedCompanyId(nextCompanyId);
         setSelectedFleetId(nextFleetId);
+        setPendingDetectedFleetCode(null);
       } catch (error) {
         if (!ignore) {
           setErrorMessage(getErrorMessage(error));
@@ -91,6 +123,36 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
       ignore = true;
     };
   }, [client, session, showCompanySelector]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadDriversForScope() {
+      if (!selectedCompanyId || !selectedFleetId) {
+        setDrivers([]);
+        return;
+      }
+
+      try {
+        const response = await listDrivers(client, {
+          company_id: selectedCompanyId,
+          fleet_id: selectedFleetId,
+        });
+        if (!ignore) {
+          setDrivers(response);
+        }
+      } catch (error) {
+        if (!ignore) {
+          setErrorMessage(getErrorMessage(error));
+        }
+      }
+    }
+
+    void loadDriversForScope();
+    return () => {
+      ignore = true;
+    };
+  }, [client, selectedCompanyId, selectedFleetId]);
 
   async function loadConfirmedBatches() {
     if (!selectedCompanyId || !selectedFleetId || !dispatchDate) {
@@ -160,6 +222,85 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
     }
   }
 
+  function handleFleetCodeDetected(fleetCode: string | null) {
+    if (!fleetCode) {
+      setPendingDetectedFleetCode(null);
+      return;
+    }
+
+    const matchedFleet =
+      visibleFleets.find((fleet) => fleet.name.trim().toUpperCase() === fleetCode) ?? null;
+    if (matchedFleet?.fleet_id === selectedFleetId) {
+      setPendingDetectedFleetCode(null);
+      return;
+    }
+
+    setPendingDetectedFleetCode(fleetCode);
+  }
+
+  function handleApplyDetectedFleet() {
+    if (!detectedFleet) {
+      return;
+    }
+
+    setSelectedFleetId(detectedFleet.fleet_id);
+    setPendingDetectedFleetCode(null);
+    setStatusMessage(`감지된 플릿 ${detectedFleet.name}을 적용했습니다.`);
+  }
+
+  async function handleCreateDetectedFleet() {
+    if (!pendingDetectedFleetCode || !selectedCompanyId) {
+      return;
+    }
+
+    setIsCreatingDetectedFleet(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      const createdFleet = await createFleet(client, {
+        company_id: selectedCompanyId,
+        name: pendingDetectedFleetCode,
+      });
+      setFleets((currentFleets) => [...currentFleets, createdFleet]);
+      setSelectedFleetId(createdFleet.fleet_id);
+      setPendingDetectedFleetCode(null);
+      setStatusMessage(`플릿 ${createdFleet.name}을 생성하고 선택했습니다.`);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsCreatingDetectedFleet(false);
+    }
+  }
+
+  async function handleCreateMissingDrivers() {
+    if (!selectedCompanyId || !selectedFleetId || missingDriverNames.length === 0) {
+      return;
+    }
+
+    setIsCreatingMissingDrivers(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      const response = await ensureDriversByExternalUserNames(client, {
+        company_id: selectedCompanyId,
+        fleet_id: selectedFleetId,
+        external_user_names: missingDriverNames,
+      });
+      setDrivers((currentDrivers) => {
+        const driverById = new Map(currentDrivers.map((driver) => [driver.driver_id, driver]));
+        response.drivers.forEach((driver) => {
+          driverById.set(driver.driver_id, driver);
+        });
+        return Array.from(driverById.values());
+      });
+      setStatusMessage(`배송원 ${response.created_external_user_names.length}명을 생성했습니다.`);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsCreatingMissingDrivers(false);
+    }
+  }
+
   return (
     <PageLayout subtitle="회사, 플릿, 날짜 기준으로 배차표 업로드를 확정합니다." title="배차표 업로드">
       <div className="dispatch-upload-workbench">
@@ -183,6 +324,7 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
                       onChange={(event) => {
                         const nextCompanyId = event.target.value;
                         setSelectedCompanyId(nextCompanyId);
+                        setPendingDetectedFleetCode(null);
                         const nextFleetId =
                           fleets.find((fleet) => fleet.company_id === nextCompanyId)?.fleet_id ?? '';
                         setSelectedFleetId(nextFleetId);
@@ -201,7 +343,10 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
                 <label className="field">
                   <select
                     aria-label="플릿"
-                    onChange={(event) => setSelectedFleetId(event.target.value)}
+                    onChange={(event) => {
+                      setSelectedFleetId(event.target.value);
+                      setPendingDetectedFleetCode(null);
+                    }}
                     value={selectedFleetId}
                   >
                     <option value="">플릿 선택</option>
@@ -222,18 +367,9 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
                 </label>
               </div>
               <div className="dispatch-upload-scope-summary">
-                <article className="metric-card">
-                  <span>확정 업로드 배치</span>
-                  <strong>{confirmedBatches.length}</strong>
-                </article>
-                <article className="metric-card">
-                  <span>배송원 매칭 row</span>
-                  <strong>{uploadSummary.matchedRowCount}</strong>
-                </article>
-                <article className="metric-card">
-                  <span>확정 박스 수</span>
-                  <strong>{uploadSummary.totalBoxCount}</strong>
-                </article>
+                <span className="dispatch-upload-scope-stat">확정 {confirmedBatches.length}</span>
+                <span className="dispatch-upload-scope-stat">매칭 {uploadSummary.matchedRowCount}</span>
+                <span className="dispatch-upload-scope-stat">박스 {uploadSummary.totalBoxCount}</span>
               </div>
               <div className="dispatch-upload-sidebar-actions">
                 <Link className="button ghost" to="/dispatch/boards">
@@ -251,6 +387,17 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
             fleetId={selectedFleetId}
             dispatchDate={dispatchDate}
             onDispatchDateDetected={setDispatchDate}
+            onFleetCodeDetected={handleFleetCodeDetected}
+            pendingDetectedFleetCode={pendingDetectedFleetCode}
+            requiresDetectedFleetCreation={requiresDetectedFleetCreation}
+            isCreatingDetectedFleet={isCreatingDetectedFleet}
+            onApplyDetectedFleet={handleApplyDetectedFleet}
+            onCreateDetectedFleet={handleCreateDetectedFleet}
+            onDismissDetectedFleet={() => setPendingDetectedFleetCode(null)}
+            pendingMissingDriverNames={missingDriverNames}
+            isCreatingMissingDrivers={isCreatingMissingDrivers}
+            onCreateMissingDrivers={handleCreateMissingDrivers}
+            onExternalUserNamesChanged={setDetectedExternalUserNames}
             confirmedBatches={confirmedBatches}
             isStartingSettlement={isBootstrapping}
             onConfirmed={loadConfirmedBatches}

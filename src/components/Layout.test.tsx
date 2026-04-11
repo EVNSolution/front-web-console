@@ -470,6 +470,38 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '공지' })).not.toBeInTheDocument();
   });
 
+  it('hides a navigation group entirely when the backend policy removes every item in that group', () => {
+    render(
+      <MemoryRouter>
+        <Layout
+          allowedNavKeys={['dashboard', 'account', 'drivers']}
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'vehicle@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '차량 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'vehicle_manager',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: '차량' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '배송원' })).toBeInTheDocument();
+  });
+
   it('does not highlight 내 계정 when current route is 계정 요청', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/admin/account-requests']}>

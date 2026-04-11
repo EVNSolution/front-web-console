@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,7 +29,10 @@ vi.mock('xlsx', () => ({
 
 describe('DispatchUploadWizard', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    dispatchRegistryMocks.previewDispatchUpload.mockReset();
+    dispatchRegistryMocks.confirmDispatchUpload.mockReset();
+    xlsxMocks.read.mockReset();
+    xlsxMocks.sheetToJson.mockReset();
   });
 
   function mockSingleWorksheetRow() {
@@ -47,6 +50,59 @@ describe('DispatchUploadWizard', () => {
       },
     ]);
   }
+
+  function createSpreadsheetFile(name: string, content = 'dummy') {
+    const file = new File([content], name, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+    });
+    return file;
+  }
+
+  it('does not propose a fleet code when multiple uppercase region codes are mixed', async () => {
+    xlsxMocks.read.mockReturnValue({
+      SheetNames: ['Sheet1'],
+      Sheets: { Sheet1: {} },
+    });
+    xlsxMocks.sheetToJson.mockReturnValue([
+      {
+        '배송매니저 이름': 'ZD홍길동',
+        '소분류 권역': '10H2',
+        '세분류 권역': '10H2-가',
+        '박스 수': 133,
+        '가구 수': 90,
+      },
+      {
+        '배송매니저 이름': 'ZD김영희',
+        '소분류 권역': '10C2',
+        '세분류 권역': '10C2-나',
+        '박스 수': 211,
+        '가구 수': 120,
+      },
+    ]);
+    const handleFleetCodeDetected = vi.fn();
+
+    render(
+      <DispatchUploadWizard
+        client={{ request: vi.fn() }}
+        confirmedBatches={[]}
+        companyId="company-1"
+        fleetId=""
+        dispatchDate="2026-03-24"
+        onFleetCodeDetected={handleFleetCodeDetected}
+      />,
+    );
+
+    const user = userEvent.setup();
+    const file = createSpreadsheetFile('dispatch.xlsx');
+
+    await user.upload(screen.getByLabelText('배차표 업로드'), file);
+
+    expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
+    expect(handleFleetCodeDetected).toHaveBeenCalledWith(null);
+  });
 
   it('lets users edit uploaded rows before running server validation', async () => {
     xlsxMocks.read.mockReturnValue({
@@ -97,12 +153,7 @@ describe('DispatchUploadWizard', () => {
     );
 
     const user = userEvent.setup();
-    const file = new File(['dummy'], 'dispatch.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
+    const file = createSpreadsheetFile('dispatch.xlsx');
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
 
@@ -134,6 +185,122 @@ describe('DispatchUploadWizard', () => {
     });
     expect(await screen.findByText('검증 완료')).toBeInTheDocument();
     expect(screen.getByText('ZD김영희 · driver-1')).toBeInTheDocument();
+  });
+
+  it('shows a spreadsheet-style upload surface before any file is selected', () => {
+    render(
+      <DispatchUploadWizard
+        client={{ request: vi.fn() }}
+        confirmedBatches={[]}
+        companyId="company-1"
+        fleetId="fleet-1"
+        dispatchDate=""
+      />,
+    );
+
+    expect(screen.getByRole('group', { name: '배차표 업로드 영역' })).toBeInTheDocument();
+    expect(screen.getByText('배차표 파일을 드래그하거나 클릭해 업로드하세요.')).toBeInTheDocument();
+    expect(screen.getByText('엑셀 시트처럼 보이는 이 영역에 새 파일을 바로 올릴 수 있습니다.')).toBeInTheDocument();
+  });
+
+  it('replaces the current sheet when a new file is dropped onto the upload surface', async () => {
+    xlsxMocks.read
+      .mockReturnValueOnce({
+        SheetNames: ['Sheet1'],
+        Sheets: { Sheet1: {} },
+      })
+      .mockReturnValueOnce({
+        SheetNames: ['Sheet1'],
+        Sheets: { Sheet1: {} },
+      });
+    xlsxMocks.sheetToJson
+      .mockReturnValueOnce([
+        {
+          '배송매니저 이름': 'ZD홍길동',
+          '소분류 권역': '10H2',
+          '세분류 권역': '10H2-가',
+          '박스 수': 133,
+          '가구 수': 90,
+        },
+      ])
+      .mockReturnValueOnce([
+        {
+          '배송매니저 이름': 'ZD김영희',
+          '소분류 권역': '11A1',
+          '세분류 권역': '11A1-나',
+          '박스 수': 211,
+          '가구 수': 120,
+        },
+      ]);
+
+    render(
+      <DispatchUploadWizard
+        client={{ request: vi.fn() }}
+        confirmedBatches={[]}
+        companyId="company-1"
+        fleetId="fleet-1"
+        dispatchDate="2026-03-24"
+      />,
+    );
+
+    const user = userEvent.setup();
+    const initialFile = createSpreadsheetFile('dispatch-first.xlsx', 'first');
+
+    await user.upload(screen.getByLabelText('배차표 업로드'), initialFile);
+
+    expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
+    expect(screen.getByText('dispatch-first.xlsx')).toBeInTheDocument();
+
+    const replacementFile = createSpreadsheetFile('dispatch-second.xlsx', 'second');
+
+    const uploadSurface = screen.getByRole('group', { name: '배차표 업로드 영역' });
+    fireEvent.dragEnter(uploadSurface, {
+      dataTransfer: {
+        files: [replacementFile],
+        items: [{ kind: 'file', type: replacementFile.type }],
+        types: ['Files'],
+      },
+    });
+
+    expect(screen.getByText('업로드 + 중복 덮어씌워짐')).toBeInTheDocument();
+
+    fireEvent.drop(uploadSurface, {
+      dataTransfer: {
+        files: [replacementFile],
+        items: [{ kind: 'file', type: replacementFile.type }],
+        types: ['Files'],
+      },
+    });
+
+    expect(await screen.findByDisplayValue('ZD김영희')).toBeInTheDocument();
+    expect(screen.getByText('dispatch-second.xlsx')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('ZD홍길동')).not.toBeInTheDocument();
+  });
+
+  it('renders a compact inline summary above the uploaded sheet', async () => {
+    mockSingleWorksheetRow();
+
+    render(
+      <DispatchUploadWizard
+        client={{ request: vi.fn() }}
+        confirmedBatches={[]}
+        companyId="company-1"
+        fleetId="fleet-1"
+        dispatchDate="2026-03-24"
+      />,
+    );
+
+    const user = userEvent.setup();
+    const file = createSpreadsheetFile('dispatch.xlsx');
+
+    await user.upload(screen.getByLabelText('배차표 업로드'), file);
+
+    expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
+    expect(screen.getByText('파일')).toBeInTheDocument();
+    expect(screen.getByText('dispatch.xlsx')).toBeInTheDocument();
+    expect(screen.getByText('매칭 0')).toBeInTheDocument();
+    expect(screen.getByText('확인 1')).toBeInTheDocument();
+    expect(screen.getByText('박스 133')).toBeInTheDocument();
   });
 
   it('asks for confirmation before using a detected dispatch date from the filename', async () => {
@@ -173,12 +340,7 @@ describe('DispatchUploadWizard', () => {
     render(<StatefulWizard />);
 
     const user = userEvent.setup();
-    const file = new File(['dummy'], '배차현황_2026-02-13 02_29_07.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
+    const file = createSpreadsheetFile('배차현황_2026-02-13 02_29_07.xlsx');
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
 
@@ -238,12 +400,7 @@ describe('DispatchUploadWizard', () => {
     render(<StatefulWizard />);
 
     const user = userEvent.setup();
-    const file = new File(['dummy'], filename, {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
+    const file = createSpreadsheetFile(filename);
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
 
@@ -269,12 +426,7 @@ describe('DispatchUploadWizard', () => {
     );
 
     const user = userEvent.setup();
-    const file = new File(['dummy'], '배차현황_13-02-2026.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
+    const file = createSpreadsheetFile('배차현황_13-02-2026.xlsx');
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
 
@@ -304,12 +456,7 @@ describe('DispatchUploadWizard', () => {
     );
 
     const user = userEvent.setup();
-    const file = new File(['dummy'], filename, {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
+    const file = createSpreadsheetFile(filename);
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
 
@@ -395,12 +542,7 @@ describe('DispatchUploadWizard', () => {
     );
 
     const user = userEvent.setup();
-    const file = new File(['dummy'], 'dispatch.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-    });
+    const file = createSpreadsheetFile('dispatch.xlsx');
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
     await user.click(screen.getByRole('button', { name: '서버 검증' }));
