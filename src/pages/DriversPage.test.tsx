@@ -185,15 +185,18 @@ describe('Admin DriversPage', () => {
     fireEvent.change(screen.getByLabelText('검색'), { target: { value: '김기사' } });
 
     expect(screen.getByText('11명')).toBeInTheDocument();
+    expect(screen.getAllByText('1-10 / 11')).toHaveLength(2);
     expect(screen.getByText('김기사 1')).toBeInTheDocument();
     expect(screen.getByText('김기사 10')).toBeInTheDocument();
     expect(screen.queryByText('김기사 11')).not.toBeInTheDocument();
     expect(screen.queryByText('박기사 12')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '다음 페이지' }));
 
+    expect(screen.getAllByText('11-11 / 11')).toHaveLength(2);
     expect(screen.getByText('김기사 11')).toBeInTheDocument();
     expect(screen.queryByText('김기사 1')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '이전 페이지' })).toBeEnabled();
   });
 
   it('supports the all page-size option', async () => {
@@ -214,9 +217,11 @@ describe('Admin DriversPage', () => {
 
     fireEvent.change(screen.getByLabelText('노출 수'), { target: { value: 'all' } });
 
+    expect(screen.getAllByText('1-3 / 3')).toHaveLength(2);
     expect(screen.getByText('한기사')).toBeInTheDocument();
     expect(screen.getByText('두기사')).toBeInTheDocument();
     expect(screen.getByText('세기사')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '다음 페이지' })).toBeDisabled();
   });
 });

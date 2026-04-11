@@ -122,30 +122,41 @@ export function DriversPage({ client, session }: DriversPageProps) {
     pageSize === 'all'
       ? filteredDrivers
       : filteredDrivers.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+  const visibleCount = pagedDrivers.length;
+  const visibleStart = visibleCount === 0 ? 0 : pageSize === 'all' ? 1 : (safeCurrentPage - 1) * pageSize + 1;
+  const visibleEnd = visibleCount === 0 ? 0 : visibleStart + visibleCount - 1;
+  const selectedFleetName = selectedFleetId === 'all' ? '전체 플릿' : getFleetName(selectedFleetId);
+  const hasActiveSearch = normalizedSearchTerm.length > 0;
+  const hasMultiplePages = totalPages > 1;
 
   const filters = (
-    <div className="driver-list-toolbar">
-      <label className="driver-list-filter">
-        <span>플릿</span>
-        <select value={selectedFleetId} onChange={(event) => setSelectedFleetId(event.target.value)}>
-          <option value="all">전체</option>
-          {fleets.map((fleet) => (
-            <option key={fleet.fleet_id} value={fleet.fleet_id}>
-              {fleet.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="driver-list-filter driver-list-filter-search">
-        <span>검색</span>
-        <input
-          type="search"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="배송원 이름 또는 원청 앱 사용자명"
-        />
-      </label>
-      <span className="driver-list-meta">{filteredDrivers.length}명</span>
+    <div className="driver-list-toolbar-surface">
+      <div className="driver-list-toolbar">
+        <label className="driver-list-filter">
+          <span>플릿</span>
+          <select value={selectedFleetId} onChange={(event) => setSelectedFleetId(event.target.value)}>
+            <option value="all">전체</option>
+            {fleets.map((fleet) => (
+              <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                {fleet.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="driver-list-filter driver-list-filter-search">
+          <span>검색</span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="배송원 이름 또는 원청 앱 사용자명"
+          />
+        </label>
+        <div className="driver-list-meta-block">
+          <span className="driver-list-meta">{filteredDrivers.length}명</span>
+          <span className="driver-list-meta-caption">현재 표시 대상</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -164,54 +175,67 @@ export function DriversPage({ client, session }: DriversPageProps) {
       title="배송원"
     >
       <section className="panel driver-list-shell">
-        <div className="panel-header">
-          <p className="panel-kicker">배송원</p>
-          <h2>배송원 목록</h2>
+        <div className="panel-header driver-list-shell-header">
+          <div>
+            <p className="panel-kicker">배송원</p>
+            <h2>배송원 목록</h2>
+          </div>
+          <div className="driver-list-shell-summary">
+            <span className="driver-list-summary-pill">{selectedFleetName}</span>
+            {hasActiveSearch ? <span className="driver-list-summary-pill">검색어: {searchTerm}</span> : null}
+            <span className="driver-list-summary-range">{visibleStart}-{visibleEnd} / {filteredDrivers.length}</span>
+          </div>
         </div>
         {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
         <div className="driver-list-body">
           {isLoading ? <p className="empty-state">배송원을 불러오는 중입니다...</p> : null}
           {!isLoading && pagedDrivers.length === 0 ? <p className="empty-state">조건에 맞는 배송원이 없습니다.</p> : null}
           {!isLoading && pagedDrivers.length > 0 ? (
-            <table className="table compact driver-list-table">
-              <thead>
-                <tr>
-                  <th>이름</th>
-                  <th>원청 앱 사용자명</th>
-                  <th>회사</th>
-                  <th>플릿</th>
-                  <th>계정 연결</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedDrivers.map((driver) => {
-                  const detailPath = driver.route_no != null ? `/drivers/${getDriverRouteRef(driver)}` : null;
-                  const activeLink = getActiveDriverAccountLink(driver.driver_id);
+            <div className="driver-list-table-shell">
+              <table className="table compact driver-list-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>원청 앱 사용자명</th>
+                    <th>회사</th>
+                    <th>플릿</th>
+                    <th>계정 연결</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedDrivers.map((driver) => {
+                    const detailPath = driver.route_no != null ? `/drivers/${getDriverRouteRef(driver)}` : null;
+                    const activeLink = getActiveDriverAccountLink(driver.driver_id);
 
-                  return (
-                    <tr
-                      key={driver.driver_id}
-                      className={detailPath ? 'interactive-row' : undefined}
-                      data-detail-path={detailPath ?? undefined}
-                      onClick={detailPath ? () => navigate(detailPath) : undefined}
-                      onKeyDown={detailPath ? (event) => handleRowKeyDown(event, detailPath) : undefined}
-                      tabIndex={detailPath ? 0 : undefined}
-                    >
-                      <td>{driver.name}</td>
-                      <td>{driver.external_user_name || '미입력'}</td>
-                      <td>{getCompanyName(driver.company_id)}</td>
-                      <td>{getFleetName(driver.fleet_id)}</td>
-                      <td onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
-                        {activeLink?.identity_name ?? ''}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr
+                        key={driver.driver_id}
+                        className={detailPath ? 'interactive-row' : undefined}
+                        data-detail-path={detailPath ?? undefined}
+                        onClick={detailPath ? () => navigate(detailPath) : undefined}
+                        onKeyDown={detailPath ? (event) => handleRowKeyDown(event, detailPath) : undefined}
+                        tabIndex={detailPath ? 0 : undefined}
+                      >
+                        <td>{driver.name}</td>
+                        <td>{driver.external_user_name || '미입력'}</td>
+                        <td>{getCompanyName(driver.company_id)}</td>
+                        <td>{getFleetName(driver.fleet_id)}</td>
+                        <td onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
+                          {activeLink?.identity_name ?? ''}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : null}
         </div>
         <div className="driver-list-footer">
+          <div className="driver-list-footer-meta">
+            <span className="driver-list-summary-range">{visibleStart}-{visibleEnd} / {filteredDrivers.length}</span>
+            <span className="driver-list-footer-caption">현재 페이지 범위</span>
+          </div>
           <label className="driver-list-page-size">
             <span>노출 수</span>
             <select
@@ -230,6 +254,15 @@ export function DriversPage({ client, session }: DriversPageProps) {
             </select>
           </label>
           <div className="driver-list-pagination" aria-label="페이지 번호">
+            <button
+              type="button"
+              className="driver-list-pagination-nav"
+              aria-label="이전 페이지"
+              disabled={!hasMultiplePages || safeCurrentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
+              이전
+            </button>
             {Array.from({ length: totalPages }, (_, index) => {
               const page = index + 1;
               return (
@@ -244,6 +277,15 @@ export function DriversPage({ client, session }: DriversPageProps) {
                 </button>
               );
             })}
+            <button
+              type="button"
+              className="driver-list-pagination-nav"
+              aria-label="다음 페이지"
+              disabled={!hasMultiplePages || safeCurrentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
+              다음
+            </button>
           </div>
         </div>
       </section>
