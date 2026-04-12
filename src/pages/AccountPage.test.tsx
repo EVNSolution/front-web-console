@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SessionPayload } from '../api/http';
@@ -102,7 +102,8 @@ describe('AccountPage', () => {
     );
 
     await screen.findByDisplayValue('관리자');
-    expect(screen.getByText(/현재 권한:\s*배차 운영 관리자/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '현재 접근' })).toBeInTheDocument();
+    expect(screen.getByText('배차 운영 관리자')).toBeInTheDocument();
   });
 
   it('loads self-service data and supports profile update plus request create/cancel', async () => {
@@ -202,10 +203,21 @@ describe('AccountPage', () => {
     await screen.findByDisplayValue('관리자');
     expect(screen.getByRole('heading', { name: '내 계정' })).toBeInTheDocument();
     expect(screen.getByText('프로필, 로그인 수단, 요청 이력을 한 화면에서 관리합니다.')).toBeInTheDocument();
-    expect(screen.getByText('현재 웹 권한')).toBeInTheDocument();
-    expect(screen.getByText(/현재 권한:\s*회사 전체 관리자/)).toBeInTheDocument();
+    expect(screen.queryByText('현재 웹 권한')).not.toBeInTheDocument();
+    expect(screen.queryByText('관리자 self-service')).not.toBeInTheDocument();
+    expect(screen.queryByText('요청 생성과 회사 변경')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      '현재 접근',
+      '기본 정보',
+      '필수 동의',
+      '로그인 수단',
+      '내 요청',
+      '비밀번호 변경',
+    ]);
+    expect(screen.getByText('회사 전체 관리자')).toBeInTheDocument();
     expect(screen.getAllByText('기존 회사').length).toBeGreaterThan(0);
     expect(screen.getByText('관련 문의는 관리자에게 문의하세요.')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: '내 요청 이력' })).toBeInTheDocument();
     expect(screen.getByText('회사 변경 요청')).toBeInTheDocument();
     expect(screen.getByText('manager@example.com')).toBeInTheDocument();
 
@@ -242,6 +254,72 @@ describe('AccountPage', () => {
       expect(apiMocks.cancelMySignupRequest).toHaveBeenCalledWith(
         expect.anything(),
         '70000000-0000-0000-0000-000000000001',
+      );
+    });
+  });
+
+  it('opens a password modal before deleting the last login method', async () => {
+    apiMocks.getIdentityProfile.mockResolvedValue({
+      identity_id: session.identity.identityId,
+      name: session.identity.name,
+      birth_date: session.identity.birthDate,
+      status: 'active',
+    });
+    apiMocks.getIdentityConsent.mockResolvedValue({
+      privacy_policy_version: 'v1',
+      privacy_policy_consented: true,
+      privacy_policy_consented_at: '2026-04-05T10:00:00Z',
+      location_policy_version: 'v1',
+      location_policy_consented: true,
+      location_policy_consented_at: '2026-04-05T10:00:00Z',
+    });
+    apiMocks.listIdentityLoginMethods
+      .mockResolvedValueOnce({
+        methods: [
+          {
+            identity_login_method_id: '50000000-0000-0000-0000-000000000001',
+            method_type: 'email',
+            verified_at: '2026-04-05T10:00:00Z',
+            value: 'manager@example.com',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ methods: [] });
+    apiMocks.listMySignupRequests.mockResolvedValue({
+      identity: {
+        identity_id: session.identity.identityId,
+        name: session.identity.name,
+        birth_date: session.identity.birthDate,
+        status: 'active',
+      },
+      inquiry_message: '',
+      requests: [],
+    });
+    apiMocks.listCompanies.mockResolvedValue([
+      { company_id: '30000000-0000-0000-0000-000000000001', name: '기존 회사' },
+    ]);
+    apiMocks.deleteIdentityLoginMethod.mockResolvedValue(undefined);
+
+    render(<AccountPage client={{ request: vi.fn() }} session={session} />);
+
+    await screen.findByText('manager@example.com');
+    expect(screen.queryByLabelText('마지막 수단 삭제용 현재 비밀번호')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
+
+    const dialog = screen.getByRole('dialog', { name: '로그인 수단 삭제' });
+    expect(dialog).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText('현재 비밀번호'), { target: { value: 'ChangeMe123!' } });
+    fireEvent.click(screen.getByRole('button', { name: '삭제 진행' }));
+
+    await waitFor(() => {
+      expect(apiMocks.deleteIdentityLoginMethod).toHaveBeenCalledWith(
+        expect.anything(),
+        '50000000-0000-0000-0000-000000000001',
+        {
+          confirm: true,
+          current_password: 'ChangeMe123!',
+        },
       );
     });
   });

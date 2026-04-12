@@ -15,6 +15,12 @@ type AccountsPageProps = {
   session: SessionPayload;
 };
 
+const dateOnlyFormatter = new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+});
+
 function getRoleCodeOptions(
   companyRolesByCompanyId: Record<string, CompanyManagerRole[]>,
   companyId: string,
@@ -47,6 +53,10 @@ function getDefaultRoleCode(
   return getRoleCodeOptions(companyRolesByCompanyId, companyId, { includeCompanySuperAdmin })[0]?.code ?? 'vehicle_manager';
 }
 
+function formatDateOnly(value: string) {
+  return dateOnlyFormatter.format(new Date(value));
+}
+
 export function AccountsPage({ client, session }: AccountsPageProps) {
   const [requests, setRequests] = useState<IdentitySignupRequestSummary[]>([]);
   const [managerAccounts, setManagerAccounts] = useState<ManagerAccountSummary[]>([]);
@@ -67,14 +77,6 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
   );
   const canAssignSuperAdmin = useMemo(() => canManageCompanySuperAdmin(session), [session]);
   const scopeDescription = useMemo(() => getAccountsScopeDescription(session), [session]);
-  const pendingRequestCount = useMemo(
-    () => requests.filter((request) => request.status === 'pending' || request.status === 'awaiting_setup').length,
-    [requests],
-  );
-  const activeManagerCount = useMemo(
-    () => managerAccounts.filter((account) => account.status === 'active').length,
-    [managerAccounts],
-  );
   const companyNameById = useMemo(
     () => Object.fromEntries(companies.map((company) => [company.company_id, company.name])),
     [companies],
@@ -221,7 +223,11 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
           {tabs.map((tab) => (
             <button
               key={tab.value}
-              className={tab.value === statusFilter ? 'button primary small' : 'button ghost small'}
+              className={
+                tab.value === statusFilter
+                  ? 'button primary small accounts-status-tab'
+                  : 'button ghost small accounts-status-tab'
+              }
               onClick={() => setStatusFilter(tab.value as typeof statusFilter)}
               type="button"
             >
@@ -232,26 +238,11 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
       }
       title="계정 요청 관리"
     >
-      <section className="panel">
+      <section className="panel accounts-panel accounts-requests-panel">
         <div className="panel-header">
           <p className="panel-kicker">계정 요청</p>
           <h2>요청 처리</h2>
-          <p className="empty-state">요청 처리와 관리자 계정 운영을 한 화면에서 이어서 처리합니다.</p>
         </div>
-        {!isLoading ? (
-          <div className="summary-strip">
-            <article className="summary-item">
-              <span>Open Requests</span>
-              <strong>{pendingRequestCount}</strong>
-              <small>처리 대기 요청</small>
-            </article>
-            <article className="summary-item">
-              <span>Managers</span>
-              <strong>{activeManagerCount}</strong>
-              <small>현재 활성 관리자 계정</small>
-            </article>
-          </div>
-        ) : null}
         {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
         {isLoading ? (
           <p className="empty-state">요청을 불러오는 중입니다...</p>
@@ -260,10 +251,9 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
         ) : (
           <>
             <div className="panel-toolbar">
-              <span className="table-meta">현재 탭 기준으로 처리 가능한 요청만 표시합니다.</span>
               <span className="table-meta">총 {requests.length}건 요청</span>
             </div>
-            <table className="table compact">
+            <table aria-label="계정 요청 목록" className="table compact accounts-table accounts-requests-table">
               <thead>
                 <tr>
                   <th>신청자</th>
@@ -289,13 +279,14 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                       <td>{companyNameById[request.company_id] ?? request.company_id}</td>
                       <td>{request.request_display_name}</td>
                       <td>{request.status_message}</td>
-                      <td>{new Date(request.requested_at).toLocaleString('ko-KR')}</td>
+                      <td>{formatDateOnly(request.requested_at)}</td>
                       <td>
-                        <div className="inline-actions">
+                        <div className="accounts-action-stack">
                           {request.request_type === 'manager_account_create' &&
                           (request.status === 'pending' || request.status === 'awaiting_setup') ? (
                             <>
                               <select
+                                className="accounts-action-select"
                                 onChange={(event) =>
                                   setSetupRoles((current) => ({
                                     ...current,
@@ -310,32 +301,34 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                                   </option>
                                 ))}
                               </select>
-                              <button
-                                className="button ghost small"
-                                onClick={() =>
-                                  void handleApprove(
-                                    request.identity_signup_request_id,
-                                    selectedRequestRole,
-                                  )
-                                }
-                                type="button"
-                              >
-                                승인
-                              </button>
-                              <button className="button ghost small" onClick={() => void handleReject(request.identity_signup_request_id)} type="button">
-                                반려
-                              </button>
+                              <div className="inline-actions accounts-action-buttons">
+                                <button
+                                  className="button ghost small"
+                                  onClick={() =>
+                                    void handleApprove(
+                                      request.identity_signup_request_id,
+                                      selectedRequestRole,
+                                    )
+                                  }
+                                  type="button"
+                                >
+                                  승인
+                                </button>
+                                <button className="button ghost small" onClick={() => void handleReject(request.identity_signup_request_id)} type="button">
+                                  반려
+                                </button>
+                              </div>
                             </>
                           ) : null}
                           {request.request_type !== 'manager_account_create' && request.status === 'pending' ? (
-                            <>
+                            <div className="inline-actions accounts-action-buttons">
                               <button className="button ghost small" onClick={() => void handleApprove(request.identity_signup_request_id)} type="button">
                                 승인
                               </button>
                               <button className="button ghost small" onClick={() => void handleReject(request.identity_signup_request_id)} type="button">
                                 반려
                               </button>
-                            </>
+                            </div>
                           ) : null}
                         </div>
                       </td>
@@ -348,7 +341,7 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
         )}
       </section>
 
-      <section className="panel">
+      <section className="panel accounts-panel accounts-manager-panel">
         <div className="panel-header">
           <div>
             <p className="panel-kicker">활성 관리자</p>
@@ -362,10 +355,9 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
         ) : (
           <>
             <div className="panel-toolbar">
-              <span className="table-meta">동급 레벨은 건드리지 않고, 현재 권한으로 관리 가능한 관리자만 노출합니다.</span>
               <span className="table-meta">총 {managerAccounts.length}명 관리자</span>
             </div>
-            <table className="table compact">
+            <table aria-label="활성 관리자 계정 목록" className="table compact accounts-table accounts-manager-table">
               <thead>
                 <tr>
                   <th>이름</th>
@@ -383,16 +375,21 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                     currentRoleType: managerRoles[account.manager_account_id] ?? account.role_type,
                   });
                   const selectedRoleType = managerRoles[account.manager_account_id] ?? account.role_type;
+                  const hasPendingRoleChange = selectedRoleType !== account.role_type;
                   return (
                     <tr key={account.manager_account_id}>
                       <td>{account.identity.name}</td>
                       <td>{companyNameById[account.company_id] ?? account.company_id}</td>
                       <td>{getRoleLabel(account.company_id, account.role_type, account.role_display_name)}</td>
                       <td>{formatAccountStatusLabel(account.status)}</td>
-                      <td>{new Date(account.created_at).toLocaleString('ko-KR')}</td>
+                      <td>{formatDateOnly(account.created_at)}</td>
                       <td>
-                        <div className="inline-actions">
+                        <div
+                          className="accounts-manager-inline-actions"
+                          data-testid={`manager-account-actions-${account.manager_account_id}`}
+                        >
                           <select
+                            className="accounts-action-select"
                             onChange={(event) =>
                               setManagerRoles((current) => ({
                                 ...current,
@@ -407,12 +404,16 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                               </option>
                             ))}
                           </select>
-                          <button className="button ghost small" onClick={() => void handleChangeRole(account.manager_account_id)} type="button">
-                            권한 변경
-                          </button>
-                          <button className="button ghost small" onClick={() => void handleArchive(account.manager_account_id)} type="button">
-                            계정 종료
-                          </button>
+                          {hasPendingRoleChange ? (
+                            <button className="button ghost small" onClick={() => void handleChangeRole(account.manager_account_id)} type="button">
+                              권한 변경
+                            </button>
+                          ) : null}
+                          <div className="inline-actions accounts-action-buttons">
+                            <button className="button ghost small" onClick={() => void handleArchive(account.manager_account_id)} type="button">
+                              계정 종료
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
