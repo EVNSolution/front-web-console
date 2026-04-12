@@ -674,6 +674,17 @@ export type DriverLatestSettlement = {
   latest_settlement: LatestSettlementSummary | null;
 };
 
+export type DriverLatestSettlementListItem = DriverLatestSettlement & {
+  driver_name: string;
+};
+
+export type DriverLatestSettlementPage = {
+  count: number;
+  page: number;
+  page_size: number;
+  results: DriverLatestSettlementListItem[];
+};
+
 export type Driver360Summary = {
   driver_id: string;
   driver_name: string;
