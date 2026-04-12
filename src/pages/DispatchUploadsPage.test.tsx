@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -100,6 +100,7 @@ const companyManagerSession: SessionPayload = {
 describe('DispatchUploadsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     driverMocks.listDrivers.mockReset();
     driverMocks.ensureDriversByExternalUserNames.mockReset();
     organizationMocks.createFleet.mockReset();
@@ -205,12 +206,18 @@ describe('DispatchUploadsPage', () => {
     expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('배차일'), '2026-03-24');
-    const settlementStartButton = await screen.findByRole('button', { name: '정산 시작하기' });
+    const uploadFileHeading = await screen.findByRole('heading', { name: '업로드 파일', level: 2 });
+    const uploadFileHeader = uploadFileHeading.closest('.panel-header-inline');
+    expect(uploadFileHeader).not.toBeNull();
+    const settlementStartButton = within(uploadFileHeader as HTMLElement).getByRole('button', {
+      name: '정산 시작하기',
+    });
     expect(settlementStartButton).toBeEnabled();
     expect(screen.getAllByRole('button', { name: '정산 시작하기' })).toHaveLength(1);
     await user.click(settlementStartButton);
 
     await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalledWith('정산을 시작하시겠습니까?');
       expect(deliveryRecordMocks.bootstrapDailySnapshotsFromDispatch).toHaveBeenCalledWith(
         expect.anything(),
         {
@@ -231,10 +238,14 @@ describe('DispatchUploadsPage', () => {
 
     expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
 
-    const settlementStartButton = screen.getByRole('button', { name: '정산 시작하기' });
+    const uploadFileHeading = await screen.findByRole('heading', { name: '업로드 파일', level: 2 });
+    const uploadFileHeader = uploadFileHeading.closest('.panel-header-inline');
+    expect(uploadFileHeader).not.toBeNull();
+    const settlementStartButton = within(uploadFileHeader as HTMLElement).getByRole('button', {
+      name: '정산 시작하기',
+    });
     expect(settlementStartButton).toBeDisabled();
     expect(screen.getAllByRole('button', { name: '정산 시작하기' })).toHaveLength(1);
-    expect(screen.getByText('정규화 완료 후 정산으로 넘어갑니다.')).toBeInTheDocument();
   });
 
   it('renders compact scope stats once confirmed upload data is loaded', async () => {

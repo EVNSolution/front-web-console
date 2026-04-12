@@ -33,6 +33,7 @@ describe('DispatchUploadWizard', () => {
     dispatchRegistryMocks.confirmDispatchUpload.mockReset();
     xlsxMocks.read.mockReset();
     xlsxMocks.sheetToJson.mockReset();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   function mockSingleWorksheetRow() {
@@ -104,7 +105,7 @@ describe('DispatchUploadWizard', () => {
     expect(handleFleetCodeDetected).toHaveBeenCalledWith(null);
   });
 
-  it('lets users edit uploaded rows before running server validation', async () => {
+  it('automatically validates uploaded rows right after upload', async () => {
     xlsxMocks.read.mockReturnValue({
       SheetNames: ['Sheet1'],
       Sheets: { Sheet1: {} },
@@ -160,31 +161,28 @@ describe('DispatchUploadWizard', () => {
     expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
     expect(screen.getByDisplayValue('133')).toBeInTheDocument();
     expect(screen.getByDisplayValue('90')).toBeInTheDocument();
-    expect(dispatchRegistryMocks.previewDispatchUpload).not.toHaveBeenCalled();
 
-    await user.clear(screen.getByLabelText('배송매니저 이름 1'));
-    await user.type(screen.getByLabelText('배송매니저 이름 1'), 'ZD김영희');
-    await user.clear(screen.getByLabelText('박스 수 1'));
-    await user.type(screen.getByLabelText('박스 수 1'), '144');
-    await user.click(screen.getByRole('button', { name: '서버 검증' }));
-
-    expect(dispatchRegistryMocks.previewDispatchUpload).toHaveBeenCalledWith(expect.anything(), {
-      company_id: 'company-1',
-      fleet_id: 'fleet-1',
-      dispatch_date: '2026-03-24',
-      source_filename: 'dispatch.xlsx',
-      rows: [
-        {
-          delivery_manager_name: 'ZD김영희',
-          small_region_text: '10H2',
-          detailed_region_text: '10H2-가',
-          box_count: 144,
-          household_count: 90,
-        },
-      ],
+    await waitFor(() => {
+      expect(dispatchRegistryMocks.previewDispatchUpload).toHaveBeenCalledWith(expect.anything(), {
+        company_id: 'company-1',
+        fleet_id: 'fleet-1',
+        dispatch_date: '2026-03-24',
+        source_filename: 'dispatch.xlsx',
+        rows: [
+          {
+            delivery_manager_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+          },
+        ],
+      });
     });
     expect(await screen.findByText('검증 완료')).toBeInTheDocument();
     expect(screen.getByText('ZD김영희 · driver-1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '서버 검증' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '업로드 확정' })).not.toBeInTheDocument();
   });
 
   it('shows a spreadsheet-style upload surface before any file is selected', () => {
@@ -347,28 +345,27 @@ describe('DispatchUploadWizard', () => {
     expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
     expect(handleDispatchDateDetected).not.toHaveBeenCalled();
     expect(screen.getByText('감지된 배차일 2026-02-13')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '서버 검증' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '정산 시작하기' })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: '감지된 날짜 적용' }));
 
     expect(handleDispatchDateDetected).toHaveBeenCalledWith('2026-02-13');
-
-    await user.click(screen.getByRole('button', { name: '서버 검증' }));
-
-    expect(dispatchRegistryMocks.previewDispatchUpload).toHaveBeenCalledWith(expect.anything(), {
-      company_id: 'company-1',
-      fleet_id: 'fleet-1',
-      dispatch_date: '2026-02-13',
-      source_filename: '배차현황_2026-02-13 02_29_07.xlsx',
-      rows: [
-        {
-          delivery_manager_name: 'ZD홍길동',
-          small_region_text: '10H2',
-          detailed_region_text: '10H2-가',
-          box_count: 133,
-          household_count: 90,
-        },
-      ],
+    await waitFor(() => {
+      expect(dispatchRegistryMocks.previewDispatchUpload).toHaveBeenCalledWith(expect.anything(), {
+        company_id: 'company-1',
+        fleet_id: 'fleet-1',
+        dispatch_date: '2026-02-13',
+        source_filename: '배차현황_2026-02-13 02_29_07.xlsx',
+        rows: [
+          {
+            delivery_manager_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+          },
+        ],
+      });
     });
   });
 
@@ -432,9 +429,9 @@ describe('DispatchUploadWizard', () => {
 
     expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
     expect(screen.queryByText(/감지된 배차일/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '서버 검증' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '정산 시작하기' })).toBeDisabled();
     expect(
-      screen.getByText('파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택한 뒤 검증하세요.'),
+      screen.getByText('파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택하면 자동 검증합니다.'),
     ).toBeInTheDocument();
   });
 
@@ -462,13 +459,13 @@ describe('DispatchUploadWizard', () => {
 
     expect(await screen.findByDisplayValue('ZD홍길동')).toBeInTheDocument();
     expect(screen.queryByText(/감지된 배차일/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '서버 검증' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '정산 시작하기' })).toBeDisabled();
     expect(
-      screen.getByText('파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택한 뒤 검증하세요.'),
+      screen.getByText('파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택하면 자동 검증합니다.'),
     ).toBeInTheDocument();
   });
 
-  it('confirms a draft preview batch and calls the page callback', async () => {
+  it('revalidates, confirms, and starts settlement from the single header CTA', async () => {
     xlsxMocks.read.mockReturnValue({
       SheetNames: ['Sheet1'],
       Sheets: { Sheet1: {} },
@@ -482,29 +479,53 @@ describe('DispatchUploadWizard', () => {
         '가구 수': 90,
       },
     ]);
-    dispatchRegistryMocks.previewDispatchUpload.mockResolvedValue({
-      upload_batch_id: 'upload-batch-1',
-      dispatch_plan_id: null,
-      company_id: 'company-1',
-      fleet_id: 'fleet-1',
-      dispatch_date: '2026-03-24',
-      source_filename: 'dispatch.xlsx',
-      upload_status: 'draft',
-      created_at: '2026-03-24T09:00:00Z',
-      updated_at: '2026-03-24T09:00:00Z',
-      rows: [
-        {
-          upload_row_id: 'upload-row-1',
-          row_index: 1,
-          external_user_name: 'ZD홍길동',
-          small_region_text: '10H2',
-          detailed_region_text: '10H2-가',
-          box_count: 133,
-          household_count: 90,
-          matched_driver_id: 'driver-1',
-        },
-      ],
-    });
+    dispatchRegistryMocks.previewDispatchUpload
+      .mockResolvedValueOnce({
+        upload_batch_id: 'upload-batch-1',
+        dispatch_plan_id: null,
+        company_id: 'company-1',
+        fleet_id: 'fleet-1',
+        dispatch_date: '2026-03-24',
+        source_filename: 'dispatch.xlsx',
+        upload_status: 'draft',
+        created_at: '2026-03-24T09:00:00Z',
+        updated_at: '2026-03-24T09:00:00Z',
+        rows: [
+          {
+            upload_row_id: 'upload-row-1',
+            row_index: 1,
+            external_user_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+            matched_driver_id: 'driver-1',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        upload_batch_id: 'upload-batch-1',
+        dispatch_plan_id: null,
+        company_id: 'company-1',
+        fleet_id: 'fleet-1',
+        dispatch_date: '2026-03-24',
+        source_filename: 'dispatch.xlsx',
+        upload_status: 'draft',
+        created_at: '2026-03-24T09:00:00Z',
+        updated_at: '2026-03-24T09:05:00Z',
+        rows: [
+          {
+            upload_row_id: 'upload-row-1',
+            row_index: 1,
+            external_user_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+            matched_driver_id: 'driver-1',
+          },
+        ],
+      });
     dispatchRegistryMocks.confirmDispatchUpload.mockResolvedValue({
       upload_batch_id: 'upload-batch-1',
       dispatch_plan_id: null,
@@ -529,6 +550,7 @@ describe('DispatchUploadWizard', () => {
       ],
     });
     const handleConfirmed = vi.fn().mockResolvedValue(undefined);
+    const handleStartSettlement = vi.fn().mockResolvedValue(undefined);
 
     render(
       <DispatchUploadWizard
@@ -538,6 +560,7 @@ describe('DispatchUploadWizard', () => {
         fleetId="fleet-1"
         dispatchDate="2026-03-24"
         onConfirmed={handleConfirmed}
+        onStartSettlement={handleStartSettlement}
       />,
     );
 
@@ -545,15 +568,17 @@ describe('DispatchUploadWizard', () => {
     const file = createSpreadsheetFile('dispatch.xlsx');
 
     await user.upload(screen.getByLabelText('배차표 업로드'), file);
-    await user.click(screen.getByRole('button', { name: '서버 검증' }));
-    await user.click(await screen.findByRole('button', { name: '업로드 확정' }));
+    await user.click(await screen.findByRole('button', { name: '정산 시작하기' }));
 
     await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalledWith('정산을 시작하시겠습니까?');
+      expect(dispatchRegistryMocks.previewDispatchUpload).toHaveBeenCalledTimes(2);
       expect(dispatchRegistryMocks.confirmDispatchUpload).toHaveBeenCalledWith(
         expect.anything(),
         'upload-batch-1',
       );
       expect(handleConfirmed).toHaveBeenCalled();
+      expect(handleStartSettlement).toHaveBeenCalled();
     });
     expect(await screen.findByText('확정 완료')).toBeInTheDocument();
   });

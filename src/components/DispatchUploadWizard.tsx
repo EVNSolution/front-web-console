@@ -28,7 +28,9 @@ type DispatchUploadWizardProps = {
   onExternalUserNamesChanged?: (externalUserNames: string[]) => void;
   dispatchPlanId?: string | null;
   confirmedBatches: DispatchUploadBatch[];
+  isStartingSettlement?: boolean;
   onConfirmed?: () => Promise<void> | void;
+  onStartSettlement?: () => Promise<void> | void;
 };
 
 type EditableUploadRow = DispatchUploadPreviewRowPayload & {
@@ -180,8 +182,8 @@ function clampColumnWidth(value: number, min: number, max: number) {
 function formatValidatedMatchLabel(row: DispatchUploadBatch['rows'][number] | undefined) {
   if (!row) {
     return {
-      status: '검증 전',
-      detail: '서버 검증 전',
+      status: '검증 대기',
+      detail: '자동 검증 대기',
     };
   }
 
@@ -221,10 +223,13 @@ export function DispatchUploadWizard({
   onExternalUserNamesChanged,
   dispatchPlanId,
   confirmedBatches,
+  isStartingSettlement = false,
   onConfirmed,
+  onStartSettlement,
 }: DispatchUploadWizardProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
+  const shouldAutoValidateRef = useRef(false);
   const [editableRows, setEditableRows] = useState<EditableUploadRow[]>([]);
   const [pendingDetectedDispatchDate, setPendingDetectedDispatchDate] = useState<string | null>(null);
   const [uploadedFilename, setUploadedFilename] = useState<string | null>(null);
@@ -234,6 +239,7 @@ export function DispatchUploadWizard({
   const [isValidating, setIsValidating] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const isSettlementActionRunning = isStartingSettlement || isValidating || isConfirming;
   const previewSummary = useMemo(
     () =>
       editableRows.length > 0
@@ -290,21 +296,29 @@ export function DispatchUploadWizard({
   const isUploadDisabled = !companyId || isUploading || isValidating || isConfirming;
   const requiresFleetConfirmation = Boolean(pendingDetectedFleetCode);
   const requiresMissingDriverCreation = pendingMissingDriverNames.length > 0;
+  const hasEditableRows = editableRows.length > 0;
   const effectiveDispatchDate = dispatchDate;
   const requiresDispatchDateConfirmation = Boolean(pendingDetectedDispatchDate && !dispatchDate);
+  const canStartSettlement =
+    Boolean(onStartSettlement) &&
+    (hasEditableRows
+      ? Boolean(companyId && fleetId && effectiveDispatchDate) &&
+        !requiresDispatchDateConfirmation &&
+        !requiresFleetConfirmation
+      : previewBatch?.upload_status === 'confirmed' || confirmedBatches.length > 0);
   const toolbarMessage = editableRows.length
     ? requiresDispatchDateConfirmation
-      ? `파일명에서 배차일 ${pendingDetectedDispatchDate}을 감지했습니다. 적용 후 검증하거나 직접 선택하세요.`
+      ? `파일명에서 배차일 ${pendingDetectedDispatchDate}을 감지했습니다. 적용하면 자동 검증합니다.`
       : requiresFleetConfirmation
-        ? `시트에서 플릿 ${pendingDetectedFleetCode}을 감지했습니다. 적용하거나 직접 선택한 뒤 검증하세요.`
+        ? `시트에서 플릿 ${pendingDetectedFleetCode}을 감지했습니다. 적용하면 자동 검증합니다.`
       : effectiveDispatchDate
         ? fleetId
-          ? '시트 수정 후 서버 검증으로 배송원 매칭을 확인합니다.'
-          : '플릿을 선택하거나 감지된 플릿을 승인한 뒤 서버 검증하세요.'
-        : '파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택한 뒤 검증하세요.'
+          ? '업로드 후 자동 검증됩니다. 수정 내용은 정산 시작 시 다시 확인합니다.'
+          : '플릿을 선택하거나 감지된 플릿을 승인하면 자동 검증합니다.'
+        : '파일명에서 날짜를 찾지 못했거나 아직 확인하지 않았습니다. 배차일을 선택하면 자동 검증합니다.'
     : confirmedBatches.length > 0
-      ? '확정 업로드 내역입니다. 위쪽에서 정산 준비 상태를 확인하세요.'
-      : '파일을 올리면 시트에서 바로 수정하고 검증할 수 있습니다.';
+      ? '확정 업로드 내역입니다.'
+      : '파일을 올리면 자동 검증 후 정산 시작 단계로 넘길 수 있습니다.';
 
   useEffect(() => {
     if (dispatchDate) {
@@ -325,6 +339,84 @@ export function DispatchUploadWizard({
       ),
     );
   }, [editableRows, onExternalUserNamesChanged]);
+
+  async function runPreviewValidation(rows: EditableUploadRow[]) {
+    if (!rows.length || !companyId || !fleetId || !effectiveDispatchDate) {
+      return null;
+    }
+
+    setIsValidating(true);
+    setErrorMessage(null);
+    try {
+      const response = await previewDispatchUpload(client, {
+        company_id: companyId,
+        fleet_id: fleetId,
+        dispatch_date: effectiveDispatchDate,
+        ...(dispatchPlanId ? { dispatch_plan_id: dispatchPlanId } : {}),
+        source_filename: uploadedFilename ?? undefined,
+        rows: rows.map((row) => ({
+          delivery_manager_name: row.delivery_manager_name,
+          small_region_text: row.small_region_text,
+          detailed_region_text: row.detailed_region_text,
+          box_count: row.box_count,
+          household_count: row.household_count,
+        })),
+      });
+      setPreviewBatch(response);
+      return response;
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+      return null;
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
+  async function confirmPreviewBatch(uploadBatchId: string) {
+    setIsConfirming(true);
+    setErrorMessage(null);
+    try {
+      const confirmedBatch = await confirmDispatchUpload(client, uploadBatchId);
+      setPreviewBatch(confirmedBatch);
+      await onConfirmed?.();
+      return confirmedBatch;
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+      return null;
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+
+  useEffect(() => {
+    if (
+      !shouldAutoValidateRef.current ||
+      !editableRows.length ||
+      !companyId ||
+      !fleetId ||
+      !effectiveDispatchDate ||
+      requiresDispatchDateConfirmation ||
+      requiresFleetConfirmation ||
+      isUploading ||
+      isValidating ||
+      isConfirming
+    ) {
+      return;
+    }
+
+    shouldAutoValidateRef.current = false;
+    void runPreviewValidation(editableRows);
+  }, [
+    companyId,
+    editableRows,
+    effectiveDispatchDate,
+    fleetId,
+    isConfirming,
+    isUploading,
+    isValidating,
+    requiresDispatchDateConfirmation,
+    requiresFleetConfirmation,
+  ]);
 
   async function processUploadFile(file: File) {
     if (!file || !companyId) {
@@ -347,6 +439,7 @@ export function DispatchUploadWizard({
       }
       setUploadedFilename(file.name);
       setPendingDetectedDispatchDate(nextDetectedDispatchDate);
+      shouldAutoValidateRef.current = true;
       setEditableRows(rows.map((row, index) => ({ ...row, row_index: index + 1 })));
       setPreviewBatch(null);
       onFleetCodeDetected?.(nextDetectedFleetCode);
@@ -428,6 +521,7 @@ export function DispatchUploadWizard({
     field: keyof DispatchUploadPreviewRowPayload,
     value: string | number,
   ) {
+    shouldAutoValidateRef.current = false;
     setEditableRows((currentRows) =>
       currentRows.map((row) =>
         row.row_index === rowIndex
@@ -456,52 +550,30 @@ export function DispatchUploadWizard({
     setPendingDetectedDispatchDate(null);
   }
 
-  async function handleValidateRows() {
-    if (!editableRows.length || !companyId || !fleetId || !effectiveDispatchDate) {
+  async function handleStartSettlement() {
+    if (!canStartSettlement || !onStartSettlement || isSettlementActionRunning) {
       return;
     }
 
-    setIsValidating(true);
-    setErrorMessage(null);
-    try {
-      const response = await previewDispatchUpload(client, {
-        company_id: companyId,
-        fleet_id: fleetId,
-        dispatch_date: effectiveDispatchDate,
-        ...(dispatchPlanId ? { dispatch_plan_id: dispatchPlanId } : {}),
-        source_filename: uploadedFilename ?? undefined,
-        rows: editableRows.map((row) => ({
-          delivery_manager_name: row.delivery_manager_name,
-          small_region_text: row.small_region_text,
-          detailed_region_text: row.detailed_region_text,
-          box_count: row.box_count,
-          household_count: row.household_count,
-        })),
-      });
-      setPreviewBatch(response);
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsValidating(false);
-    }
-  }
-
-  async function handleConfirmUpload() {
-    if (!previewBatch || previewBatch.upload_status !== 'draft') {
+    if (typeof window !== 'undefined' && !window.confirm('정산을 시작하시겠습니까?')) {
       return;
     }
 
-    setIsConfirming(true);
-    setErrorMessage(null);
-    try {
-      const confirmedBatch = await confirmDispatchUpload(client, previewBatch.upload_batch_id);
-      setPreviewBatch(confirmedBatch);
-      await onConfirmed?.();
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsConfirming(false);
+    if (editableRows.length > 0) {
+      const nextPreviewBatch = await runPreviewValidation(editableRows);
+      if (!nextPreviewBatch) {
+        return;
+      }
+
+      if (nextPreviewBatch.upload_status === 'draft') {
+        const confirmedBatch = await confirmPreviewBatch(nextPreviewBatch.upload_batch_id);
+        if (!confirmedBatch) {
+          return;
+        }
+      }
     }
+
+    await onStartSettlement();
   }
 
   return (
@@ -511,6 +583,14 @@ export function DispatchUploadWizard({
           <p className="panel-kicker">배차 업로드</p>
           <h2>업로드 파일</h2>
         </div>
+        <button
+          className="button primary"
+          disabled={!canStartSettlement || isSettlementActionRunning}
+          onClick={() => void handleStartSettlement()}
+          type="button"
+        >
+          {isSettlementActionRunning ? '정산 준비 중...' : '정산 시작하기'}
+        </button>
       </div>
       <input
         accept=".xlsx,.xls,.csv"
@@ -525,28 +605,8 @@ export function DispatchUploadWizard({
         <span className="table-meta">{toolbarMessage}</span>
         {editableRows.length > 0 ? (
           <div className="panel-toolbar-actions">
-            {editableRows.length > 0 ? (
-              <button
-                className="button ghost small"
-                disabled={!effectiveDispatchDate || !fleetId || requiresFleetConfirmation || isValidating || isConfirming}
-                onClick={() => void handleValidateRows()}
-                type="button"
-              >
-                {isValidating ? '검증 중...' : '서버 검증'}
-              </button>
-            ) : null}
             {previewBatch ? (
               <span className="status-badge">{previewBatch.upload_status === 'confirmed' ? '확정 완료' : '검증 완료'}</span>
-            ) : null}
-            {previewBatch?.upload_status === 'draft' ? (
-              <button
-                className="button primary small"
-                disabled={isConfirming}
-                onClick={() => void handleConfirmUpload()}
-                type="button"
-              >
-                업로드 확정
-              </button>
             ) : null}
           </div>
         ) : null}

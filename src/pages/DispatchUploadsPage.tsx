@@ -380,23 +380,6 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
                 <span className="dispatch-upload-scope-stat">매칭 {uploadSummary.matchedRowCount}</span>
                 <span className="dispatch-upload-scope-stat">박스 {uploadSummary.totalBoxCount}</span>
               </div>
-              <div className="dispatch-upload-handoff">
-                <p className="dispatch-upload-handoff-kicker">정산 handoff</p>
-                <strong>정규화 완료 후 정산으로 넘어갑니다.</strong>
-                <p className="dispatch-upload-handoff-meta">
-                  {canStartSettlement
-                    ? `확정 업로드 ${confirmedBatches.length}건 기준으로 정산 입력 snapshot을 준비할 수 있습니다.`
-                    : '확정된 배차 업로드가 아직 없어 정산을 시작할 수 없습니다.'}
-                </p>
-                <button
-                  className="button primary"
-                  disabled={!canStartSettlement || isBootstrapping}
-                  onClick={() => void handleBootstrapSettlementInputs()}
-                  type="button"
-                >
-                  {isBootstrapping ? '정산 준비 중...' : '정산 시작하기'}
-                </button>
-              </div>
               <div className="dispatch-upload-sidebar-actions">
                 <Link className="button ghost" to="/dispatch/boards">
                   배차 계획 보기
@@ -425,7 +408,9 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
             onCreateMissingDrivers={handleCreateMissingDrivers}
             onExternalUserNamesChanged={setDetectedExternalUserNames}
             confirmedBatches={confirmedBatches}
+            isStartingSettlement={isBootstrapping}
             onConfirmed={loadConfirmedBatches}
+            onStartSettlement={handleBootstrapSettlementInputs}
           />
         </div>
       </div>
