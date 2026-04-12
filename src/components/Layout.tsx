@@ -64,6 +64,16 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
     });
   }, [location.pathname, visibleGroups]);
 
+  function handleDrawerLinkClick() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (window.innerWidth <= 1240) {
+      setDrawerOpen(false);
+    }
+  }
+
   return (
     <div className="console-shell">
       <header className="console-topbar">
@@ -105,6 +115,7 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
               <NavLink
                 className={({ isActive }) => (isActive ? 'console-home-link is-active' : 'console-home-link')}
                 end
+                onClick={handleDrawerLinkClick}
                 to={dashboardItem.to}
               >
                 <span>{dashboardItem.label}</span>
@@ -120,6 +131,7 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
                   <NavLink
                     className={isItemActive ? 'console-group-link is-active' : 'console-group-link'}
                     key={group.key}
+                    onClick={handleDrawerLinkClick}
                     to={item.to}
                   >
                     {item.label}
@@ -157,6 +169,7 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
                           <NavLink
                             className={isItemActive ? 'console-subnav-link is-active' : 'console-subnav-link'}
                             key={item.to}
+                            onClick={handleDrawerLinkClick}
                             to={item.to}
                           >
                             {item.label}
@@ -172,6 +185,7 @@ export function Layout({ session, onLogout, allowedNavKeys }: LayoutProps) {
             {isAccountVisible ? (
               <NavLink
                 className={isNavigationItemActive(location.pathname, accountItem) ? 'console-home-link is-active' : 'console-home-link'}
+                onClick={handleDrawerLinkClick}
                 to={accountItem.to}
               >
                 <span>{accountItem.label}</span>

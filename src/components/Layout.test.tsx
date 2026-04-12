@@ -565,4 +565,94 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: '메뉴 정책' })).toHaveClass('is-active');
     expect(screen.queryByRole('link', { name: '계정 요청' })?.className.includes('is-active')).toBeFalsy();
   });
+
+  it('closes the mobile drawer after selecting a navigation link', () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
+    window.dispatchEvent(new Event('resize'));
+
+    const { container } = render(
+      <MemoryRouter>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'dispatch@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '배차 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'company_super_admin',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '메뉴 열기' }));
+    fireEvent.click(screen.getByRole('button', { name: '배차' }));
+
+    const drawer = container.querySelector('.console-drawer');
+    expect(drawer).toHaveClass('is-open');
+
+    fireEvent.click(screen.getByRole('link', { name: '배차 계획' }));
+
+    expect(drawer).not.toHaveClass('is-open');
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+    window.dispatchEvent(new Event('resize'));
+  });
+
+  it('keeps the mobile drawer open when only toggling a group trigger', () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
+    window.dispatchEvent(new Event('resize'));
+
+    const { container } = render(
+      <MemoryRouter>
+        <Layout
+          session={{
+            accessToken: 'token',
+            sessionKind: 'normal',
+            email: 'dispatch@example.com',
+            identity: {
+              identityId: '10000000-0000-0000-0000-000000000001',
+              name: '배차 관리자',
+              birthDate: '1970-01-01',
+              status: 'active',
+            },
+            activeAccount: {
+              accountType: 'manager',
+              accountId: '20000000-0000-0000-0000-000000000001',
+              companyId: '30000000-0000-0000-0000-000000000001',
+              roleType: 'company_super_admin',
+            },
+            availableAccountTypes: ['manager'],
+          }}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '메뉴 열기' }));
+
+    const drawer = container.querySelector('.console-drawer');
+    expect(drawer).toHaveClass('is-open');
+
+    fireEvent.click(screen.getByRole('button', { name: '배차' }));
+
+    expect(drawer).toHaveClass('is-open');
+    expect(screen.getByRole('link', { name: '배차 계획' })).toBeInTheDocument();
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+    window.dispatchEvent(new Event('resize'));
+  });
 });
