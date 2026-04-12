@@ -825,36 +825,8 @@ export function DispatchUploadWizard({
               type="button"
             >
               <div className="dispatch-upload-empty-copy">
-                <p className="dispatch-upload-empty-kicker">Drop Zone</p>
-                <h3>배차표 파일을 드래그하거나 클릭해 업로드하세요.</h3>
-                <p>엑셀 시트처럼 보이는 이 영역에 새 파일을 바로 올릴 수 있습니다.</p>
-              </div>
-              <div aria-hidden="true" className="dispatch-upload-placeholder-sheet">
-                <div className="dispatch-upload-placeholder-toolbar">
-                  <span className="dispatch-upload-placeholder-pill">배송매니저 이름</span>
-                  <span className="dispatch-upload-placeholder-pill">소분류 권역</span>
-                  <span className="dispatch-upload-placeholder-pill">세분류 권역</span>
-                </div>
-                <div className="dispatch-upload-placeholder-grid">
-                  <span>#</span>
-                  <span>배송매니저 이름</span>
-                  <span>소분류 권역</span>
-                  <span>세분류 권역</span>
-                  <span>박스 수</span>
-                  <span>가구 수</span>
-                  <span>#</span>
-                  <span>예시 row</span>
-                  <span>10H2</span>
-                  <span>10H2-가</span>
-                  <span>133</span>
-                  <span>90</span>
-                  <span>#</span>
-                  <span>새 파일 드롭</span>
-                  <span>11A1</span>
-                  <span>11A1-나</span>
-                  <span>211</span>
-                  <span>120</span>
-                </div>
+                <h3>파일을 드래그해 업로드 하세요.</h3>
+                <p>또는 클릭해 배차표 파일을 선택할 수 있습니다.</p>
               </div>
             </button>
           )}

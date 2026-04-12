@@ -185,7 +185,7 @@ describe('DispatchUploadWizard', () => {
     expect(screen.queryByRole('button', { name: '업로드 확정' })).not.toBeInTheDocument();
   });
 
-  it('shows a spreadsheet-style upload surface before any file is selected', () => {
+  it('shows a simple drag-and-drop upload surface before any file is selected', () => {
     render(
       <DispatchUploadWizard
         client={{ request: vi.fn() }}
@@ -197,8 +197,9 @@ describe('DispatchUploadWizard', () => {
     );
 
     expect(screen.getByRole('group', { name: '배차표 업로드 영역' })).toBeInTheDocument();
-    expect(screen.getByText('배차표 파일을 드래그하거나 클릭해 업로드하세요.')).toBeInTheDocument();
-    expect(screen.getByText('엑셀 시트처럼 보이는 이 영역에 새 파일을 바로 올릴 수 있습니다.')).toBeInTheDocument();
+    expect(screen.getByText('파일을 드래그해 업로드 하세요.')).toBeInTheDocument();
+    expect(screen.getByText('또는 클릭해 배차표 파일을 선택할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.queryByText('예시 row')).not.toBeInTheDocument();
   });
 
   it('replaces the current sheet when a new file is dropped onto the upload surface', async () => {
