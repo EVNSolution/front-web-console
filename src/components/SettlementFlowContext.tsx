@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { listCompanies, listFleets } from '../api/organization';
-import type { HttpClient } from '../api/http';
+import type { HttpClient, SessionPayload } from '../api/http';
 import type { Company, Fleet } from '../types';
+import { getSettlementContextSelectorMode, type SettlementContextSelectorMode } from '../authScopes';
 import { getFleetOptions } from '../pages/settlementAdminHelpers';
 
 type SettlementFlowContextValue = {
@@ -11,6 +12,9 @@ type SettlementFlowContextValue = {
   availableFleets: Fleet[];
   selectedCompanyId: string;
   selectedFleetId: string;
+  selectorMode: SettlementContextSelectorMode;
+  showCompanySelector: boolean;
+  showFleetSelector: boolean;
   isLoading: boolean;
   errorMessage: string | null;
   setSelectedCompanyId: (companyId: string) => void;
@@ -22,15 +26,22 @@ const SettlementFlowContext = createContext<SettlementFlowContextValue | null>(n
 type SettlementFlowProviderProps = {
   client: HttpClient;
   children: ReactNode;
+  session?: SessionPayload;
 };
 
-export function SettlementFlowProvider({ client, children }: SettlementFlowProviderProps) {
+export function SettlementFlowProvider({ client, children, session }: SettlementFlowProviderProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [fleets, setFleets] = useState<Fleet[]>([]);
   const [selectedCompanyId, setSelectedCompanyIdState] = useState('');
   const [selectedFleetId, setSelectedFleetIdState] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const selectorMode = getSettlementContextSelectorMode(session ?? { activeAccount: null } as SessionPayload);
+  const assignedFleetIds = session?.activeAccount?.assignedFleetIds ?? [];
+  const defaultFleetId = session?.activeAccount?.defaultFleetId ?? null;
+  const fixedCompanyId = session?.activeAccount?.companyId ?? '';
+  const showCompanySelector = selectorMode === 'company_and_fleet';
+  const showFleetSelector = selectorMode !== 'locked';
 
   useEffect(() => {
     let ignore = false;
@@ -40,7 +51,7 @@ export function SettlementFlowProvider({ client, children }: SettlementFlowProvi
       setErrorMessage(null);
       try {
         const [companyResponse, fleetResponse] = await Promise.all([
-          listCompanies(client),
+          showCompanySelector ? listCompanies(client) : Promise.resolve([]),
           listFleets(client),
         ]);
 
@@ -50,12 +61,33 @@ export function SettlementFlowProvider({ client, children }: SettlementFlowProvi
 
         setCompanies(companyResponse);
         setFleets(fleetResponse);
-        setSelectedCompanyIdState((current) => current || companyResponse[0]?.company_id || '');
+        setSelectedCompanyIdState((current) => {
+          if (showCompanySelector) {
+            return current || companyResponse[0]?.company_id || '';
+          }
+          if (fixedCompanyId) {
+            return fixedCompanyId;
+          }
+          if (assignedFleetIds.length > 0) {
+            return fleetResponse.find((fleet) => assignedFleetIds.includes(fleet.fleet_id))?.company_id ?? '';
+          }
+          return current || fleetResponse[0]?.company_id || '';
+        });
         setSelectedFleetIdState((current) => {
+          if (selectorMode === 'locked' && defaultFleetId) {
+            return defaultFleetId;
+          }
           if (current && fleetResponse.some((fleet) => fleet.fleet_id === current)) {
             return current;
           }
-          const nextCompanyId = companyResponse[0]?.company_id ?? '';
+          if (assignedFleetIds.length > 0) {
+            return assignedFleetIds.find((fleetId) =>
+              fleetResponse.some((fleet) => fleet.fleet_id === fleetId),
+            ) ?? '';
+          }
+          const nextCompanyId = showCompanySelector
+            ? companyResponse[0]?.company_id ?? ''
+            : fixedCompanyId || fleetResponse[0]?.company_id || '';
           return getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ?? '';
         });
       } catch (error) {
@@ -73,11 +105,21 @@ export function SettlementFlowProvider({ client, children }: SettlementFlowProvi
     return () => {
       ignore = true;
     };
-  }, [client]);
+  }, [assignedFleetIds, client, defaultFleetId, fixedCompanyId, selectorMode, showCompanySelector]);
 
-  const availableFleets = getFleetOptions(fleets, selectedCompanyId);
+  const availableFleets =
+    assignedFleetIds.length > 0
+      ? fleets.filter((fleet) => assignedFleetIds.includes(fleet.fleet_id))
+      : getFleetOptions(fleets, selectedCompanyId);
 
   useEffect(() => {
+    if (selectorMode === 'locked') {
+      if (defaultFleetId && selectedFleetId !== defaultFleetId) {
+        setSelectedFleetIdState(defaultFleetId);
+      }
+      return;
+    }
+
     if (!selectedCompanyId) {
       if (selectedFleetId) {
         setSelectedFleetIdState('');
@@ -104,11 +146,14 @@ export function SettlementFlowProvider({ client, children }: SettlementFlowProvi
         companies,
         fleets,
         availableFleets,
-        selectedCompanyId,
-        selectedFleetId,
-        isLoading,
-        errorMessage,
-        setSelectedCompanyId,
+      selectedCompanyId,
+      selectedFleetId,
+      selectorMode,
+      showCompanySelector,
+      showFleetSelector,
+      isLoading,
+      errorMessage,
+      setSelectedCompanyId,
         setSelectedFleetId,
       }}
     >

@@ -1,6 +1,7 @@
 import type { SessionPayload } from './api/http';
 
 export type ManagerRole = 'company_super_admin' | 'vehicle_manager' | 'settlement_manager' | 'fleet_manager';
+export type SettlementContextSelectorMode = 'company_and_fleet' | 'fleet_only' | 'locked';
 export type NavItemKey =
   | 'dashboard'
   | 'account'
@@ -86,7 +87,26 @@ export function canAccessSettlementScope(session: SessionPayload) {
 }
 
 export function canManageSettlementPricingScope(session: SessionPayload) {
+  return canAccessSettlementScope(session);
+}
+
+export function canManageGlobalSettlementCriteria(session: SessionPayload) {
   return isSystemAdmin(session) || getManagerRole(session) === 'company_super_admin';
+}
+
+export function getSettlementContextSelectorMode(
+  session: SessionPayload,
+): SettlementContextSelectorMode {
+  if (isSystemAdmin(session)) {
+    return 'company_and_fleet';
+  }
+
+  const scopeUiMode = session.activeAccount?.scopeUiMode;
+  if (scopeUiMode === 'fleet_fixed_single') {
+    return 'locked';
+  }
+
+  return 'fleet_only';
 }
 
 export function canAccessDispatchScope(session: SessionPayload) {

@@ -319,7 +319,8 @@ async function openSettlementCriteria(page: Page, viewport: { width: number; hei
   await primeManagerSession(page);
   await mockCriteriaApis(page);
   await page.goto('/settlements/criteria');
-  await expect(page.getByRole('heading', { name: '정산 기준' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '정산 처리' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '회사·플릿 단가표' })).toBeVisible();
 }
 
 async function collectCriteriaLayout(page: Page) {
@@ -359,7 +360,7 @@ test('uses a single scrolling workboard container in the desktop-safe viewport b
   expect(metrics).not.toBeNull();
   expect(metrics?.workboardGridColumns.split(' ').length).toBe(2);
   expect(metrics?.workboardOverflowY).toBe('auto');
-  expect(metrics?.pricingGridColumn).toContain('1 / -1');
+  expect(metrics?.pricingGridColumn).toBe('auto');
   expect(metrics?.insuranceBodyGridColumns.split(' ').length).toBe(2);
   expect(metrics?.insuranceBodyOverflowY).not.toBe('auto');
   expect(metrics?.workboardScrollHeight).toBeGreaterThan(metrics?.workboardClientHeight ?? 0);

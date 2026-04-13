@@ -11,6 +11,10 @@ export type ActiveAccountSummary = {
   companyId?: string | null;
   roleType?: string | null;
   roleDisplayName?: string | null;
+  roleScopeLevel?: 'company' | 'fleet' | null;
+  assignedFleetIds?: string[];
+  scopeUiMode?: 'company_selectable' | 'fleet_fixed_single' | 'fleet_selectable_multi' | null;
+  defaultFleetId?: string | null;
 };
 
 export type IdentitySession = {

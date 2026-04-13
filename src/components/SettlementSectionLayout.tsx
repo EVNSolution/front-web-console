@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
-import type { HttpClient } from '../api/http';
+import type { HttpClient, SessionPayload } from '../api/http';
 import { PageLayout } from './PageLayout';
 import { SettlementFlowProvider, useSettlementFlow } from './SettlementFlowContext';
 
@@ -13,6 +13,7 @@ const SETTLEMENT_NAV_ITEMS = [
 
 type SettlementSectionLayoutProps = {
   client: HttpClient;
+  session?: SessionPayload;
 };
 
 function SettlementContextBar() {
@@ -23,53 +24,63 @@ function SettlementContextBar() {
     selectedFleetId,
     isLoading,
     errorMessage,
+    showCompanySelector,
+    showFleetSelector,
     setSelectedCompanyId,
     setSelectedFleetId,
   } = useSettlementFlow();
+
+  if (!errorMessage && !showCompanySelector && !showFleetSelector) {
+    return null;
+  }
 
   return (
     <div className="settlement-context-bar" aria-label="정산 문맥 선택">
       <span className="settlement-context-kicker">정산 문맥</span>
       {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
       <div className="settlement-context-grid">
-        <label className="field">
-          <span>회사</span>
-          <select
-            disabled={isLoading || !companies.length}
-            onChange={(event) => setSelectedCompanyId(event.target.value)}
-            value={selectedCompanyId}
-          >
-            {companies.length ? null : <option value="">회사 없음</option>}
-            {companies.map((company) => (
-              <option key={company.company_id} value={company.company_id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>플릿</span>
-          <select
-            disabled={isLoading || !availableFleets.length}
-            onChange={(event) => setSelectedFleetId(event.target.value)}
-            value={selectedFleetId}
-          >
-            {availableFleets.length ? null : <option value="">플릿 없음</option>}
-            {availableFleets.map((fleet) => (
-              <option key={fleet.fleet_id} value={fleet.fleet_id}>
-                {fleet.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showCompanySelector ? (
+          <label className="field">
+            <span>회사</span>
+            <select
+              disabled={isLoading || !companies.length}
+              onChange={(event) => setSelectedCompanyId(event.target.value)}
+              value={selectedCompanyId}
+            >
+              {companies.length ? null : <option value="">회사 없음</option>}
+              {companies.map((company) => (
+                <option key={company.company_id} value={company.company_id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {showFleetSelector ? (
+          <label className="field">
+            <span>플릿</span>
+            <select
+              disabled={isLoading || !availableFleets.length}
+              onChange={(event) => setSelectedFleetId(event.target.value)}
+              value={selectedFleetId}
+            >
+              {availableFleets.length ? null : <option value="">플릿 없음</option>}
+              {availableFleets.map((fleet) => (
+                <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                  {fleet.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
     </div>
   );
 }
 
-export function SettlementSectionLayout({ client }: SettlementSectionLayoutProps) {
+export function SettlementSectionLayout({ client, session }: SettlementSectionLayoutProps) {
   return (
-    <SettlementFlowProvider client={client}>
+    <SettlementFlowProvider client={client} session={session}>
       <PageLayout
         filters={<SettlementContextBar />}
         subtitle="회사와 플릿 문맥을 고정한 상태로 정산 기준부터 결과까지 이어서 운영합니다."
