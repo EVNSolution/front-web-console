@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountsPage } from './AccountsPage';
 
@@ -12,6 +12,11 @@ const apiMocks = vi.hoisted(() => ({
   rejectManagedRequest: vi.fn(),
   changeManagerAccountRole: vi.fn(),
   archiveManagerAccount: vi.fn(),
+}));
+
+const organizationMocks = vi.hoisted(() => ({
+  listCompanies: vi.fn(),
+  listFleets: vi.fn(),
 }));
 
 vi.mock('../api/authRequests', () => ({
@@ -31,12 +36,29 @@ vi.mock('../api/managerRoles', () => ({
 }));
 
 vi.mock('../api/organization', () => ({
-  listCompanies: vi.fn().mockResolvedValue([
-    { company_id: '40000000-0000-0000-0000-000000000001', name: '알파 회사' },
-  ]),
+  listCompanies: organizationMocks.listCompanies,
+  listFleets: organizationMocks.listFleets,
 }));
 
 describe('AccountsPage', () => {
+  beforeEach(() => {
+    organizationMocks.listCompanies.mockResolvedValue([
+      { company_id: '40000000-0000-0000-0000-000000000001', name: '알파 회사' },
+    ]);
+    organizationMocks.listFleets.mockResolvedValue([
+      {
+        fleet_id: 'fleet-a',
+        company_id: '40000000-0000-0000-0000-000000000001',
+        name: 'A 플릿',
+      },
+      {
+        fleet_id: 'fleet-b',
+        company_id: '40000000-0000-0000-0000-000000000001',
+        name: 'B 플릿',
+      },
+    ]);
+  });
+
   it('renders request management tabs and manageable manager accounts', async () => {
     apiMocks.listManagedRequests.mockResolvedValue({
       identity: {
@@ -89,6 +111,7 @@ describe('AccountsPage', () => {
           company_id: '40000000-0000-0000-0000-000000000001',
           code: 'company_super_admin',
           display_name: '회사 전체 관리자',
+          scope_level: 'company',
           is_system_required: true,
           is_default: true,
           assigned_count: 1,
@@ -101,6 +124,7 @@ describe('AccountsPage', () => {
           company_id: '40000000-0000-0000-0000-000000000001',
           code: 'custom_dispatch_manager',
           display_name: '배차 운영 관리자',
+          scope_level: 'company',
           is_system_required: false,
           is_default: false,
           assigned_count: 1,
@@ -113,12 +137,26 @@ describe('AccountsPage', () => {
           company_id: '40000000-0000-0000-0000-000000000001',
           code: 'custom_safety_manager',
           display_name: '안전 관리자',
+          scope_level: 'company',
           is_system_required: false,
           is_default: false,
           assigned_count: 0,
           can_delete: true,
           delete_block_reason: null,
           allowed_nav_keys: ['dashboard', 'vehicles'],
+        },
+        {
+          company_manager_role_id: '74000000-0000-0000-0000-000000000001',
+          company_id: '40000000-0000-0000-0000-000000000001',
+          code: 'fleet_manager',
+          display_name: '플릿 관리자',
+          scope_level: 'fleet',
+          is_system_required: false,
+          is_default: true,
+          assigned_count: 0,
+          can_delete: true,
+          delete_block_reason: null,
+          allowed_nav_keys: ['dashboard', 'dispatch', 'settlements'],
         },
       ],
     });
@@ -217,32 +255,48 @@ describe('AccountsPage', () => {
     expect(screen.queryByRole('option', { name: '회사 전체 관리자' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('option', { name: '배차 운영 관리자' }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('option', { name: '안전 관리자' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('option', { name: '플릿 관리자' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('table', { name: '활성 관리자 계정 목록' })).toHaveClass('accounts-table', 'accounts-manager-table');
     expect(screen.getByTestId('manager-account-actions-50000000-0000-0000-0000-000000000001')).toHaveClass('accounts-manager-inline-actions');
 
-    fireEvent.change(screen.getAllByDisplayValue('배차 운영 관리자')[0], { target: { value: 'custom_safety_manager' } });
+    fireEvent.change(screen.getAllByDisplayValue('배차 운영 관리자')[0], { target: { value: 'fleet_manager' } });
+    const requestFleetSelect = screen.getByLabelText('배정 플릿') as HTMLSelectElement;
+    requestFleetSelect.options[0].selected = true;
+    fireEvent.change(requestFleetSelect);
     fireEvent.click(screen.getAllByRole('button', { name: '승인' })[0]);
     await waitFor(() => {
       expect(apiMocks.approveManagedRequest).toHaveBeenCalledWith(
         expect.anything(),
         '20000000-0000-0000-0000-000000000001',
-        'custom_safety_manager',
+        'fleet_manager',
+        ['fleet-a'],
       );
     });
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'custom_safety_manager' } });
+    expect(screen.queryByLabelText('배정 플릿')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getAllByDisplayValue('배차 운영 관리자')[1], { target: { value: 'custom_safety_manager' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'fleet_manager' } });
+    let managerFleetSelect = screen.getByLabelText('차량 관리자 배정 플릿') as HTMLSelectElement;
+    managerFleetSelect.options[0].selected = true;
+    managerFleetSelect.options[1].selected = true;
+    fireEvent.change(managerFleetSelect);
     expect(screen.getByRole('button', { name: '권한 변경' })).toBeInTheDocument();
-    fireEvent.change(screen.getByDisplayValue('안전 관리자'), { target: { value: 'custom_dispatch_manager' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'custom_dispatch_manager' } });
     expect(screen.queryByRole('button', { name: '권한 변경' })).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getAllByDisplayValue('배차 운영 관리자')[1], { target: { value: 'custom_safety_manager' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'fleet_manager' } });
+    managerFleetSelect = screen.getByLabelText('차량 관리자 배정 플릿') as HTMLSelectElement;
+    managerFleetSelect.options[0].selected = true;
+    managerFleetSelect.options[1].selected = true;
+    fireEvent.change(managerFleetSelect);
     expect(screen.getByRole('button', { name: '권한 변경' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '권한 변경' }));
     await waitFor(() => {
       expect(apiMocks.changeManagerAccountRole).toHaveBeenCalledWith(
         expect.anything(),
         '50000000-0000-0000-0000-000000000001',
-        'custom_safety_manager',
+        'fleet_manager',
+        ['fleet-a', 'fleet-b'],
       );
     });
 

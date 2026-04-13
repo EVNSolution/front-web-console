@@ -155,6 +155,7 @@ export type ManagerAccountSummary = {
   company_id: string;
   role_type: string;
   role_display_name?: string;
+  assigned_fleet_ids?: string[];
   status: string;
   created_at: string;
 };
