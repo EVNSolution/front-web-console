@@ -42,7 +42,7 @@ describe('Admin LoginPage', () => {
         'src',
         expect.stringContaining('login-side-image.svg'),
       );
-      expect(screen.getByText('seed-admin@example.com')).toBeInTheDocument();
+      expect(screen.getByText('support@example.com')).toBeInTheDocument();
       expect(screen.queryByText('이메일 형식으로 입력하세요.')).not.toBeInTheDocument();
       expect(screen.getByText('비밀번호는 영문 대문자, 소문자, 기호를 각각 1개 이상 포함해야 합니다.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'google 로그인' })).toBeDisabled();

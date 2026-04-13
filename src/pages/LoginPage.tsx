@@ -415,7 +415,7 @@ export function LoginPage({
 
               <div className="login-support-note">
                 <span>문의가 필요하시면</span>
-                <strong>seed-admin@example.com</strong>
+                <strong>support@example.com</strong>
               </div>
             </div>
           </section>
