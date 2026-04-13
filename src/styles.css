@@ -1777,20 +1777,6 @@ textarea:focus {
   min-width: 0;
 }
 
-.settlement-criteria-page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.settlement-criteria-page-header h2 {
-  margin: 0;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.34rem, 1vw + 1rem, 1.78rem);
-  letter-spacing: -0.03em;
-}
-
 .settlement-criteria-loading-card {
   padding: 1rem 1.1rem;
 }
@@ -1814,10 +1800,6 @@ textarea:focus {
   box-shadow: var(--shadow);
 }
 
-.settlement-criteria-pricing-card {
-  grid-column: 1 / -1;
-}
-
 .settlement-criteria-card-header {
   display: flex;
   align-items: flex-start;
@@ -1838,11 +1820,6 @@ textarea:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
   min-width: 0;
-}
-
-.settlement-criteria-pricing-card .settlement-criteria-card-body > .stack {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.62rem 0.78rem;
 }
 
 .settlement-criteria-field {
@@ -1951,8 +1928,7 @@ textarea:focus {
 }
 
 @media (max-width: 719px) {
-  .settlement-criteria-card-body,
-  .settlement-criteria-pricing-card .settlement-criteria-card-body > .stack {
+  .settlement-criteria-card-body {
     grid-template-columns: 1fr;
   }
 }
@@ -3682,6 +3658,39 @@ textarea:focus {
   .page-layout-toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .page-layout-template-workbench {
+    gap: 0.45rem;
+  }
+
+  .page-layout-template-workbench .page-layout-toolbar {
+    gap: 0.35rem;
+  }
+
+  .page-layout-filters {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .settlement-context-bar {
+    width: 100%;
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.82rem 0.9rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(28, 32, 43, 0.08);
+  }
+
+  .settlement-context-grid {
+    width: 100%;
+    flex: 1 1 auto;
+    gap: 0.6rem;
+  }
+
+  .settlement-criteria-page {
+    gap: 0.2rem;
   }
 
   .driver-list-layout .page-layout-filters,

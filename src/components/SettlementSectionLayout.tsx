@@ -29,7 +29,6 @@ function SettlementContextBar() {
 
   return (
     <div className="settlement-context-bar" aria-label="정산 문맥 선택">
-      <span className="settlement-context-kicker">정산 문맥</span>
       {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
       <div className="settlement-context-grid">
         <label className="field">

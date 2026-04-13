@@ -319,11 +319,12 @@ async function openSettlementCriteria(page: Page, viewport: { width: number; hei
   await primeManagerSession(page);
   await mockCriteriaApis(page);
   await page.goto('/settlements/criteria');
-  await expect(page.getByRole('heading', { name: '정산 기준' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '회사·플릿 단가표' })).toBeVisible();
 }
 
 async function collectCriteriaLayout(page: Page) {
   return page.evaluate(() => {
+    const contextBar = document.querySelector('.settlement-context-bar') as HTMLElement | null;
     const workboard = document.querySelector('.settlement-criteria-workboard') as HTMLElement | null;
     const pricingCard = document.querySelector('.settlement-criteria-pricing-card') as HTMLElement | null;
     const insuranceCard = Array.from(document.querySelectorAll('.settlement-criteria-card')).find((card) =>
@@ -331,18 +332,27 @@ async function collectCriteriaLayout(page: Page) {
     ) as HTMLElement | undefined;
     const insuranceBody = insuranceCard?.querySelector('.settlement-criteria-card-body') as HTMLElement | null;
 
-    if (!workboard || !pricingCard || !insuranceBody) {
+    if (!contextBar || !workboard || !pricingCard || !insuranceBody) {
       return null;
     }
+
+    const contextRect = contextBar.getBoundingClientRect();
+    const workboardRect = workboard.getBoundingClientRect();
 
     return {
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
       pageScrollHeight: document.documentElement.scrollHeight,
+      contextLeft: contextRect.left,
+      contextRight: contextRect.right,
+      contextBottom: contextRect.bottom,
       workboardOverflowY: getComputedStyle(workboard).overflowY,
       workboardGridColumns: getComputedStyle(workboard).gridTemplateColumns,
       workboardClientHeight: workboard.clientHeight,
       workboardScrollHeight: workboard.scrollHeight,
+      workboardLeft: workboardRect.left,
+      workboardRight: workboardRect.right,
+      workboardTop: workboardRect.top,
       pricingGridColumn: getComputedStyle(pricingCard).gridColumn,
       insuranceBodyOverflowY: getComputedStyle(insuranceBody).overflowY,
       insuranceBodyGridColumns: getComputedStyle(insuranceBody).gridTemplateColumns,
@@ -359,7 +369,7 @@ test('uses a single scrolling workboard container in the desktop-safe viewport b
   expect(metrics).not.toBeNull();
   expect(metrics?.workboardGridColumns.split(' ').length).toBe(2);
   expect(metrics?.workboardOverflowY).toBe('auto');
-  expect(metrics?.pricingGridColumn).toContain('1 / -1');
+  expect(metrics?.pricingGridColumn).toBe('auto');
   expect(metrics?.insuranceBodyGridColumns.split(' ').length).toBe(2);
   expect(metrics?.insuranceBodyOverflowY).not.toBe('auto');
   expect(metrics?.workboardScrollHeight).toBeGreaterThan(metrics?.workboardClientHeight ?? 0);
@@ -400,5 +410,8 @@ test('keeps page scroll fallback and avoids inner-card scroll on a mobile low-he
   expect(metrics?.insuranceBodyGridColumns).not.toContain(' ');
   expect(metrics?.workboardOverflowY).toBe('visible');
   expect(metrics?.insuranceBodyOverflowY).not.toBe('auto');
+  expect(Math.abs((metrics?.contextLeft ?? 0) - (metrics?.workboardLeft ?? 0))).toBeLessThanOrEqual(8);
+  expect(Math.abs((metrics?.contextRight ?? 0) - (metrics?.workboardRight ?? 0))).toBeLessThanOrEqual(8);
+  expect((metrics?.workboardTop ?? 0) - (metrics?.contextBottom ?? 0)).toBeLessThanOrEqual(12);
   expect(metrics?.pageScrollHeight).toBeGreaterThan(metrics?.viewportHeight ?? 0);
 });

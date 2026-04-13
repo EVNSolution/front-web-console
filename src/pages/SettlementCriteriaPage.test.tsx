@@ -282,15 +282,20 @@ describe('SettlementCriteriaPage', () => {
 
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    await screen.findByRole('heading', { name: '회사·플릿 단가표' });
+    expect(screen.queryByRole('heading', { name: '정산 기준' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
       '회사·플릿 단가표',
-      ...metadataFixture.sections.map((section) => section.title),
+      '정산 반영 기준',
+      '세율',
+      '기타 기준',
+      '보험료율',
     ]);
     expect(screen.getByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
 
     expect(screen.queryByText('정산 설정')).not.toBeInTheDocument();
     expect(screen.queryByText('전역 정산 설정')).not.toBeInTheDocument();
+    expect(screen.queryByText('정산 문맥')).not.toBeInTheDocument();
     expect(screen.queryByText(/회사\/플릿 구분 없이/)).not.toBeInTheDocument();
     expect(screen.queryByText(/현재 설정 항목:/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '전역 설정 저장' })).not.toBeInTheDocument();
@@ -506,7 +511,7 @@ describe('SettlementCriteriaPage', () => {
 
     renderPage(settlementManagerSession);
 
-    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '정산 반영 기준' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '회사·플릿 단가표' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '단가표 저장' })).not.toBeInTheDocument();
     expect(apiMocks.listCompanies).not.toHaveBeenCalled();

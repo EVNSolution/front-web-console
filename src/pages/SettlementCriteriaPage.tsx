@@ -58,6 +58,13 @@ const EMPTY_PRICING_FORM: Record<PricingFieldKey, string> = {
   overtime_fee: '',
 };
 
+const SECTION_ORDER: Record<string, number> = {
+  reported_amount: 1,
+  tax_rates: 2,
+  thresholds: 3,
+  insurance_rates: 4,
+};
+
 function getInputStep(decimalPrecision: number | undefined, integerOnly: boolean | undefined) {
   if (integerOnly) {
     return '1';
@@ -169,6 +176,11 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
   const safeCompanies = Array.isArray(companies) ? companies : [];
   const safeFleets = Array.isArray(fleets) ? fleets : [];
   const safePricingTables = Array.isArray(pricingTables) ? pricingTables : [];
+  const orderedSections = metadata
+    ? [...metadata.sections].sort(
+        (left, right) => (SECTION_ORDER[left.key] ?? Number.MAX_SAFE_INTEGER) - (SECTION_ORDER[right.key] ?? Number.MAX_SAFE_INTEGER),
+      )
+    : [];
 
   useEffect(() => {
     if (!selectedCompanyId && safeCompanies.length > 0) {
@@ -327,10 +339,6 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
 
   return (
     <div className="settlement-criteria-page">
-      <header className="settlement-criteria-page-header">
-        <h2>정산 기준</h2>
-      </header>
-
       {pageError ? <div className="error-banner">{pageError}</div> : null}
 
       {!metadata ? (
@@ -352,7 +360,7 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
                 ) : safeCompanies.length === 0 || visibleFleets.length === 0 ? (
                   <p className="empty-state">단가표를 연결할 회사 또는 플릿이 없습니다.</p>
                 ) : (
-                  <div className="stack compact">
+                  <>
                     <label className="field settlement-criteria-field">
                       <span>회사</span>
                       <select
@@ -427,7 +435,7 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
                         value={pricingForm.overtime_fee}
                       />
                     </label>
-                  </div>
+                  </>
                 )}
               </div>
               <div className="settlement-criteria-card-footer">
@@ -448,7 +456,7 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
             </form>
           ) : null}
 
-          {metadata.sections.map((section) => {
+          {orderedSections.map((section) => {
             const feedback = sectionFeedback[section.key];
             const isSectionSaving = sectionSavingKey === section.key;
             const isAnySectionSaving = sectionSavingKey !== null;
