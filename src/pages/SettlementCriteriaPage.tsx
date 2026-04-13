@@ -445,7 +445,6 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
             </form>
           ) : null}
 
-          {orderedSections.map((section) => {
           {canManageGlobalCriteria
             ? orderedSections.map((section) => {
             const feedback = sectionFeedback[section.key];

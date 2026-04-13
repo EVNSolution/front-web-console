@@ -374,7 +374,7 @@ describe('SettlementCriteriaPage', () => {
 
     renderPage(companySuperAdminSession);
 
-    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '세율' })).toBeInTheDocument();
@@ -386,7 +386,7 @@ describe('SettlementCriteriaPage', () => {
 
     renderPage(fleetManagerSingleSession);
 
-    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /플릿/ })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
@@ -399,7 +399,7 @@ describe('SettlementCriteriaPage', () => {
 
     renderPage(fleetManagerMultiSession);
 
-    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '세율' })).not.toBeInTheDocument();
@@ -604,7 +604,7 @@ describe('SettlementCriteriaPage', () => {
     expect(screen.getByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '단가표 저장' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '세율' })).not.toBeInTheDocument();
     expect(apiMocks.listCompanies).not.toHaveBeenCalled();
     expect(apiMocks.listFleets).toHaveBeenCalled();
