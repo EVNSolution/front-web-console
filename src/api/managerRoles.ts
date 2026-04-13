@@ -29,12 +29,16 @@ export function updateCompanyManagerRole(
   client: HttpClient,
   roleId: string,
   payload: {
+    code?: string;
     displayName?: string;
     allowedNavKeys?: string[];
     scopeLevel?: 'company' | 'fleet';
   },
 ) {
   const body: Record<string, unknown> = {};
+  if (payload.code !== undefined) {
+    body.code = payload.code;
+  }
   if (payload.displayName !== undefined) {
     body.display_name = payload.displayName;
   }
@@ -47,6 +51,19 @@ export function updateCompanyManagerRole(
   return client.request<CompanyManagerRole>(`/auth/company-manager-roles/${roleId}/`, {
     method: 'PATCH',
     body: JSON.stringify(body),
+  });
+}
+
+export function reorderCompanyManagerRoles(
+  client: HttpClient,
+  payload: { companyId: string; roleIds: string[] },
+) {
+  return client.request<CompanyManagerRoleListResponse>('/auth/company-manager-roles/reorder/', {
+    method: 'POST',
+    body: JSON.stringify({
+      company_id: payload.companyId,
+      role_ids: payload.roleIds,
+    }),
   });
 }
 

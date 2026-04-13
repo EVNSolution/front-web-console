@@ -576,7 +576,7 @@ export default function App() {
                   title="관리자 역할 권한 필요"
                   when={canManageManagerRoles}
                 >
-                  <ManagerRolesPage client={client} session={session} />
+                  <ManagerRolesPage client={client} onShowNotice={showTopNotification} session={session} />
                 </RequireRoleScope>
               }
             />
