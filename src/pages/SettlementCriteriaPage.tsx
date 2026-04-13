@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useState } from 'react';
 
 import { getErrorMessage, type HttpClient } from '../api/http';
 import type { SessionPayload } from '../api/http';
-import { listCompanies, listFleets } from '../api/organization';
 import {
   createSettlementPricingTable,
   getSettlementConfig,
@@ -14,13 +13,15 @@ import {
   type SettlementConfigPayload,
 } from '../api/settlementRegistry';
 import type {
-  Company,
   CompanyFleetPricingTable,
-  Fleet,
   SettlementConfig,
   SettlementConfigMetadata,
 } from '../types';
-import { canManageSettlementPricingScope } from '../authScopes';
+import {
+  canManageGlobalSettlementCriteria,
+  canManageSettlementPricingScope,
+} from '../authScopes';
+import { useSettlementFlow } from '../components/SettlementFlowContext';
 
 type SettlementCriteriaPageProps = {
   client: HttpClient;
@@ -107,13 +108,21 @@ function mergeSectionResponse(
 }
 
 export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPageProps) {
+  const {
+    companies,
+    availableFleets,
+    selectedCompanyId,
+    selectedFleetId,
+    showCompanySelector,
+    showFleetSelector,
+    isLoading: isContextLoading,
+    errorMessage: contextErrorMessage,
+    setSelectedCompanyId,
+    setSelectedFleetId,
+  } = useSettlementFlow();
   const [metadata, setMetadata] = useState<SettlementConfigMetadata | null>(null);
   const [config, setConfig] = useState<SettlementConfig>(EMPTY_CONFIG);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [fleets, setFleets] = useState<Fleet[]>([]);
   const [pricingTables, setPricingTables] = useState<CompanyFleetPricingTable[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState('');
-  const [selectedFleetId, setSelectedFleetId] = useState('');
   const [pricingForm, setPricingForm] = useState<Record<PricingFieldKey, string>>(EMPTY_PRICING_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -122,6 +131,7 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
   const [isPricingSaving, setIsPricingSaving] = useState(false);
   const [pricingFeedback, setPricingFeedback] = useState<CardFeedback | null>(null);
   const canManagePricing = canManageSettlementPricingScope(session);
+  const canManageGlobalCriteria = canManageGlobalSettlementCriteria(session);
 
   useEffect(() => {
     let isCanceled = false;
@@ -130,17 +140,9 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
       setIsLoading(true);
       setPageError(null);
       try {
-        const [
-          metadataResponse,
-          configResponse,
-          companiesResponse,
-          fleetsResponse,
-          pricingTablesResponse,
-        ] = await Promise.all([
-          getSettlementConfigMetadata(client),
-          getSettlementConfig(client),
-          canManagePricing ? listCompanies(client) : Promise.resolve([]),
-          canManagePricing ? listFleets(client) : Promise.resolve([]),
+        const [metadataResponse, configResponse, pricingTablesResponse] = await Promise.all([
+          canManageGlobalCriteria ? getSettlementConfigMetadata(client) : Promise.resolve(null),
+          canManageGlobalCriteria ? getSettlementConfig(client) : Promise.resolve(EMPTY_CONFIG),
           canManagePricing ? listSettlementPricingTables(client) : Promise.resolve([]),
         ]);
 
@@ -153,8 +155,6 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
           ...EMPTY_CONFIG,
           ...configResponse,
         });
-        setCompanies(Array.isArray(companiesResponse) ? companiesResponse : []);
-        setFleets(Array.isArray(fleetsResponse) ? fleetsResponse : []);
         setPricingTables(Array.isArray(pricingTablesResponse) ? pricingTablesResponse : []);
       } catch (error) {
         if (!isCanceled) {
@@ -171,38 +171,16 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
     return () => {
       isCanceled = true;
     };
-  }, [canManagePricing, client]);
+  }, [canManageGlobalCriteria, canManagePricing, client]);
 
   const safeCompanies = Array.isArray(companies) ? companies : [];
-  const safeFleets = Array.isArray(fleets) ? fleets : [];
   const safePricingTables = Array.isArray(pricingTables) ? pricingTables : [];
   const orderedSections = metadata
     ? [...metadata.sections].sort(
         (left, right) => (SECTION_ORDER[left.key] ?? Number.MAX_SAFE_INTEGER) - (SECTION_ORDER[right.key] ?? Number.MAX_SAFE_INTEGER),
       )
     : [];
-
-  useEffect(() => {
-    if (!selectedCompanyId && safeCompanies.length > 0) {
-      setSelectedCompanyId(safeCompanies[0].company_id);
-    }
-  }, [safeCompanies, selectedCompanyId]);
-
-  const visibleFleets = safeFleets.filter((fleet) => fleet.company_id === selectedCompanyId);
-
-  useEffect(() => {
-    if (visibleFleets.length === 0) {
-      if (selectedFleetId) {
-        setSelectedFleetId('');
-      }
-      return;
-    }
-
-    const hasSelectedFleet = visibleFleets.some((fleet) => fleet.fleet_id === selectedFleetId);
-    if (!hasSelectedFleet) {
-      setSelectedFleetId(visibleFleets[0].fleet_id);
-    }
-  }, [selectedFleetId, visibleFleets]);
+  const visibleFleets = availableFleets;
 
   const selectedPricingTable =
     safePricingTables.find(
@@ -211,10 +189,14 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
     ) ?? null;
   const canSubmitPricing =
     !isLoading &&
-    safeCompanies.length > 0 &&
-    visibleFleets.length > 0 &&
+    !isContextLoading &&
     Boolean(selectedCompanyId) &&
     Boolean(selectedFleetId);
+  const hasPricingContext =
+    Boolean(selectedCompanyId) &&
+    Boolean(selectedFleetId) &&
+    (!showCompanySelector || safeCompanies.length > 0) &&
+    (!showFleetSelector || visibleFleets.length > 0);
 
   useEffect(() => {
     if (selectedPricingTable) {
@@ -340,8 +322,11 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
   return (
     <div className="settlement-criteria-page">
       {pageError ? <div className="error-banner">{pageError}</div> : null}
+      {pageError || contextErrorMessage ? (
+        <div className="error-banner">{pageError ?? contextErrorMessage}</div>
+      ) : null}
 
-      {!metadata ? (
+      {canManageGlobalCriteria && !metadata ? (
         <section className="panel settlement-criteria-loading-card">
           <p className="empty-state">
             {isLoading ? '정산 기준 설정을 불러오는 중입니다...' : '정산 기준 설정 정보를 가져오지 못했습니다.'}
@@ -355,43 +340,47 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
                 <h3>회사·플릿 단가표</h3>
               </div>
               <div className="settlement-criteria-card-body">
-                {isLoading ? (
+                {isLoading || isContextLoading ? (
                   <p className="empty-state">회사·플릿 단가표를 불러오는 중입니다...</p>
-                ) : safeCompanies.length === 0 || visibleFleets.length === 0 ? (
+                ) : !hasPricingContext ? (
                   <p className="empty-state">단가표를 연결할 회사 또는 플릿이 없습니다.</p>
                 ) : (
                   <>
-                    <label className="field settlement-criteria-field">
-                      <span>회사</span>
-                      <select
-                        disabled={isPricingSaving}
-                        name="company_id"
-                        onChange={(event) => setSelectedCompanyId(event.target.value)}
-                        value={selectedCompanyId}
-                      >
-                        {safeCompanies.map((company) => (
-                          <option key={company.company_id} value={company.company_id}>
-                            {company.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    {showCompanySelector ? (
+                      <label className="field settlement-criteria-field">
+                        <span>회사</span>
+                        <select
+                          disabled={isPricingSaving}
+                          name="company_id"
+                          onChange={(event) => setSelectedCompanyId(event.target.value)}
+                          value={selectedCompanyId}
+                        >
+                          {safeCompanies.map((company) => (
+                            <option key={company.company_id} value={company.company_id}>
+                              {company.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
 
-                    <label className="field settlement-criteria-field">
-                      <span>플릿</span>
-                      <select
-                        disabled={isPricingSaving}
-                        name="fleet_id"
-                        onChange={(event) => setSelectedFleetId(event.target.value)}
-                        value={selectedFleetId}
-                      >
-                        {visibleFleets.map((fleet) => (
-                          <option key={fleet.fleet_id} value={fleet.fleet_id}>
-                            {fleet.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    {showFleetSelector ? (
+                      <label className="field settlement-criteria-field">
+                        <span>플릿</span>
+                        <select
+                          disabled={isPricingSaving}
+                          name="fleet_id"
+                          onChange={(event) => setSelectedFleetId(event.target.value)}
+                          value={selectedFleetId}
+                        >
+                          {visibleFleets.map((fleet) => (
+                            <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                              {fleet.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
 
                     <label className="field settlement-criteria-field">
                       <span>박스당 수신단가</span>
@@ -457,6 +446,8 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
           ) : null}
 
           {orderedSections.map((section) => {
+          {canManageGlobalCriteria
+            ? orderedSections.map((section) => {
             const feedback = sectionFeedback[section.key];
             const isSectionSaving = sectionSavingKey === section.key;
             const isAnySectionSaving = sectionSavingKey !== null;
@@ -516,7 +507,8 @@ export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPa
                 </div>
               </form>
             );
-          })}
+          })
+            : null}
 
         </div>
       )}

@@ -10,10 +10,22 @@ export function listManagedRequests(client: HttpClient, status = 'pending') {
   return client.request<IdentitySignupRequestList>(`/auth/identity-signup-requests/manage/${suffix}`);
 }
 
-export function approveManagedRequest(client: HttpClient, requestId: string, roleType?: string) {
+export function approveManagedRequest(
+  client: HttpClient,
+  requestId: string,
+  roleType?: string,
+  fleetIds?: string[],
+) {
+  const body: Record<string, unknown> = {};
+  if (roleType) {
+    body.role_type = roleType;
+  }
+  if (fleetIds !== undefined) {
+    body.fleet_ids = fleetIds;
+  }
   return client.request<IdentitySignupRequestSummary>(`/auth/identity-signup-requests/${requestId}/approve/`, {
     method: 'POST',
-    body: JSON.stringify(roleType ? { role_type: roleType } : {}),
+    body: JSON.stringify(body),
   });
 }
 
@@ -32,12 +44,17 @@ export function completeManagedManagerSetup(
   client: HttpClient,
   requestId: string,
   roleType: string,
+  fleetIds?: string[],
 ) {
+  const body: Record<string, unknown> = { role_type: roleType };
+  if (fleetIds !== undefined) {
+    body.fleet_ids = fleetIds;
+  }
   return client.request<IdentitySignupRequestSummary>(
     `/auth/identity-signup-requests/${requestId}/complete-setup/`,
     {
       method: 'POST',
-      body: JSON.stringify({ role_type: roleType }),
+      body: JSON.stringify(body),
     },
   );
 }

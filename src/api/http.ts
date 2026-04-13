@@ -18,6 +18,10 @@ type IdentitySessionResponse = {
     company_id?: string | null;
     role_type?: string | null;
     role_display_name?: string | null;
+    role_scope_level?: 'company' | 'fleet' | null;
+    assigned_fleet_ids?: string[];
+    scope_ui_mode?: 'company_selectable' | 'fleet_fixed_single' | 'fleet_selectable_multi' | null;
+    default_fleet_id?: string | null;
   } | null;
   available_account_types: string[];
 };
@@ -163,6 +167,10 @@ function toActiveAccountSummary(
     companyId: payload.company_id ?? null,
     roleType: payload.role_type ?? null,
     roleDisplayName: payload.role_display_name ?? null,
+    roleScopeLevel: payload.role_scope_level ?? null,
+    assignedFleetIds: payload.assigned_fleet_ids ?? [],
+    scopeUiMode: payload.scope_ui_mode ?? null,
+    defaultFleetId: payload.default_fleet_id ?? null,
   };
 }
 

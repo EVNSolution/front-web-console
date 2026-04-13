@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettlementCriteriaPage } from './SettlementCriteriaPage';
 import type { SessionPayload } from '../api/http';
+import { SettlementFlowProvider } from '../components/SettlementFlowContext';
 
 const apiMocks = vi.hoisted(() => ({
   createSettlementPricingTable: vi.fn(),
@@ -221,22 +222,36 @@ const pricingTableFixture = [
   },
 ];
 
-const companySuperAdminSession: SessionPayload = {
+const systemAdminSession: SessionPayload = {
   accessToken: 'token',
   sessionKind: 'normal',
-  email: 'admin@example.com',
+  email: 'system@example.com',
   identity: {
     identityId: 'identity-1',
-    name: '관리자',
+    name: '시스템 관리자',
     birthDate: '1990-01-01',
     status: 'active',
   },
+  activeAccount: {
+    accountType: 'system_admin',
+    accountId: 'system-admin-1',
+  },
+  availableAccountTypes: ['system_admin'],
+};
+
+const companySuperAdminSession: SessionPayload = {
+  ...systemAdminSession,
+  email: 'admin@example.com',
   activeAccount: {
     accountType: 'manager',
     accountId: 'manager-1',
     companyId: '30000000-0000-0000-0000-000000000001',
     roleType: 'company_super_admin',
     roleDisplayName: '회사 총괄 관리자',
+    roleScopeLevel: 'company',
+    assignedFleetIds: [],
+    scopeUiMode: 'company_selectable',
+    defaultFleetId: null,
   },
   availableAccountTypes: ['manager'],
 };
@@ -251,12 +266,44 @@ const settlementManagerSession: SessionPayload = {
   },
 };
 
+const fleetManagerSingleSession: SessionPayload = {
+  ...companySuperAdminSession,
+  email: 'fleet-single@example.com',
+  activeAccount: {
+    ...companySuperAdminSession.activeAccount!,
+    roleType: 'fleet_manager',
+    roleDisplayName: '플릿 관리자',
+    roleScopeLevel: 'fleet',
+    assignedFleetIds: ['40000000-0000-0000-0000-000000000001'],
+    scopeUiMode: 'fleet_fixed_single',
+    defaultFleetId: '40000000-0000-0000-0000-000000000001',
+  },
+};
+
+const fleetManagerMultiSession: SessionPayload = {
+  ...companySuperAdminSession,
+  email: 'fleet-multi@example.com',
+  activeAccount: {
+    ...companySuperAdminSession.activeAccount!,
+    roleType: 'fleet_manager',
+    roleDisplayName: '플릿 관리자',
+    roleScopeLevel: 'fleet',
+    assignedFleetIds: [
+      '40000000-0000-0000-0000-000000000001',
+      '40000000-0000-0000-0000-000000000002',
+    ],
+    scopeUiMode: 'fleet_selectable_multi',
+    defaultFleetId: null,
+  },
+};
+
 function arrangeSuccessfulLoad() {
   apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
   apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
   apiMocks.listSettlementPricingTables.mockResolvedValue(pricingTableFixture);
   apiMocks.listCompanies.mockResolvedValue([
     { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+    { company_id: '30000000-0000-0000-0000-000000000002', route_no: 2, name: 'Ops Company' },
   ]);
   apiMocks.listFleets.mockResolvedValue([
     {
@@ -265,11 +312,22 @@ function arrangeSuccessfulLoad() {
       company_id: '30000000-0000-0000-0000-000000000001',
       name: 'Seed Fleet',
     },
+    {
+      fleet_id: '40000000-0000-0000-0000-000000000002',
+      route_no: 2,
+      company_id: '30000000-0000-0000-0000-000000000001',
+      name: 'Ops Fleet',
+    },
   ]);
 }
 
-function renderPage(session: SessionPayload = companySuperAdminSession) {
-  return render(<SettlementCriteriaPage client={{ request: vi.fn() }} session={session} />);
+function renderPage(session: SessionPayload = systemAdminSession) {
+  const client = { request: vi.fn() };
+  return render(
+    <SettlementFlowProvider client={client} session={session}>
+      <SettlementCriteriaPage client={client} session={session} />
+    </SettlementFlowProvider>,
+  );
 }
 
 describe('SettlementCriteriaPage', () => {
@@ -309,11 +367,43 @@ describe('SettlementCriteriaPage', () => {
     expect(screen.getByRole('button', { name: '단가표 저장' })).toBeInTheDocument();
 
     expect(screen.getByRole('textbox', { name: /보고 금액 반영률/ })).toBeInTheDocument();
-    expect(await screen.findByLabelText('회사')).toBeInTheDocument();
-    expect(await screen.findByLabelText('플릿')).toBeInTheDocument();
-    expect(await screen.findByLabelText('박스당 수신단가')).toBeInTheDocument();
-    expect(await screen.findByLabelText('박스당 지급단가')).toBeInTheDocument();
-    expect(await screen.findByLabelText('특근비')).toBeInTheDocument();
+  });
+
+  it('shows only fleet selection for company super admins', async () => {
+    arrangeSuccessfulLoad();
+
+    renderPage(companySuperAdminSession);
+
+    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '세율' })).toBeInTheDocument();
+    expect(apiMocks.listCompanies).not.toHaveBeenCalled();
+  });
+
+  it('hides selectors and global cards for single-fleet managers', async () => {
+    arrangeSuccessfulLoad();
+
+    renderPage(fleetManagerSingleSession);
+
+    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /플릿/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '세율' })).not.toBeInTheDocument();
+    expect(apiMocks.listCompanies).not.toHaveBeenCalled();
+  });
+
+  it('shows only fleet selection for multi-fleet managers', async () => {
+    arrangeSuccessfulLoad();
+
+    renderPage(fleetManagerMultiSession);
+
+    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '세율' })).not.toBeInTheDocument();
+    expect(apiMocks.listCompanies).not.toHaveBeenCalled();
   });
 
   it('saves only the selected metadata section fields instead of the whole config payload', async () => {
@@ -323,7 +413,7 @@ describe('SettlementCriteriaPage', () => {
       income_tax_rate: '0.0350',
     });
 
-    renderPage();
+    renderPage(systemAdminSession);
 
     await screen.findByRole('heading', { name: '세율' });
     fireEvent.change(screen.getByRole('textbox', { name: /보고 금액 반영률/ }), {
@@ -354,7 +444,7 @@ describe('SettlementCriteriaPage', () => {
       income_tax_rate: '0.0350',
     });
 
-    renderPage();
+    renderPage(systemAdminSession);
 
     await screen.findByRole('heading', { name: '세율' });
     fireEvent.change(screen.getByRole('textbox', { name: /소득세율/ }), {
@@ -377,7 +467,7 @@ describe('SettlementCriteriaPage', () => {
       }),
     );
 
-    renderPage();
+    renderPage(systemAdminSession);
 
     await screen.findByRole('heading', { name: '세율' });
     const incomeTaxInput = screen.getByRole('textbox', { name: /소득세율/ });
@@ -410,7 +500,7 @@ describe('SettlementCriteriaPage', () => {
       overtime_fee: '25000.00',
     });
 
-    renderPage();
+    renderPage(systemAdminSession);
 
     fireEvent.change(await screen.findByLabelText('특근비'), { target: { value: '25000.00' } });
     fireEvent.click(screen.getByRole('button', { name: '단가표 저장' }));
@@ -439,8 +529,8 @@ describe('SettlementCriteriaPage', () => {
 
     renderPage();
 
-    const companySelect = (await screen.findByLabelText('회사')) as HTMLSelectElement;
-    const fleetSelect = screen.getByLabelText('플릿') as HTMLSelectElement;
+    const companySelect = (await screen.findByRole('combobox', { name: /회사/ })) as HTMLSelectElement;
+    const fleetSelect = screen.getByRole('combobox', { name: /플릿/ }) as HTMLSelectElement;
     const overtimeFeeInput = screen.getByLabelText('특근비') as HTMLInputElement;
     const pricingSaveButton = screen.getByRole('button', { name: '단가표 저장' });
 
@@ -468,7 +558,7 @@ describe('SettlementCriteriaPage', () => {
     arrangeSuccessfulLoad();
     apiMocks.listFleets.mockResolvedValue([]);
 
-    renderPage();
+    renderPage(systemAdminSession);
 
     expect(await screen.findByText('단가표를 연결할 회사 또는 플릿이 없습니다.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '단가표 저장' })).toBeDisabled();
@@ -486,7 +576,7 @@ describe('SettlementCriteriaPage', () => {
       overtime_fee: '30000.00',
     });
 
-    renderPage();
+    renderPage(systemAdminSession);
 
     fireEvent.change(await screen.findByLabelText('박스당 수신단가'), { target: { value: '1100.00' } });
     fireEvent.change(screen.getByLabelText('박스당 지급단가'), { target: { value: '900.00' } });
@@ -506,16 +596,18 @@ describe('SettlementCriteriaPage', () => {
     expect(apiMocks.updateSettlementPricingTable).not.toHaveBeenCalled();
   });
 
-  it('hides the pricing card and skips company scope fetches for settlement managers', async () => {
+  it('keeps only the pricing card for settlement managers and fixes company scope', async () => {
     arrangeSuccessfulLoad();
 
     renderPage(settlementManagerSession);
 
-    expect(await screen.findByRole('heading', { name: '정산 반영 기준' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '회사·플릿 단가표' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '단가표 저장' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '단가표 저장' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /회사/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /플릿/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '세율' })).not.toBeInTheDocument();
     expect(apiMocks.listCompanies).not.toHaveBeenCalled();
-    expect(apiMocks.listFleets).not.toHaveBeenCalled();
-    expect(apiMocks.listSettlementPricingTables).not.toHaveBeenCalled();
+    expect(apiMocks.listFleets).toHaveBeenCalled();
+    expect(apiMocks.listSettlementPricingTables).toHaveBeenCalled();
   });
 });

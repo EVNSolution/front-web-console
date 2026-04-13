@@ -29,7 +29,7 @@ const DEFAULT_ITEM_FORM: SettlementItemPayload = {
 };
 
 export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
-  const { selectedCompanyId, selectedFleetId } = useSettlementFlow();
+  const { isLoading: isContextLoading, selectedCompanyId, selectedFleetId, showFleetSelector } = useSettlementFlow();
   const [items, setItems] = useState<SettlementItem[]>([]);
   const [runs, setRuns] = useState<SettlementRun[]>([]);
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -40,12 +40,37 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isScopeReady = Boolean(selectedCompanyId) && (!showFleetSelector || Boolean(selectedFleetId));
 
   function getScopeFilters() {
     return {
       ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
       ...(selectedFleetId ? { fleet_id: selectedFleetId } : {}),
     };
+  }
+
+  function filterRunsByScope(runList: SettlementRun[]) {
+    return runList.filter((run) => {
+      if (selectedCompanyId && run.company_id !== selectedCompanyId) {
+        return false;
+      }
+      if (selectedFleetId && run.fleet_id !== selectedFleetId) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function filterDriversByScope(driverList: DriverProfile[]) {
+    return driverList.filter((driver) => {
+      if (selectedCompanyId && driver.company_id !== selectedCompanyId) {
+        return false;
+      }
+      if (selectedFleetId && driver.fleet_id !== selectedFleetId) {
+        return false;
+      }
+      return true;
+    });
   }
 
   async function loadAll() {
@@ -64,15 +89,30 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
     setDrivers(driverResponse);
     setCompanies(companyResponse);
     setFleets(fleetResponse);
+    const scopedRuns = filterRunsByScope(runResponse);
+    const scopedDrivers = filterDriversByScope(driverResponse);
     setItemForm((current) => ({
       ...current,
-      settlement_run_id: current.settlement_run_id || runResponse[0]?.settlement_run_id || '',
-      driver_id: current.driver_id || driverResponse[0]?.driver_id || '',
+      settlement_run_id:
+        scopedRuns.find((run) => run.settlement_run_id === current.settlement_run_id)?.settlement_run_id ??
+        scopedRuns[0]?.settlement_run_id ??
+        '',
+      driver_id:
+        scopedDrivers.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
+        scopedDrivers[0]?.driver_id ??
+        '',
     }));
   }
 
   useEffect(() => {
     let ignore = false;
+
+    if (isContextLoading || !isScopeReady) {
+      setIsLoading(true);
+      return () => {
+        ignore = true;
+      };
+    }
 
     async function load() {
       const scopeFilters = getScopeFilters();
@@ -97,10 +137,18 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
         setDrivers(driverResponse);
         setCompanies(companyResponse);
         setFleets(fleetResponse);
+        const scopedRuns = filterRunsByScope(runResponse);
+        const scopedDrivers = filterDriversByScope(driverResponse);
         setItemForm((current) => ({
           ...current,
-          settlement_run_id: current.settlement_run_id || runResponse[0]?.settlement_run_id || '',
-          driver_id: current.driver_id || driverResponse[0]?.driver_id || '',
+          settlement_run_id:
+            scopedRuns.find((run) => run.settlement_run_id === current.settlement_run_id)?.settlement_run_id ??
+            scopedRuns[0]?.settlement_run_id ??
+            '',
+          driver_id:
+            scopedDrivers.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
+            scopedDrivers[0]?.driver_id ??
+            '',
         }));
       } catch (error) {
         if (!ignore) {
@@ -117,7 +165,7 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client, selectedCompanyId, selectedFleetId]);
+  }, [client, isContextLoading, isScopeReady, selectedCompanyId, selectedFleetId]);
 
   function getRunLabel(runId: string) {
     const run = runs.find((entry) => entry.settlement_run_id === runId);
@@ -128,11 +176,13 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
   }
 
   function resetItemForm() {
+    const scopedRuns = filterRunsByScope(runs);
+    const scopedDrivers = filterDriversByScope(drivers);
     setEditingItemId(null);
     setItemForm({
       ...DEFAULT_ITEM_FORM,
-      settlement_run_id: runs[0]?.settlement_run_id ?? '',
-      driver_id: drivers[0]?.driver_id ?? '',
+      settlement_run_id: scopedRuns[0]?.settlement_run_id ?? '',
+      driver_id: scopedDrivers[0]?.driver_id ?? '',
     });
   }
 
@@ -196,15 +246,8 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
     selectItem(item);
   }
 
-  const filteredRuns = runs.filter((run) => {
-    if (selectedCompanyId && run.company_id !== selectedCompanyId) {
-      return false;
-    }
-    if (selectedFleetId && run.fleet_id !== selectedFleetId) {
-      return false;
-    }
-    return true;
-  });
+  const filteredRuns = filterRunsByScope(runs);
+  const filteredDrivers = filterDriversByScope(drivers);
   const filteredRunIds = new Set(filteredRuns.map((run) => run.settlement_run_id));
   const filteredItems = items.filter((item) => filteredRunIds.has(item.settlement_run_id));
   const totalAmount = filteredItems.reduce((sum, item) => sum + Number.parseFloat(item.amount), 0);
@@ -339,7 +382,7 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
               onChange={(event) => setItemForm((current) => ({ ...current, settlement_run_id: event.target.value }))}
               value={itemForm.settlement_run_id}
             >
-              {runs.map((run) => (
+              {filteredRuns.map((run) => (
                 <option key={run.settlement_run_id} value={run.settlement_run_id}>
                   {getRunLabel(run.settlement_run_id)}
                 </option>
@@ -352,7 +395,7 @@ export function SettlementResultsPage({ client }: SettlementResultsPageProps) {
               onChange={(event) => setItemForm((current) => ({ ...current, driver_id: event.target.value }))}
               value={itemForm.driver_id}
             >
-              {drivers.map((driver) => (
+              {filteredDrivers.map((driver) => (
                 <option key={driver.driver_id} value={driver.driver_id}>
                   {driver.name}
                 </option>

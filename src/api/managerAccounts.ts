@@ -5,10 +5,19 @@ export function listManageableManagerAccounts(client: HttpClient) {
   return client.request<ManagerAccountList>('/auth/manager-accounts/manage/');
 }
 
-export function changeManagerAccountRole(client: HttpClient, managerAccountId: string, roleType: string) {
+export function changeManagerAccountRole(
+  client: HttpClient,
+  managerAccountId: string,
+  roleType: string,
+  fleetIds?: string[],
+) {
+  const body: Record<string, unknown> = { role_type: roleType };
+  if (fleetIds !== undefined) {
+    body.fleet_ids = fleetIds;
+  }
   return client.request<ManagerAccountSummary>(`/auth/manager-accounts/${managerAccountId}/change-role/`, {
     method: 'POST',
-    body: JSON.stringify({ role_type: roleType }),
+    body: JSON.stringify(body),
   });
 }
 

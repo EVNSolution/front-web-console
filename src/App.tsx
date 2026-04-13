@@ -576,7 +576,7 @@ export default function App() {
                   title="관리자 역할 권한 필요"
                   when={canManageManagerRoles}
                 >
-                  <ManagerRolesPage client={client} session={session} />
+                  <ManagerRolesPage client={client} onShowNotice={showTopNotification} session={session} />
                 </RequireRoleScope>
               }
             />
@@ -1094,7 +1094,7 @@ export default function App() {
                   title="정산 관리 권한 필요"
                   when={canAccessSettlementScope}
                 >
-                  <SettlementFlowProvider client={client}>
+                  <SettlementFlowProvider client={client} session={session}>
                     <SettlementOverviewPage client={client} />
                   </SettlementFlowProvider>
                 </RequireRoleScope>
@@ -1110,7 +1110,7 @@ export default function App() {
                   title="정산 관리 권한 필요"
                   when={canAccessSettlementScope}
                 >
-                  <SettlementSectionLayout client={client} />
+                  <SettlementSectionLayout client={client} session={session} />
                 </RequireRoleScope>
               }
             >

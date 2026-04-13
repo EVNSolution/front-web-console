@@ -33,7 +33,14 @@ const DEFAULT_RUN_FORM: SettlementRunPayload = {
 };
 
 export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
-  const { selectedCompanyId, selectedFleetId } = useSettlementFlow();
+  const {
+    availableFleets,
+    isLoading: isContextLoading,
+    selectedCompanyId,
+    selectedFleetId,
+    showCompanySelector,
+    showFleetSelector,
+  } = useSettlementFlow();
   const [runs, setRuns] = useState<SettlementRun[]>([]);
   const [records, setRecords] = useState<DeliveryRecord[]>([]);
   const [snapshots, setSnapshots] = useState<DailyDeliveryInputSnapshot[]>([]);
@@ -44,6 +51,7 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isScopeReady = Boolean(selectedCompanyId) && (!showFleetSelector || Boolean(selectedFleetId));
 
   function getScopeFilters() {
     return {
@@ -71,16 +79,18 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
 
     setRunForm((current) => {
       const nextCompanyId = current.company_id || companyResponse[0]?.company_id || '';
+      const fleetOptions = showCompanySelector ? getFleetOptions(fleetResponse, nextCompanyId) : availableFleets;
       const nextFleetId =
-        getFleetOptions(fleetResponse, nextCompanyId).find((fleet) => fleet.fleet_id === current.fleet_id)
-          ?.fleet_id ??
-        getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ??
+        (showFleetSelector
+          ? fleetOptions.find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ??
+            fleetOptions[0]?.fleet_id
+          : selectedFleetId) ??
         fleetResponse[0]?.fleet_id ??
         '';
 
       return {
         ...current,
-        company_id: nextCompanyId,
+        company_id: showCompanySelector ? nextCompanyId : selectedCompanyId || nextCompanyId,
         fleet_id: nextFleetId,
       };
     });
@@ -88,6 +98,13 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
 
   useEffect(() => {
     let ignore = false;
+
+    if (isContextLoading || !isScopeReady) {
+      setIsLoading(true);
+      return () => {
+        ignore = true;
+      };
+    }
 
     async function load() {
       const scopeFilters = getScopeFilters();
@@ -112,16 +129,18 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
         setFleets(fleetResponse);
         setRunForm((current) => {
           const nextCompanyId = current.company_id || companyResponse[0]?.company_id || '';
+          const fleetOptions = showCompanySelector ? getFleetOptions(fleetResponse, nextCompanyId) : availableFleets;
           const nextFleetId =
-            getFleetOptions(fleetResponse, nextCompanyId).find((fleet) => fleet.fleet_id === current.fleet_id)
-              ?.fleet_id ??
-            getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ??
+            (showFleetSelector
+              ? fleetOptions.find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ??
+                fleetOptions[0]?.fleet_id
+              : selectedFleetId) ??
             fleetResponse[0]?.fleet_id ??
             '';
 
           return {
             ...current,
-            company_id: nextCompanyId,
+            company_id: showCompanySelector ? nextCompanyId : selectedCompanyId || nextCompanyId,
             fleet_id: nextFleetId,
           };
         });
@@ -140,17 +159,17 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client, selectedCompanyId, selectedFleetId]);
+  }, [availableFleets, client, isContextLoading, isScopeReady, selectedCompanyId, selectedFleetId, showCompanySelector, showFleetSelector]);
 
   function resetRunForm() {
     const companyId = selectedCompanyId || companies[0]?.company_id || '';
+    const fleetOptions = showCompanySelector ? getFleetOptions(fleets, companyId) : availableFleets;
     setEditingRunId(null);
     setRunForm({
       ...DEFAULT_RUN_FORM,
       company_id: companyId,
       fleet_id:
-        selectedFleetId ||
-        getFleetOptions(fleets, companyId)[0]?.fleet_id ||
+        (showFleetSelector ? selectedFleetId || fleetOptions[0]?.fleet_id : selectedFleetId) ||
         fleets[0]?.fleet_id ||
         '',
     });
@@ -405,29 +424,33 @@ export function SettlementRunsPage({ client }: SettlementRunsPageProps) {
               <small>선택한 플릿 기준으로 입력과 결과가 이어집니다.</small>
             </article>
           </div>
-          <label className="field">
-            <span>회사</span>
-            <select onChange={(event) => handleRunCompanyChange(event.target.value)} value={runForm.company_id}>
-              {companies.map((company) => (
-                <option key={company.company_id} value={company.company_id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>플릿</span>
-            <select
-              onChange={(event) => setRunForm((current) => ({ ...current, fleet_id: event.target.value }))}
-              value={runForm.fleet_id}
-            >
-              {getFleetOptions(fleets, runForm.company_id).map((fleet) => (
-                <option key={fleet.fleet_id} value={fleet.fleet_id}>
-                  {fleet.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {showCompanySelector ? (
+            <label className="field">
+              <span>회사</span>
+              <select onChange={(event) => handleRunCompanyChange(event.target.value)} value={runForm.company_id}>
+                {companies.map((company) => (
+                  <option key={company.company_id} value={company.company_id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {showFleetSelector ? (
+            <label className="field">
+              <span>플릿</span>
+              <select
+                onChange={(event) => setRunForm((current) => ({ ...current, fleet_id: event.target.value }))}
+                value={runForm.fleet_id}
+              >
+                {(showCompanySelector ? getFleetOptions(fleets, runForm.company_id) : availableFleets).map((fleet) => (
+                  <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                    {fleet.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="field">
             <span>시작일</span>
             <input

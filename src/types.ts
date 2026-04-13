@@ -11,6 +11,10 @@ export type ActiveAccountSummary = {
   companyId?: string | null;
   roleType?: string | null;
   roleDisplayName?: string | null;
+  roleScopeLevel?: 'company' | 'fleet' | null;
+  assignedFleetIds?: string[];
+  scopeUiMode?: 'company_selectable' | 'fleet_fixed_single' | 'fleet_selectable_multi' | null;
+  defaultFleetId?: string | null;
 };
 
 export type IdentitySession = {
@@ -155,6 +159,7 @@ export type ManagerAccountSummary = {
   company_id: string;
   role_type: string;
   role_display_name?: string;
+  assigned_fleet_ids?: string[];
   status: string;
   created_at: string;
 };
@@ -192,6 +197,8 @@ export type CompanyManagerRole = {
   company_id: string;
   code: string;
   display_name: string;
+  display_order: number;
+  scope_level: 'company' | 'fleet';
   is_system_required: boolean;
   is_default: boolean;
   allowed_nav_keys: string[];

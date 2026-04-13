@@ -4,10 +4,16 @@ import { approveManagedRequest, listManagedRequests, rejectManagedRequest } from
 import { getErrorMessage, type HttpClient, type SessionPayload } from '../api/http';
 import { archiveManagerAccount, changeManagerAccountRole, listManageableManagerAccounts } from '../api/managerAccounts';
 import { listCompanyManagerRoles } from '../api/managerRoles';
-import { listCompanies } from '../api/organization';
+import { listCompanies, listFleets } from '../api/organization';
 import { canManageCompanySuperAdmin, getAccountsScopeDescription } from '../authScopes';
 import { PageLayout } from '../components/PageLayout';
-import type { Company, CompanyManagerRole, IdentitySignupRequestSummary, ManagerAccountSummary } from '../types';
+import type {
+  Company,
+  CompanyManagerRole,
+  Fleet,
+  IdentitySignupRequestSummary,
+  ManagerAccountSummary,
+} from '../types';
 import { formatAccountStatusLabel, formatRoleLabel } from '../uiLabels';
 
 type AccountsPageProps = {
@@ -57,14 +63,42 @@ function formatDateOnly(value: string) {
   return dateOnlyFormatter.format(new Date(value));
 }
 
+function getRoleScopeLevel(
+  companyRolesByCompanyId: Record<string, CompanyManagerRole[]>,
+  companyId: string,
+  roleType: string | undefined,
+) {
+  if (!roleType) {
+    return 'company';
+  }
+  return (
+    companyRolesByCompanyId[companyId]?.find((candidate) => candidate.code === roleType)?.scope_level ??
+    'company'
+  );
+}
+
+function getFleetOptions(fleets: Fleet[], companyId: string) {
+  return fleets.filter((fleet) => fleet.company_id === companyId);
+}
+
+function areFleetSelectionsEqual(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((value, index) => value === right[index]);
+}
+
 export function AccountsPage({ client, session }: AccountsPageProps) {
   const [requests, setRequests] = useState<IdentitySignupRequestSummary[]>([]);
   const [managerAccounts, setManagerAccounts] = useState<ManagerAccountSummary[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [fleets, setFleets] = useState<Fleet[]>([]);
   const [companyRolesByCompanyId, setCompanyRolesByCompanyId] = useState<Record<string, CompanyManagerRole[]>>({});
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [setupRoles, setSetupRoles] = useState<Record<string, string>>({});
+  const [setupFleetIds, setSetupFleetIds] = useState<Record<string, string[]>>({});
   const [managerRoles, setManagerRoles] = useState<Record<string, string>>({});
+  const [managerFleetIds, setManagerFleetIds] = useState<Record<string, string[]>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const tabs = useMemo(
@@ -112,11 +146,15 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
           listManageableManagerAccounts(client),
           listCompanies(client),
         ]);
-        const roleCatalog = await loadRoleCatalog(companyResponse);
+        const [roleCatalog, fleetResponse] = await Promise.all([
+          loadRoleCatalog(companyResponse),
+          listFleets(client),
+        ]);
         if (!ignore) {
           setRequests(requestResponse.requests);
           setManagerAccounts(managerAccountResponse.accounts);
           setCompanies(companyResponse);
+          setFleets(fleetResponse);
           setCompanyRolesByCompanyId(roleCatalog);
           setSetupRoles(
             Object.fromEntries(
@@ -126,9 +164,22 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
               ]),
             ),
           );
+          setSetupFleetIds(
+            Object.fromEntries(
+              requestResponse.requests.map((request) => [request.identity_signup_request_id, []]),
+            ),
+          );
           setManagerRoles(
             Object.fromEntries(
               managerAccountResponse.accounts.map((account) => [account.manager_account_id, account.role_type]),
+            ),
+          );
+          setManagerFleetIds(
+            Object.fromEntries(
+              managerAccountResponse.accounts.map((account) => [
+                account.manager_account_id,
+                account.assigned_fleet_ids ?? [],
+              ]),
             ),
           );
         }
@@ -155,10 +206,11 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
       listManageableManagerAccounts(client),
       listCompanies(client),
     ]);
-    const roleCatalog = await loadRoleCatalog(companyResponse);
+    const [roleCatalog, fleetResponse] = await Promise.all([loadRoleCatalog(companyResponse), listFleets(client)]);
     setRequests(requestResponse.requests);
     setManagerAccounts(managerAccountResponse.accounts);
     setCompanies(companyResponse);
+    setFleets(fleetResponse);
     setCompanyRolesByCompanyId(roleCatalog);
     setSetupRoles(
       Object.fromEntries(
@@ -168,17 +220,28 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
         ]),
       ),
     );
+    setSetupFleetIds(
+      Object.fromEntries(requestResponse.requests.map((request) => [request.identity_signup_request_id, []])),
+    );
     setManagerRoles(
       Object.fromEntries(
         managerAccountResponse.accounts.map((account) => [account.manager_account_id, account.role_type]),
       ),
     );
+    setManagerFleetIds(
+      Object.fromEntries(
+        managerAccountResponse.accounts.map((account) => [
+          account.manager_account_id,
+          account.assigned_fleet_ids ?? [],
+        ]),
+      ),
+    );
   }
 
-  async function handleApprove(requestId: string, roleType?: string) {
+  async function handleApprove(requestId: string, roleType?: string, fleetIds?: string[]) {
     setErrorMessage(null);
     try {
-      await approveManagedRequest(client, requestId, roleType);
+      await approveManagedRequest(client, requestId, roleType, fleetIds);
       await reloadCurrentStatus();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -195,10 +258,15 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
     }
   }
 
-  async function handleChangeRole(managerAccountId: string) {
+  async function handleChangeRole(managerAccountId: string, fleetIds?: string[]) {
     setErrorMessage(null);
     try {
-      await changeManagerAccountRole(client, managerAccountId, managerRoles[managerAccountId] ?? 'vehicle_manager');
+      await changeManagerAccountRole(
+        client,
+        managerAccountId,
+        managerRoles[managerAccountId] ?? 'vehicle_manager',
+        fleetIds,
+      );
       await reloadCurrentStatus();
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -273,6 +341,13 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                   const selectedRequestRole =
                     setupRoles[request.identity_signup_request_id] ??
                     getDefaultRoleCode(companyRolesByCompanyId, request.company_id, canAssignSuperAdmin);
+                  const requestRoleScopeLevel = getRoleScopeLevel(
+                    companyRolesByCompanyId,
+                    request.company_id,
+                    selectedRequestRole,
+                  );
+                  const requestFleetIds = setupFleetIds[request.identity_signup_request_id] ?? [];
+                  const requestFleetOptions = getFleetOptions(fleets, request.company_id);
                   return (
                     <tr key={request.identity_signup_request_id}>
                       <td>{request.identity.name}</td>
@@ -288,10 +363,25 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                               <select
                                 className="accounts-action-select"
                                 onChange={(event) =>
-                                  setSetupRoles((current) => ({
-                                    ...current,
-                                    [request.identity_signup_request_id]: event.target.value,
-                                  }))
+                                  setSetupRoles((current) => {
+                                    const nextRoleType = event.target.value;
+                                    const nextScopeLevel = getRoleScopeLevel(
+                                      companyRolesByCompanyId,
+                                      request.company_id,
+                                      nextRoleType,
+                                    );
+                                    setSetupFleetIds((fleetCurrent) => ({
+                                      ...fleetCurrent,
+                                      [request.identity_signup_request_id]:
+                                        nextScopeLevel === 'fleet'
+                                          ? fleetCurrent[request.identity_signup_request_id] ?? []
+                                          : [],
+                                    }));
+                                    return {
+                                      ...current,
+                                      [request.identity_signup_request_id]: nextRoleType,
+                                    };
+                                  })
                                 }
                                 value={selectedRequestRole}
                               >
@@ -301,13 +391,41 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                                   </option>
                                 ))}
                               </select>
+                              {requestRoleScopeLevel === 'fleet' ? (
+                                <label className="field accounts-fleet-field">
+                                  <span>배정 플릿</span>
+                                  <select
+                                    aria-label="배정 플릿"
+                                    className="accounts-fleet-select"
+                                    multiple
+                                    onChange={(event) =>
+                                      setSetupFleetIds((current) => ({
+                                        ...current,
+                                        [request.identity_signup_request_id]: Array.from(
+                                          event.target.selectedOptions,
+                                          (option) => option.value,
+                                        ),
+                                      }))
+                                    }
+                                    value={requestFleetIds}
+                                  >
+                                    {requestFleetOptions.map((fleet) => (
+                                      <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                                        {fleet.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              ) : null}
                               <div className="inline-actions accounts-action-buttons">
                                 <button
                                   className="button ghost small"
+                                  disabled={requestRoleScopeLevel === 'fleet' && requestFleetIds.length === 0}
                                   onClick={() =>
                                     void handleApprove(
                                       request.identity_signup_request_id,
                                       selectedRequestRole,
+                                      requestRoleScopeLevel === 'fleet' ? requestFleetIds : undefined,
                                     )
                                   }
                                   type="button"
@@ -375,7 +493,17 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                     currentRoleType: managerRoles[account.manager_account_id] ?? account.role_type,
                   });
                   const selectedRoleType = managerRoles[account.manager_account_id] ?? account.role_type;
-                  const hasPendingRoleChange = selectedRoleType !== account.role_type;
+                  const selectedRoleScopeLevel = getRoleScopeLevel(
+                    companyRolesByCompanyId,
+                    account.company_id,
+                    selectedRoleType,
+                  );
+                  const selectedManagerFleetIds =
+                    managerFleetIds[account.manager_account_id] ?? account.assigned_fleet_ids ?? [];
+                  const hasPendingRoleChange =
+                    selectedRoleType !== account.role_type ||
+                    !areFleetSelectionsEqual(selectedManagerFleetIds, account.assigned_fleet_ids ?? []);
+                  const managerFleetOptions = getFleetOptions(fleets, account.company_id);
                   return (
                     <tr key={account.manager_account_id}>
                       <td>{account.identity.name}</td>
@@ -391,10 +519,27 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                           <select
                             className="accounts-action-select"
                             onChange={(event) =>
-                              setManagerRoles((current) => ({
-                                ...current,
-                                [account.manager_account_id]: event.target.value,
-                              }))
+                              setManagerRoles((current) => {
+                                const nextRoleType = event.target.value;
+                                const nextScopeLevel = getRoleScopeLevel(
+                                  companyRolesByCompanyId,
+                                  account.company_id,
+                                  nextRoleType,
+                                );
+                                setManagerFleetIds((fleetCurrent) => ({
+                                  ...fleetCurrent,
+                                  [account.manager_account_id]:
+                                    nextScopeLevel === 'fleet'
+                                      ? fleetCurrent[account.manager_account_id] ??
+                                        account.assigned_fleet_ids ??
+                                        []
+                                      : [],
+                                }));
+                                return {
+                                  ...current,
+                                  [account.manager_account_id]: nextRoleType,
+                                };
+                              })
                             }
                             value={selectedRoleType}
                           >
@@ -404,8 +549,48 @@ export function AccountsPage({ client, session }: AccountsPageProps) {
                               </option>
                             ))}
                           </select>
+                          {selectedRoleScopeLevel === 'fleet' ? (
+                            <label className="field accounts-fleet-field">
+                              <span>{`${account.identity.name} 배정 플릿`}</span>
+                              <select
+                                aria-label={`${account.identity.name} 배정 플릿`}
+                                className="accounts-fleet-select"
+                                multiple
+                                onChange={(event) =>
+                                  setManagerFleetIds((current) => ({
+                                    ...current,
+                                    [account.manager_account_id]: Array.from(
+                                      event.target.selectedOptions,
+                                      (option) => option.value,
+                                    ),
+                                  }))
+                                }
+                                value={selectedManagerFleetIds}
+                              >
+                                {managerFleetOptions.map((fleet) => (
+                                  <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                                    {fleet.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null}
                           {hasPendingRoleChange ? (
-                            <button className="button ghost small" onClick={() => void handleChangeRole(account.manager_account_id)} type="button">
+                            <button
+                              className="button ghost small"
+                              disabled={
+                                selectedRoleScopeLevel === 'fleet' && selectedManagerFleetIds.length === 0
+                              }
+                              onClick={() =>
+                                void handleChangeRole(
+                                  account.manager_account_id,
+                                  selectedRoleScopeLevel === 'fleet'
+                                    ? selectedManagerFleetIds
+                                    : undefined,
+                                )
+                              }
+                              type="button"
+                            >
                               권한 변경
                             </button>
                           ) : null}
