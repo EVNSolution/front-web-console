@@ -1769,6 +1769,194 @@ textarea:focus {
   line-height: 1;
 }
 
+.settlement-criteria-page {
+  display: grid;
+  gap: 0.85rem;
+  width: min(100%, 76rem);
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.settlement-criteria-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.settlement-criteria-page-header h2 {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.34rem, 1vw + 1rem, 1.78rem);
+  letter-spacing: -0.03em;
+}
+
+.settlement-criteria-loading-card {
+  padding: 1rem 1.1rem;
+}
+
+.settlement-criteria-workboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(30rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.settlement-criteria-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  padding: 0.92rem 0.98rem 0.88rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+}
+
+.settlement-criteria-pricing-card {
+  grid-column: 1 / -1;
+}
+
+.settlement-criteria-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.58rem;
+}
+
+.settlement-criteria-card-header h3 {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.02rem;
+  letter-spacing: -0.02em;
+}
+
+.settlement-criteria-card-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.settlement-criteria-pricing-card .settlement-criteria-card-body > .stack {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem 0.78rem;
+}
+
+.settlement-criteria-field {
+  gap: 0.28rem;
+}
+
+.settlement-criteria-field > span {
+  font-size: 0.84rem;
+  color: #465062;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.settlement-criteria-field input,
+.settlement-criteria-field select {
+  min-height: 2.7rem;
+  padding: 0.68rem 0.84rem;
+  border-radius: 12px;
+  font-size: 0.92rem;
+}
+
+.settlement-criteria-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.settlement-criteria-input-row input {
+  min-width: 0;
+}
+
+.settlement-criteria-unit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.7rem;
+  padding: 0 0.76rem;
+  border: 1px solid rgba(28, 32, 43, 0.12);
+  border-radius: 12px;
+  background: rgba(244, 245, 247, 0.92);
+  color: #697182;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.settlement-criteria-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.68rem;
+  padding-top: 0.68rem;
+  border-top: 1px solid rgba(28, 32, 43, 0.08);
+}
+
+.settlement-criteria-card-footer .button {
+  min-width: 7.25rem;
+  justify-content: center;
+}
+
+.settlement-criteria-card-message-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 1.15rem;
+}
+
+.settlement-criteria-card-message {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.settlement-criteria-card-message-success {
+  color: var(--policy-allow-text);
+}
+
+.settlement-criteria-card-message-error {
+  color: var(--danger);
+}
+
+@media (min-width: 980px) and (min-height: 780px) {
+  .settlement-criteria-workboard {
+    height: min(52rem, calc(100dvh - 17rem));
+    max-height: calc(100dvh - 17rem);
+    overflow: auto;
+    padding-right: 0.18rem;
+  }
+}
+
+@media (max-width: 979px) {
+  .settlement-criteria-pricing-card {
+    grid-column: auto;
+  }
+
+  .settlement-criteria-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settlement-criteria-card-footer .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 719px) {
+  .settlement-criteria-card-body,
+  .settlement-criteria-pricing-card .settlement-criteria-card-body > .stack {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .account-page-grid,
   .account-page-compact-form,
@@ -1807,7 +1995,6 @@ textarea:focus {
   .settlement-overview-pagination {
     justify-content: flex-start;
   }
-
   .driver-list-shell {
     min-height: auto;
   }

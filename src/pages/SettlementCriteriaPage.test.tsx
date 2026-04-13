@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettlementCriteriaPage } from './SettlementCriteriaPage';
+import type { SessionPayload } from '../api/http';
 
 const apiMocks = vi.hoisted(() => ({
   createSettlementPricingTable: vi.fn(),
@@ -220,126 +221,256 @@ const pricingTableFixture = [
   },
 ];
 
+const companySuperAdminSession: SessionPayload = {
+  accessToken: 'token',
+  sessionKind: 'normal',
+  email: 'admin@example.com',
+  identity: {
+    identityId: 'identity-1',
+    name: '관리자',
+    birthDate: '1990-01-01',
+    status: 'active',
+  },
+  activeAccount: {
+    accountType: 'manager',
+    accountId: 'manager-1',
+    companyId: '30000000-0000-0000-0000-000000000001',
+    roleType: 'company_super_admin',
+    roleDisplayName: '회사 총괄 관리자',
+  },
+  availableAccountTypes: ['manager'],
+};
+
+const settlementManagerSession: SessionPayload = {
+  ...companySuperAdminSession,
+  email: 'settlement@example.com',
+  activeAccount: {
+    ...companySuperAdminSession.activeAccount!,
+    roleType: 'settlement_manager',
+    roleDisplayName: '정산 관리자',
+  },
+};
+
+function arrangeSuccessfulLoad() {
+  apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
+  apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
+  apiMocks.listSettlementPricingTables.mockResolvedValue(pricingTableFixture);
+  apiMocks.listCompanies.mockResolvedValue([
+    { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+  ]);
+  apiMocks.listFleets.mockResolvedValue([
+    {
+      fleet_id: '40000000-0000-0000-0000-000000000001',
+      route_no: 1,
+      company_id: '30000000-0000-0000-0000-000000000001',
+      name: 'Seed Fleet',
+    },
+  ]);
+}
+
+function renderPage(session: SessionPayload = companySuperAdminSession) {
+  return render(<SettlementCriteriaPage client={{ request: vi.fn() }} session={session} />);
+}
+
 describe('SettlementCriteriaPage', () => {
   beforeEach(() => {
     Object.values(apiMocks).forEach((mock) => mock.mockReset());
   });
 
-  function mockSuccessfulHydration() {
-    apiMocks.getSettlementConfigMetadata.mockResolvedValue(metadataFixture);
-    apiMocks.getSettlementConfig.mockResolvedValue(configFixture);
-    apiMocks.listSettlementPricingTables.mockResolvedValue(pricingTableFixture);
-    apiMocks.listCompanies.mockResolvedValue([
-      { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+  it('renders the compact metadata-card workboard and removes the old helper copy', async () => {
+    arrangeSuccessfulLoad();
+
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      '회사·플릿 단가표',
+      ...metadataFixture.sections.map((section) => section.title),
     ]);
-    apiMocks.listFleets.mockResolvedValue([
-      {
-        fleet_id: '40000000-0000-0000-0000-000000000001',
-        route_no: 1,
-        company_id: '30000000-0000-0000-0000-000000000001',
-        name: 'Seed Fleet',
-      },
-    ]);
-  }
-
-  function getPricingCard() {
-    const pricingHeading = screen.getByRole('heading', { name: '회사·플릿 단가표' });
-    const pricingCard = pricingHeading.closest('section');
-    expect(pricingCard).not.toBeNull();
-    return pricingCard as HTMLElement;
-  }
-
-  async function getMetadataCard(title: string) {
-    const heading = await screen.findByRole('heading', { name: title });
-    const card = heading.closest('fieldset') ?? heading.closest('section');
-    expect(card).not.toBeNull();
-    return card as HTMLElement;
-  }
-
-  it('renders the compact card workboard for settlement criteria', async () => {
-    mockSuccessfulHydration();
-
-    render(<SettlementCriteriaPage client={{ request: vi.fn() }} />);
+    expect(screen.getByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
 
     expect(screen.queryByText('정산 설정')).not.toBeInTheDocument();
     expect(screen.queryByText('전역 정산 설정')).not.toBeInTheDocument();
-    expect(screen.queryByText('회사/플릿 구분 없이')).not.toBeInTheDocument();
-    expect(screen.queryByText('현재 설정 항목:')).not.toBeInTheDocument();
+    expect(screen.queryByText(/회사\/플릿 구분 없이/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/현재 설정 항목:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '전역 설정 저장' })).not.toBeInTheDocument();
+    metadataFixture.sections.forEach((section) => {
+      expect(screen.queryByText(section.description)).not.toBeInTheDocument();
+    });
 
-    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '세율' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '정산 반영 기준' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '보험료율' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '기타 기준' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '회사·플릿 단가표' })).toBeInTheDocument();
+    metadataFixture.sections.forEach((section) => {
+      expect(screen.getByRole('button', { name: `${section.title} 저장` })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: '단가표 저장' })).toBeInTheDocument();
 
-    const reportedAmountCard = await getMetadataCard('정산 반영 기준');
-    expect(within(reportedAmountCard).getByLabelText('보고 금액 반영률')).toBeInTheDocument();
-
-    const taxRatesCard = await getMetadataCard('세율');
-    expect(within(taxRatesCard).getByRole('button', { name: /저장$/ })).toBeInTheDocument();
-
-    const insuranceCard = await getMetadataCard('보험료율');
-    expect(within(insuranceCard).getByRole('button', { name: /저장$/ })).toBeInTheDocument();
-
-    const thresholdsCard = await getMetadataCard('기타 기준');
-    expect(within(thresholdsCard).getByRole('button', { name: /저장$/ })).toBeInTheDocument();
-
-    const pricingCard = getPricingCard();
-    expect(within(pricingCard).getByRole('button', { name: '단가표 저장' })).toBeInTheDocument();
-    expect(within(pricingCard).getByLabelText('회사')).toBeInTheDocument();
-    expect(within(pricingCard).getByLabelText('플릿')).toBeInTheDocument();
-    expect(within(pricingCard).getByLabelText('박스당 수신단가')).toBeInTheDocument();
-    expect(within(pricingCard).getByLabelText('박스당 지급단가')).toBeInTheDocument();
-    expect(within(pricingCard).getByLabelText('특근비')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /보고 금액 반영률/ })).toBeInTheDocument();
+    expect(await screen.findByLabelText('회사')).toBeInTheDocument();
+    expect(await screen.findByLabelText('플릿')).toBeInTheDocument();
+    expect(await screen.findByLabelText('박스당 수신단가')).toBeInTheDocument();
+    expect(await screen.findByLabelText('박스당 지급단가')).toBeInTheDocument();
+    expect(await screen.findByLabelText('특근비')).toBeInTheDocument();
   });
 
-  it('saves only the edited section from a metadata card and keeps pricing persistence unchanged', async () => {
-    mockSuccessfulHydration();
+  it('saves only the selected metadata section fields instead of the whole config payload', async () => {
+    arrangeSuccessfulLoad();
     apiMocks.updateSettlementConfig.mockResolvedValue({
       ...configFixture,
-      income_tax_rate: '0.0310',
+      income_tax_rate: '0.0350',
     });
+
+    renderPage();
+
+    await screen.findByRole('heading', { name: '세율' });
+    fireEvent.change(screen.getByRole('textbox', { name: /보고 금액 반영률/ }), {
+      target: { value: '90.0000' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: /소득세율/ }), {
+      target: { value: '0.0350' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '세율 저장' }));
+
+    await waitFor(() => {
+      expect(apiMocks.updateSettlementConfig).toHaveBeenCalledTimes(1);
+      expect(apiMocks.updateSettlementConfig).toHaveBeenCalledWith(
+        { request: expect.any(Function) },
+        {
+          income_tax_rate: '0.0350',
+          vat_tax_rate: '0.1000',
+        },
+      );
+    });
+    expect(screen.getByRole('textbox', { name: /보고 금액 반영률/ })).toHaveValue('90.0000');
+  });
+
+  it('preserves the current section values when the save response omits some section fields', async () => {
+    arrangeSuccessfulLoad();
+    apiMocks.updateSettlementConfig.mockResolvedValue({
+      singleton_key: 'global',
+      income_tax_rate: '0.0350',
+    });
+
+    renderPage();
+
+    await screen.findByRole('heading', { name: '세율' });
+    fireEvent.change(screen.getByRole('textbox', { name: /소득세율/ }), {
+      target: { value: '0.0350' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '세율 저장' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /소득세율/ })).toHaveValue('0.0350');
+      expect(screen.getByRole('textbox', { name: /부가가치세율/ })).toHaveValue('0.1000');
+    });
+  });
+
+  it('disables other metadata saves while one section save is in flight', async () => {
+    arrangeSuccessfulLoad();
+    let resolveSave: ((value: typeof configFixture) => void) | undefined;
+    apiMocks.updateSettlementConfig.mockReturnValue(
+      new Promise<typeof configFixture>((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+
+    renderPage();
+
+    await screen.findByRole('heading', { name: '세율' });
+    const incomeTaxInput = screen.getByRole('textbox', { name: /소득세율/ });
+    const reportedAmountInput = screen.getByRole('textbox', { name: /보고 금액 반영률/ });
+    const taxSaveButton = screen.getByRole('button', { name: '세율 저장' });
+    const reportedAmountSaveButton = screen.getByRole('button', { name: '정산 반영 기준 저장' });
+    fireEvent.click(taxSaveButton);
+
+    expect(incomeTaxInput).toBeDisabled();
+    expect(reportedAmountInput).not.toBeDisabled();
+    expect(taxSaveButton).toBeDisabled();
+    expect(reportedAmountSaveButton).toBeDisabled();
+
+    resolveSave?.({
+      ...configFixture,
+      income_tax_rate: '0.0300',
+    });
+
+    await waitFor(() => {
+      expect(incomeTaxInput).not.toBeDisabled();
+      expect(taxSaveButton).not.toBeDisabled();
+      expect(reportedAmountSaveButton).not.toBeDisabled();
+    });
+  });
+
+  it('keeps the company-fleet pricing update flow unchanged', async () => {
+    arrangeSuccessfulLoad();
     apiMocks.updateSettlementPricingTable.mockResolvedValue({
       ...pricingTableFixture[0],
       overtime_fee: '25000.00',
     });
 
-    render(<SettlementCriteriaPage client={{ request: vi.fn() }} />);
+    renderPage();
 
-    const taxRatesCard = await getMetadataCard('세율');
-    fireEvent.change(within(taxRatesCard).getByDisplayValue('0.0300'), { target: { value: '0.0310' } });
-    fireEvent.click(within(taxRatesCard).getByRole('button', { name: /저장$/ }));
+    fireEvent.change(await screen.findByLabelText('특근비'), { target: { value: '25000.00' } });
+    fireEvent.click(screen.getByRole('button', { name: '단가표 저장' }));
 
-    expect(apiMocks.updateSettlementConfig).toHaveBeenCalledWith(
-      { request: expect.any(Function) },
-      {
-        income_tax_rate: '0.0310',
-        vat_tax_rate: '0.1000',
-      },
-    );
-
-    const pricingCard = getPricingCard();
-    fireEvent.change(within(pricingCard).getByLabelText('박스당 수신단가'), {
-      target: { value: '1005.00' },
-    });
-    fireEvent.change(within(pricingCard).getByLabelText('박스당 지급단가'), {
-      target: { value: '805.00' },
-    });
-    fireEvent.change(within(pricingCard).getByLabelText('특근비'), { target: { value: '25000.00' } });
-    fireEvent.click(within(pricingCard).getByRole('button', { name: '단가표 저장' }));
-
+    expect(apiMocks.createSettlementPricingTable).not.toHaveBeenCalled();
+    expect(apiMocks.updateSettlementPricingTable).toHaveBeenCalledTimes(1);
     expect(apiMocks.updateSettlementPricingTable).toHaveBeenCalledWith(
       { request: expect.any(Function) },
       '91000000-0000-0000-0000-000000000001',
       expect.objectContaining({
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
         overtime_fee: '25000.00',
       }),
     );
   });
 
-  it('renders the current company-fleet pricing create path when no row exists for the selected scope', async () => {
-    mockSuccessfulHydration();
+  it('locks the pricing scope and inputs while a pricing save is in flight', async () => {
+    arrangeSuccessfulLoad();
+    let resolveSave: ((value: (typeof pricingTableFixture)[number]) => void) | undefined;
+    apiMocks.updateSettlementPricingTable.mockReturnValue(
+      new Promise<(typeof pricingTableFixture)[number]>((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+
+    renderPage();
+
+    const companySelect = (await screen.findByLabelText('회사')) as HTMLSelectElement;
+    const fleetSelect = screen.getByLabelText('플릿') as HTMLSelectElement;
+    const overtimeFeeInput = screen.getByLabelText('특근비') as HTMLInputElement;
+    const pricingSaveButton = screen.getByRole('button', { name: '단가표 저장' });
+
+    fireEvent.click(pricingSaveButton);
+
+    expect(companySelect).toBeDisabled();
+    expect(fleetSelect).toBeDisabled();
+    expect(overtimeFeeInput).toBeDisabled();
+    expect(pricingSaveButton).toBeDisabled();
+
+    resolveSave?.({
+      ...pricingTableFixture[0],
+      overtime_fee: '20000.00',
+    });
+
+    await waitFor(() => {
+      expect(companySelect).not.toBeDisabled();
+      expect(fleetSelect).not.toBeDisabled();
+      expect(overtimeFeeInput).not.toBeDisabled();
+      expect(pricingSaveButton).not.toBeDisabled();
+    });
+  });
+
+  it('disables the pricing save button when no selectable fleet scope exists', async () => {
+    arrangeSuccessfulLoad();
+    apiMocks.listFleets.mockResolvedValue([]);
+
+    renderPage();
+
+    expect(await screen.findByText('단가표를 연결할 회사 또는 플릿이 없습니다.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '단가표 저장' })).toBeDisabled();
+  });
+
+  it('keeps the company-fleet pricing create flow unchanged when no row exists', async () => {
+    arrangeSuccessfulLoad();
     apiMocks.listSettlementPricingTables.mockResolvedValue([]);
     apiMocks.createSettlementPricingTable.mockResolvedValue({
       pricing_table_id: '91000000-0000-0000-0000-000000000099',
@@ -350,7 +481,7 @@ describe('SettlementCriteriaPage', () => {
       overtime_fee: '30000.00',
     });
 
-    render(<SettlementCriteriaPage client={{ request: vi.fn() }} />);
+    renderPage();
 
     fireEvent.change(await screen.findByLabelText('박스당 수신단가'), { target: { value: '1100.00' } });
     fireEvent.change(screen.getByLabelText('박스당 지급단가'), { target: { value: '900.00' } });
@@ -368,5 +499,18 @@ describe('SettlementCriteriaPage', () => {
       },
     );
     expect(apiMocks.updateSettlementPricingTable).not.toHaveBeenCalled();
+  });
+
+  it('hides the pricing card and skips company scope fetches for settlement managers', async () => {
+    arrangeSuccessfulLoad();
+
+    renderPage(settlementManagerSession);
+
+    expect(await screen.findByRole('heading', { name: '정산 기준' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '회사·플릿 단가표' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '단가표 저장' })).not.toBeInTheDocument();
+    expect(apiMocks.listCompanies).not.toHaveBeenCalled();
+    expect(apiMocks.listFleets).not.toHaveBeenCalled();
+    expect(apiMocks.listSettlementPricingTables).not.toHaveBeenCalled();
   });
 });

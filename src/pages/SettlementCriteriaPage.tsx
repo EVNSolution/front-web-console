@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 
 import { getErrorMessage, type HttpClient } from '../api/http';
+import type { SessionPayload } from '../api/http';
 import { listCompanies, listFleets } from '../api/organization';
 import {
   createSettlementPricingTable,
@@ -19,9 +20,16 @@ import type {
   SettlementConfig,
   SettlementConfigMetadata,
 } from '../types';
+import { canManageSettlementPricingScope } from '../authScopes';
 
 type SettlementCriteriaPageProps = {
   client: HttpClient;
+  session: SessionPayload;
+};
+
+type CardFeedback = {
+  tone: 'success' | 'error';
+  message: string;
 };
 
 const EMPTY_CONFIG: SettlementConfig = {
@@ -42,6 +50,7 @@ const EMPTY_CONFIG: SettlementConfig = {
 
 type ConfigFieldKey = keyof Omit<SettlementConfig, 'singleton_key'>;
 type PricingFieldKey = keyof Omit<CompanyFleetPricingTable, 'pricing_table_id' | 'company_id' | 'fleet_id'>;
+type SettlementMetadataSection = SettlementConfigMetadata['sections'][number];
 
 const EMPTY_PRICING_FORM: Record<PricingFieldKey, string> = {
   box_sale_unit_price: '',
@@ -63,7 +72,34 @@ function getDisplayFieldValue(config: SettlementConfig, fieldKey: string) {
   return config[fieldKey as ConfigFieldKey] ?? '';
 }
 
-export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) {
+function buildSectionPayload(
+  section: SettlementMetadataSection,
+  config: SettlementConfig,
+): Partial<SettlementConfigPayload> {
+  return section.fields.reduce((acc: Partial<SettlementConfigPayload>, field) => {
+    acc[field.key as keyof SettlementConfigPayload] = getDisplayFieldValue(config, field.key);
+    return acc;
+  }, {});
+}
+
+function mergeSectionResponse(
+  currentConfig: SettlementConfig,
+  section: SettlementMetadataSection,
+  responseConfig: Partial<SettlementConfig>,
+) {
+  const nextConfig = { ...currentConfig };
+
+  section.fields.forEach((field) => {
+    const nextValue = responseConfig[field.key as ConfigFieldKey];
+    if (nextValue !== undefined) {
+      nextConfig[field.key as ConfigFieldKey] = nextValue;
+    }
+  });
+
+  return nextConfig;
+}
+
+export function SettlementCriteriaPage({ client, session }: SettlementCriteriaPageProps) {
   const [metadata, setMetadata] = useState<SettlementConfigMetadata | null>(null);
   const [config, setConfig] = useState<SettlementConfig>(EMPTY_CONFIG);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -73,17 +109,19 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
   const [selectedFleetId, setSelectedFleetId] = useState('');
   const [pricingForm, setPricingForm] = useState<Record<PricingFieldKey, string>>(EMPTY_PRICING_FORM);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [sectionSavingKey, setSectionSavingKey] = useState<string | null>(null);
+  const [sectionFeedback, setSectionFeedback] = useState<Record<string, CardFeedback | undefined>>({});
   const [isPricingSaving, setIsPricingSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pricingFeedback, setPricingFeedback] = useState<CardFeedback | null>(null);
+  const canManagePricing = canManageSettlementPricingScope(session);
 
   useEffect(() => {
     let isCanceled = false;
 
     async function hydrate() {
       setIsLoading(true);
-      setErrorMessage(null);
+      setPageError(null);
       try {
         const [
           metadataResponse,
@@ -94,9 +132,9 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
         ] = await Promise.all([
           getSettlementConfigMetadata(client),
           getSettlementConfig(client),
-          listCompanies(client),
-          listFleets(client),
-          listSettlementPricingTables(client),
+          canManagePricing ? listCompanies(client) : Promise.resolve([]),
+          canManagePricing ? listFleets(client) : Promise.resolve([]),
+          canManagePricing ? listSettlementPricingTables(client) : Promise.resolve([]),
         ]);
 
         if (isCanceled) {
@@ -113,16 +151,12 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
         setPricingTables(Array.isArray(pricingTablesResponse) ? pricingTablesResponse : []);
       } catch (error) {
         if (!isCanceled) {
-          setErrorMessage(getErrorMessage(error));
+          setPageError(getErrorMessage(error));
         }
       } finally {
         if (!isCanceled) {
           setIsLoading(false);
         }
-      }
-
-      if (!isCanceled) {
-        setSuccessMessage(null);
       }
     }
 
@@ -130,7 +164,7 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
     return () => {
       isCanceled = true;
     };
-  }, [client]);
+  }, [canManagePricing, client]);
 
   const safeCompanies = Array.isArray(companies) ? companies : [];
   const safeFleets = Array.isArray(fleets) ? fleets : [];
@@ -163,6 +197,12 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
       (pricingTable) =>
         pricingTable.company_id === selectedCompanyId && pricingTable.fleet_id === selectedFleetId,
     ) ?? null;
+  const canSubmitPricing =
+    !isLoading &&
+    safeCompanies.length > 0 &&
+    visibleFleets.length > 0 &&
+    Boolean(selectedCompanyId) &&
+    Boolean(selectedFleetId);
 
   useEffect(() => {
     if (selectedPricingTable) {
@@ -182,6 +222,21 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
       ...current,
       [fieldKey]: nextValue,
     }));
+    setSectionFeedback((current) => {
+      if (!metadata) {
+        return current;
+      }
+      const section = metadata.sections.find((candidate) =>
+        candidate.fields.some((field) => field.key === fieldKey),
+      );
+      if (!section || !current[section.key]) {
+        return current;
+      }
+      return {
+        ...current,
+        [section.key]: undefined,
+      };
+    });
   }
 
   function handlePricingFieldChange(fieldKey: PricingFieldKey, nextValue: string) {
@@ -189,52 +244,52 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
       ...current,
       [fieldKey]: nextValue,
     }));
+    setPricingFeedback(null);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSectionSubmit(event: FormEvent<HTMLFormElement>, section: SettlementMetadataSection) {
     event.preventDefault();
-    if (!metadata) {
+    if (sectionSavingKey) {
       return;
     }
-
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    setIsSaving(true);
-
-    const payload = metadata.sections.reduce(
-      (acc: Partial<SettlementConfigPayload>, section) => {
-        section.fields.forEach((field) => {
-          const value = getDisplayFieldValue(config, field.key);
-          acc[field.key as keyof SettlementConfigPayload] = value;
-        });
-        return acc;
-      },
-      {},
-    );
+    setSectionSavingKey(section.key);
+    setSectionFeedback((current) => ({
+      ...current,
+      [section.key]: undefined,
+    }));
 
     try {
+      const payload = buildSectionPayload(section, config);
       const nextConfig = await updateSettlementConfig(client, payload);
-      setConfig({
-        ...config,
-        ...nextConfig,
-      });
-      setSuccessMessage('전역 정산 설정을 저장했습니다.');
+      setConfig((current) => mergeSectionResponse(current, section, nextConfig));
+      setSectionFeedback((current) => ({
+        ...current,
+        [section.key]: {
+          tone: 'success',
+          message: `${section.title}을 저장했습니다.`,
+        },
+      }));
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setSectionFeedback((current) => ({
+        ...current,
+        [section.key]: {
+          tone: 'error',
+          message: getErrorMessage(error),
+        },
+      }));
     } finally {
-      setIsSaving(false);
+      setSectionSavingKey((current) => (current === section.key ? null : current));
     }
   }
 
   async function handlePricingSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedCompanyId || !selectedFleetId) {
+    if (!canSubmitPricing || isPricingSaving) {
       return;
     }
 
-    setErrorMessage(null);
-    setSuccessMessage(null);
     setIsPricingSaving(true);
+    setPricingFeedback(null);
 
     const payload: CompanyFleetPricingTablePayload = {
       company_id: selectedCompanyId,
@@ -256,192 +311,207 @@ export function SettlementCriteriaPage({ client }: SettlementCriteriaPageProps) 
         nextTables.push(nextPricingTable);
         return nextTables;
       });
-      setSuccessMessage('회사·플릿 단가표를 저장했습니다.');
+      setPricingFeedback({
+        tone: 'success',
+        message: '단가표를 저장했습니다.',
+      });
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setPricingFeedback({
+        tone: 'error',
+        message: getErrorMessage(error),
+      });
     } finally {
       setIsPricingSaving(false);
     }
   }
 
-  if (!metadata) {
-    return (
-      <div className="stack large-gap">
-        {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
-        <section className="panel">
+  return (
+    <div className="settlement-criteria-page">
+      <header className="settlement-criteria-page-header">
+        <h2>정산 기준</h2>
+      </header>
+
+      {pageError ? <div className="error-banner">{pageError}</div> : null}
+
+      {!metadata ? (
+        <section className="panel settlement-criteria-loading-card">
           <p className="empty-state">
             {isLoading ? '정산 기준 설정을 불러오는 중입니다...' : '정산 기준 설정 정보를 가져오지 못했습니다.'}
           </p>
         </section>
-      </div>
-    );
-  }
+      ) : (
+        <div className="settlement-criteria-workboard">
+          {canManagePricing ? (
+            <form className="settlement-criteria-card settlement-criteria-pricing-card" onSubmit={handlePricingSubmit}>
+              <div className="settlement-criteria-card-header">
+                <h3>회사·플릿 단가표</h3>
+              </div>
+              <div className="settlement-criteria-card-body">
+                {isLoading ? (
+                  <p className="empty-state">회사·플릿 단가표를 불러오는 중입니다...</p>
+                ) : safeCompanies.length === 0 || visibleFleets.length === 0 ? (
+                  <p className="empty-state">단가표를 연결할 회사 또는 플릿이 없습니다.</p>
+                ) : (
+                  <div className="stack compact">
+                    <label className="field settlement-criteria-field">
+                      <span>회사</span>
+                      <select
+                        disabled={isPricingSaving}
+                        name="company_id"
+                        onChange={(event) => setSelectedCompanyId(event.target.value)}
+                        value={selectedCompanyId}
+                      >
+                        {safeCompanies.map((company) => (
+                          <option key={company.company_id} value={company.company_id}>
+                            {company.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-  const fieldCount = metadata.sections.reduce((total, section) => total + section.fields.length, 0);
+                    <label className="field settlement-criteria-field">
+                      <span>플릿</span>
+                      <select
+                        disabled={isPricingSaving}
+                        name="fleet_id"
+                        onChange={(event) => setSelectedFleetId(event.target.value)}
+                        value={selectedFleetId}
+                      >
+                        {visibleFleets.map((fleet) => (
+                          <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                            {fleet.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-  return (
-    <div className="stack large-gap">
-      {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
-      {successMessage ? <div className="success-banner">{successMessage}</div> : null}
+                    <label className="field settlement-criteria-field">
+                      <span>박스당 수신단가</span>
+                      <input
+                        disabled={isPricingSaving}
+                        inputMode="decimal"
+                        name="box_sale_unit_price"
+                        onChange={(event) =>
+                          handlePricingFieldChange('box_sale_unit_price', event.target.value)
+                        }
+                        required
+                        type="text"
+                        value={pricingForm.box_sale_unit_price}
+                      />
+                    </label>
 
-      <section className="panel">
-        <div className="panel-header">
-          <p className="panel-kicker">정산 설정</p>
-          <h2>전역 정산 설정</h2>
-          <p className="empty-state">
-            회사/플릿 구분 없이 정산 산출의 기반 값은 전역 설정으로만 관리합니다.
-          </p>
-          <small className="table-meta">
-            현재 설정 항목: {fieldCount}개 ({metadata.sections.length}개 영역)
-          </small>
-        </div>
+                    <label className="field settlement-criteria-field">
+                      <span>박스당 지급단가</span>
+                      <input
+                        disabled={isPricingSaving}
+                        inputMode="decimal"
+                        name="box_purchase_unit_price"
+                        onChange={(event) =>
+                          handlePricingFieldChange('box_purchase_unit_price', event.target.value)
+                        }
+                        required
+                        type="text"
+                        value={pricingForm.box_purchase_unit_price}
+                      />
+                    </label>
 
-        {isLoading ? (
-          <p className="empty-state">정산 기준 설정을 불러오는 중입니다...</p>
-        ) : (
-          <form className="form-stack" onSubmit={handleSubmit}>
-            {metadata.sections.map((section) => (
-              <fieldset className="panel" key={section.key}>
-                <legend>
+                    <label className="field settlement-criteria-field">
+                      <span>특근비</span>
+                      <input
+                        disabled={isPricingSaving}
+                        inputMode="decimal"
+                        name="overtime_fee"
+                        onChange={(event) => handlePricingFieldChange('overtime_fee', event.target.value)}
+                        required
+                        type="text"
+                        value={pricingForm.overtime_fee}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+              <div className="settlement-criteria-card-footer">
+                <div className="settlement-criteria-card-message-wrap">
+                  {pricingFeedback ? (
+                    <p
+                      className={`settlement-criteria-card-message settlement-criteria-card-message-${pricingFeedback.tone}`}
+                      role={pricingFeedback.tone === 'error' ? 'alert' : 'status'}
+                    >
+                      {pricingFeedback.message}
+                    </p>
+                  ) : null}
+                </div>
+                <button className="button primary" disabled={!canSubmitPricing || isPricingSaving} type="submit">
+                  {isPricingSaving ? '저장 중...' : '단가표 저장'}
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          {metadata.sections.map((section) => {
+            const feedback = sectionFeedback[section.key];
+            const isSectionSaving = sectionSavingKey === section.key;
+            const isAnySectionSaving = sectionSavingKey !== null;
+
+            return (
+              <form
+                className="settlement-criteria-card"
+                key={section.key}
+                onSubmit={(event) => void handleSectionSubmit(event, section)}
+              >
+                <div className="settlement-criteria-card-header">
                   <h3>{section.title}</h3>
-                  <p className="empty-state">{section.description}</p>
-                </legend>
-                <div className="stack">
+                </div>
+                <div className="settlement-criteria-card-body">
                   {section.fields.map((field) => {
                     const step = getInputStep(field.decimal_precision, field.integer_only);
                     const fieldValue = getDisplayFieldValue(config, field.key);
 
                     return (
-                      <label className="field" key={field.key}>
+                      <label className="field settlement-criteria-field" key={field.key}>
                         <span>{field.label}</span>
-                        <div className="stack compact">
-                          <div>
-                            <input
-                              inputMode="decimal"
-                              min={field.min}
-                              max={field.max}
-                              name={field.key}
-                              onChange={(event) =>
-                                handleFieldChange(field.key as ConfigFieldKey, event.target.value)
-                              }
-                              required={field.required}
-                              step={step}
-                              type="text"
-                              value={fieldValue}
-                            />
-                            <span>{field.unit}</span>
-                          </div>
-                          <small>{field.description}</small>
+                        <div className="settlement-criteria-input-row">
+                          <input
+                            disabled={isSectionSaving}
+                            inputMode="decimal"
+                            min={field.min}
+                            max={field.max}
+                            name={field.key}
+                            onChange={(event) =>
+                              handleFieldChange(field.key as ConfigFieldKey, event.target.value)
+                            }
+                            required={field.required}
+                            step={step}
+                            type="text"
+                            value={fieldValue}
+                          />
+                          <span className="settlement-criteria-unit">{field.unit}</span>
                         </div>
                       </label>
                     );
                   })}
                 </div>
-              </fieldset>
-            ))}
-            <div className="form-actions">
-              <button className="button primary" disabled={isSaving} type="submit">
-                {isSaving ? '저장 중...' : '전역 설정 저장'}
-              </button>
-            </div>
-          </form>
-        )}
-      </section>
+                <div className="settlement-criteria-card-footer">
+                  <div className="settlement-criteria-card-message-wrap">
+                    {feedback ? (
+                      <p
+                        className={`settlement-criteria-card-message settlement-criteria-card-message-${feedback.tone}`}
+                        role={feedback.tone === 'error' ? 'alert' : 'status'}
+                      >
+                        {feedback.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <button className="button primary" disabled={isAnySectionSaving} type="submit">
+                    {isSectionSaving ? '저장 중...' : `${section.title} 저장`}
+                  </button>
+                </div>
+              </form>
+            );
+          })}
 
-      <section className="panel">
-        <div className="panel-header">
-          <p className="panel-kicker">정산 단가표</p>
-          <h2>회사·플릿 단가표</h2>
-          <p className="empty-state">
-            박스당 수신/지급 단가와 특근비는 회사·플릿 단위로 관리합니다.
-          </p>
         </div>
-
-        {isLoading ? (
-          <p className="empty-state">회사·플릿 단가표를 불러오는 중입니다...</p>
-        ) : safeCompanies.length === 0 || visibleFleets.length === 0 ? (
-          <p className="empty-state">단가표를 연결할 회사 또는 플릿이 없습니다.</p>
-        ) : (
-          <form className="form-stack" onSubmit={handlePricingSubmit}>
-            <div className="stack">
-              <label className="field">
-                <span>회사</span>
-                <select
-                  name="company_id"
-                  onChange={(event) => setSelectedCompanyId(event.target.value)}
-                  value={selectedCompanyId}
-                >
-                  {safeCompanies.map((company) => (
-                    <option key={company.company_id} value={company.company_id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>플릿</span>
-                <select
-                  name="fleet_id"
-                  onChange={(event) => setSelectedFleetId(event.target.value)}
-                  value={selectedFleetId}
-                >
-                  {visibleFleets.map((fleet) => (
-                    <option key={fleet.fleet_id} value={fleet.fleet_id}>
-                      {fleet.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>박스당 수신단가</span>
-                <input
-                  inputMode="decimal"
-                  name="box_sale_unit_price"
-                  onChange={(event) =>
-                    handlePricingFieldChange('box_sale_unit_price', event.target.value)
-                  }
-                  required
-                  type="text"
-                  value={pricingForm.box_sale_unit_price}
-                />
-              </label>
-
-              <label className="field">
-                <span>박스당 지급단가</span>
-                <input
-                  inputMode="decimal"
-                  name="box_purchase_unit_price"
-                  onChange={(event) =>
-                    handlePricingFieldChange('box_purchase_unit_price', event.target.value)
-                  }
-                  required
-                  type="text"
-                  value={pricingForm.box_purchase_unit_price}
-                />
-              </label>
-
-              <label className="field">
-                <span>특근비</span>
-                <input
-                  inputMode="decimal"
-                  name="overtime_fee"
-                  onChange={(event) => handlePricingFieldChange('overtime_fee', event.target.value)}
-                  required
-                  type="text"
-                  value={pricingForm.overtime_fee}
-                />
-              </label>
-            </div>
-            <div className="form-actions">
-              <button className="button primary" disabled={isPricingSaving} type="submit">
-                {isPricingSaving ? '저장 중...' : '단가표 저장'}
-              </button>
-            </div>
-          </form>
-        )}
-      </section>
+      )}
     </div>
   );
 }

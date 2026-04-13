@@ -1115,7 +1115,7 @@ export default function App() {
               }
             >
               <Route index element={<Navigate replace to="/settlements/overview" />} />
-              <Route path="criteria" element={<SettlementCriteriaPage client={client} />} />
+              <Route path="criteria" element={<SettlementCriteriaPage client={client} session={session} />} />
               <Route path="inputs" element={<SettlementInputsPage client={client} />} />
               <Route path="runs" element={<SettlementRunsPage client={client} />} />
               <Route path="results" element={<SettlementResultsPage client={client} />} />
