@@ -14,6 +14,7 @@ import type { Company, CompanyManagerRole } from '../types';
 
 type EditableRole = CompanyManagerRole & {
   draftDisplayName: string;
+  draftScopeLevel: CompanyManagerRole['scope_level'];
 };
 
 type DropdownOption = {
@@ -116,6 +117,7 @@ function toEditableRole(role: CompanyManagerRole): EditableRole {
   return {
     ...role,
     draftDisplayName: role.display_name,
+    draftScopeLevel: role.scope_level,
   };
 }
 
@@ -134,9 +136,19 @@ type Props = {
   session: SessionPayload;
 };
 
+const ROLE_SCOPE_OPTIONS: Array<{ value: CompanyManagerRole['scope_level']; label: string }> = [
+  { value: 'company', label: '회사 레벨' },
+  { value: 'fleet', label: '플릿 레벨' },
+];
+
+function getRoleScopeLabel(scopeLevel: CompanyManagerRole['scope_level']) {
+  return ROLE_SCOPE_OPTIONS.find((option) => option.value === scopeLevel)?.label ?? '회사 레벨';
+}
+
 export function ManagerRolesPage({ client, session }: Props) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [newRoleScopeLevel, setNewRoleScopeLevel] = useState<CompanyManagerRole['scope_level']>('company');
   const [roles, setRoles] = useState<EditableRole[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -232,6 +244,14 @@ export function ManagerRolesPage({ client, session }: Props) {
     );
   }
 
+  function updateRoleScope(roleId: string, draftScopeLevel: CompanyManagerRole['scope_level']) {
+    setRoles((current) =>
+      current.map((role) =>
+        role.company_manager_role_id === roleId ? { ...role, draftScopeLevel } : role,
+      ),
+    );
+  }
+
   async function handleAddRole() {
     if (!selectedCompanyId) {
       return;
@@ -243,6 +263,7 @@ export function ManagerRolesPage({ client, session }: Props) {
       const created = await createCompanyManagerRole(client, {
         companyId: selectedCompanyId,
         displayName: getNextRoleLabel(roles),
+        scopeLevel: newRoleScopeLevel,
       });
       setRoles((current) => [...current, toEditableRole(created)]);
       setStatusMessage(`${created.display_name} 역할을 추가했습니다.`);
@@ -255,7 +276,9 @@ export function ManagerRolesPage({ client, session }: Props) {
 
   async function handleSaveRole(role: EditableRole) {
     const nextName = role.draftDisplayName.trim();
-    if (!nextName || nextName === role.display_name) {
+    const hasNameChange = nextName !== role.display_name;
+    const hasScopeChange = role.draftScopeLevel !== role.scope_level;
+    if (!nextName || (!hasNameChange && !hasScopeChange)) {
       return;
     }
 
@@ -263,7 +286,8 @@ export function ManagerRolesPage({ client, session }: Props) {
     setErrorMessage(null);
     try {
       const updated = await updateCompanyManagerRole(client, role.company_manager_role_id, {
-        displayName: nextName,
+        ...(hasNameChange ? { displayName: nextName } : {}),
+        ...(hasScopeChange ? { scopeLevel: role.draftScopeLevel } : {}),
       });
       setRoles((current) =>
         current.map((item) =>
@@ -314,22 +338,41 @@ export function ManagerRolesPage({ client, session }: Props) {
       }
       contentClassName="stack role-catalog-content"
       filters={
-        <label className="field policy-role-field">
-          <span>회사</span>
-          <RoleDropdown
-            ariaLabel="회사"
-            disabled={isCompanyFixed || companyOptions.length === 0}
-            isOpen={openDropdown === 'company'}
-            onClose={() => setOpenDropdown(null)}
-            onSelect={(value) => {
-              setSelectedCompanyId(value);
-              setStatusMessage(null);
-            }}
-            onToggle={() => setOpenDropdown((current) => (current === 'company' ? null : 'company'))}
-            options={companyOptions}
-            value={selectedCompanyId}
-          />
-        </label>
+        <>
+          <label className="field policy-role-field">
+            <span>회사</span>
+            <RoleDropdown
+              ariaLabel="회사"
+              disabled={isCompanyFixed || companyOptions.length === 0}
+              isOpen={openDropdown === 'company'}
+              onClose={() => setOpenDropdown(null)}
+              onSelect={(value) => {
+                setSelectedCompanyId(value);
+                setStatusMessage(null);
+              }}
+              onToggle={() => setOpenDropdown((current) => (current === 'company' ? null : 'company'))}
+              options={companyOptions}
+              value={selectedCompanyId}
+            />
+          </label>
+          <label className="field policy-role-field">
+            <span>역할 범위</span>
+            <select
+              aria-label="역할 범위"
+              disabled={isLoading || isMutating}
+              onChange={(event) =>
+                setNewRoleScopeLevel(event.target.value as CompanyManagerRole['scope_level'])
+              }
+              value={newRoleScopeLevel}
+            >
+              {ROLE_SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
       }
       layoutClassName="role-catalog-page"
       subtitle="회사별 관리자 역할과 배정 상태를 같은 흐름에서 관리합니다."
@@ -368,8 +411,29 @@ export function ManagerRolesPage({ client, session }: Props) {
                 </div>
                 <div className="role-card-meta">
                   <code>{role.code}</code>
+                  <span>{getRoleScopeLabel(role.scope_level)}</span>
                   <span>배정 {role.assigned_count}명</span>
                 </div>
+                <label className="field role-card-scope-field">
+                  <span>{`${role.display_name} 역할 범위`}</span>
+                  <select
+                    aria-label={`${role.display_name} 역할 범위`}
+                    disabled={isMutating || role.assigned_count > 0 || role.is_system_required}
+                    onChange={(event) =>
+                      updateRoleScope(
+                        role.company_manager_role_id,
+                        event.target.value as CompanyManagerRole['scope_level'],
+                      )
+                    }
+                    value={role.draftScopeLevel}
+                  >
+                    {ROLE_SCOPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 {role.delete_block_reason ? <p className="role-card-rule">{role.delete_block_reason}</p> : null}
               </div>
               <div className="role-card-actions">
@@ -379,7 +443,8 @@ export function ManagerRolesPage({ client, session }: Props) {
                   disabled={
                     isMutating ||
                     role.draftDisplayName.trim() === '' ||
-                    role.draftDisplayName === role.display_name
+                    (role.draftDisplayName === role.display_name &&
+                      role.draftScopeLevel === role.scope_level)
                   }
                   onClick={() => void handleSaveRole(role)}
                   type="button"

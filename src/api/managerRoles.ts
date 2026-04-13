@@ -13,13 +13,14 @@ export function listCompanyManagerRoles(client: HttpClient, companyId: string) {
 
 export function createCompanyManagerRole(
   client: HttpClient,
-  payload: { companyId: string; displayName: string },
+  payload: { companyId: string; displayName: string; scopeLevel: 'company' | 'fleet' },
 ) {
   return client.request<CompanyManagerRole>('/auth/company-manager-roles/', {
     method: 'POST',
     body: JSON.stringify({
       company_id: payload.companyId,
       display_name: payload.displayName,
+      scope_level: payload.scopeLevel,
     }),
   });
 }
@@ -27,7 +28,11 @@ export function createCompanyManagerRole(
 export function updateCompanyManagerRole(
   client: HttpClient,
   roleId: string,
-  payload: { displayName?: string; allowedNavKeys?: string[] },
+  payload: {
+    displayName?: string;
+    allowedNavKeys?: string[];
+    scopeLevel?: 'company' | 'fleet';
+  },
 ) {
   const body: Record<string, unknown> = {};
   if (payload.displayName !== undefined) {
@@ -35,6 +40,9 @@ export function updateCompanyManagerRole(
   }
   if (payload.allowedNavKeys !== undefined) {
     body.allowed_nav_keys = payload.allowedNavKeys;
+  }
+  if (payload.scopeLevel !== undefined) {
+    body.scope_level = payload.scopeLevel;
   }
   return client.request<CompanyManagerRole>(`/auth/company-manager-roles/${roleId}/`, {
     method: 'PATCH',

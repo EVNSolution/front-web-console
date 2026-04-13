@@ -2965,6 +2965,16 @@ textarea:focus {
   font-size: 0.88rem;
 }
 
+.role-card-scope-field {
+  gap: 0.35rem;
+  max-width: 14rem;
+}
+
+.role-card-scope-field select {
+  min-height: 2.8rem;
+  padding: 0.7rem 0.85rem;
+}
+
 .panel-toolbar {
   display: flex;
   align-items: center;

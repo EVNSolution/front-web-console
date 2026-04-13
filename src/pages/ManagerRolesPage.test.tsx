@@ -46,6 +46,7 @@ const companyARoles = [
     company_id: 'company-a',
     code: 'company_super_admin',
     display_name: '회사 전체 관리자',
+    scope_level: 'company',
     is_system_required: true,
     is_default: true,
     assigned_count: 1,
@@ -57,6 +58,7 @@ const companyARoles = [
     company_id: 'company-a',
     code: 'vehicle_manager',
     display_name: '차량 관리자',
+    scope_level: 'company',
     is_system_required: false,
     is_default: true,
     assigned_count: 1,
@@ -68,6 +70,7 @@ const companyARoles = [
     company_id: 'company-a',
     code: 'custom_role_1',
     display_name: '배차 품질 관리자',
+    scope_level: 'fleet',
     is_system_required: false,
     is_default: false,
     assigned_count: 0,
@@ -112,6 +115,7 @@ describe('ManagerRolesPage', () => {
       company_id: 'company-a',
       code: 'custom_role_2',
       display_name: '새 관리자 역할 2',
+      scope_level: 'fleet',
       is_system_required: false,
       is_default: false,
       assigned_count: 0,
@@ -122,12 +126,14 @@ describe('ManagerRolesPage', () => {
     render(<ManagerRolesPage client={client} session={systemAdminSession} />);
 
     await screen.findByDisplayValue('배차 품질 관리자');
+    fireEvent.change(screen.getByLabelText('역할 범위'), { target: { value: 'fleet' } });
     fireEvent.click(screen.getByRole('button', { name: '역할 추가' }));
 
     await waitFor(() =>
       expect(createCompanyManagerRole).toHaveBeenCalledWith(client, {
         companyId: 'company-a',
         displayName: '새 관리자 역할 2',
+        scopeLevel: 'fleet',
       }),
     );
     expect(await screen.findByDisplayValue('새 관리자 역할 2')).toBeInTheDocument();

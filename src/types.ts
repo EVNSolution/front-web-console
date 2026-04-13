@@ -192,6 +192,7 @@ export type CompanyManagerRole = {
   company_id: string;
   code: string;
   display_name: string;
+  scope_level: 'company' | 'fleet';
   is_system_required: boolean;
   is_default: boolean;
   allowed_nav_keys: string[];
