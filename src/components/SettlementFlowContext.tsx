@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { listCompanies, listFleets } from '../api/organization';
 import type { HttpClient, SessionPayload } from '../api/http';
@@ -107,10 +107,13 @@ export function SettlementFlowProvider({ client, children, session }: Settlement
     };
   }, [assignedFleetIds, client, defaultFleetId, fixedCompanyId, selectorMode, showCompanySelector]);
 
-  const availableFleets =
-    assignedFleetIds.length > 0
-      ? fleets.filter((fleet) => assignedFleetIds.includes(fleet.fleet_id))
-      : getFleetOptions(fleets, selectedCompanyId);
+  const availableFleets = useMemo(
+    () =>
+      assignedFleetIds.length > 0
+        ? fleets.filter((fleet) => assignedFleetIds.includes(fleet.fleet_id))
+        : getFleetOptions(fleets, selectedCompanyId),
+    [assignedFleetIds, fleets, selectedCompanyId],
+  );
 
   useEffect(() => {
     if (selectorMode === 'locked') {
@@ -146,14 +149,14 @@ export function SettlementFlowProvider({ client, children, session }: Settlement
         companies,
         fleets,
         availableFleets,
-      selectedCompanyId,
-      selectedFleetId,
-      selectorMode,
-      showCompanySelector,
-      showFleetSelector,
-      isLoading,
-      errorMessage,
-      setSelectedCompanyId,
+        selectedCompanyId,
+        selectedFleetId,
+        selectorMode,
+        showCompanySelector,
+        showFleetSelector,
+        isLoading,
+        errorMessage,
+        setSelectedCompanyId,
         setSelectedFleetId,
       }}
     >

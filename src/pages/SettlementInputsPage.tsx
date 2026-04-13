@@ -82,7 +82,14 @@ function getPayloadNumber(payload: Record<string, unknown>, key: string) {
 }
 
 export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
-  const { selectedCompanyId, selectedFleetId } = useSettlementFlow();
+  const {
+    availableFleets,
+    isLoading: isContextLoading,
+    selectedCompanyId,
+    selectedFleetId,
+    showCompanySelector,
+    showFleetSelector,
+  } = useSettlementFlow();
   const [records, setRecords] = useState<DeliveryRecord[]>([]);
   const [snapshots, setSnapshots] = useState<DailyDeliveryInputSnapshot[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -96,6 +103,7 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isScopeReady = Boolean(selectedCompanyId) && (!showFleetSelector || Boolean(selectedFleetId));
 
   function getScopeFilters() {
     return {
@@ -106,6 +114,10 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
 
   function getDriverOptions(companyId: string, fleetId: string) {
     return drivers.filter((driver) => driver.company_id === companyId && driver.fleet_id === fleetId);
+  }
+
+  function getScopedFleetOptions(fleetList: Fleet[], companyId: string) {
+    return showCompanySelector ? getFleetOptions(fleetList, companyId) : availableFleets;
   }
 
   async function loadAll() {
@@ -119,49 +131,59 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
       listDrivers(client),
     ]);
 
-    setRecords(recordResponse);
-    setSnapshots(snapshotResponse);
-    setCompanies(companyResponse);
-    setFleets(fleetResponse);
-    setDrivers(driverResponse);
+    const nextRecords = Array.isArray(recordResponse) ? recordResponse : [];
+    const nextSnapshots = Array.isArray(snapshotResponse) ? snapshotResponse : [];
+    const nextCompanies = Array.isArray(companyResponse) ? companyResponse : [];
+    const nextFleets = Array.isArray(fleetResponse) ? fleetResponse : [];
+    const nextDrivers = Array.isArray(driverResponse) ? driverResponse : [];
+
+    setRecords(nextRecords);
+    setSnapshots(nextSnapshots);
+    setCompanies(nextCompanies);
+    setFleets(nextFleets);
+    setDrivers(nextDrivers);
 
     setRecordForm((current) => {
-      const nextCompanyId = current.company_id || companyResponse[0]?.company_id || '';
+      const nextCompanyId = current.company_id || nextCompanies[0]?.company_id || '';
+      const fleetOptions = getScopedFleetOptions(nextFleets, nextCompanyId);
       const nextFleetId =
-        getFleetOptions(fleetResponse, nextCompanyId).find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ??
-        getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ??
-        fleetResponse[0]?.fleet_id ??
+        (showFleetSelector
+          ? fleetOptions.find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ?? fleetOptions[0]?.fleet_id
+          : selectedFleetId) ??
+        nextFleets[0]?.fleet_id ??
         '';
       const nextDriverId =
-        driverResponse.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
-        getDriverOptionsFromList(driverResponse, nextCompanyId, nextFleetId)[0]?.driver_id ??
-        driverResponse[0]?.driver_id ??
+        nextDrivers.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
+        getDriverOptionsFromList(nextDrivers, nextCompanyId, nextFleetId)[0]?.driver_id ??
+        nextDrivers[0]?.driver_id ??
         '';
 
       return {
         ...current,
-        company_id: nextCompanyId,
+        company_id: showCompanySelector ? nextCompanyId : selectedCompanyId || nextCompanyId,
         fleet_id: nextFleetId,
         driver_id: nextDriverId,
       };
     });
 
     setSnapshotForm((current) => {
-      const nextCompanyId = current.company_id || companyResponse[0]?.company_id || '';
+      const nextCompanyId = current.company_id || nextCompanies[0]?.company_id || '';
+      const fleetOptions = getScopedFleetOptions(nextFleets, nextCompanyId);
       const nextFleetId =
-        getFleetOptions(fleetResponse, nextCompanyId).find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ??
-        getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ??
-        fleetResponse[0]?.fleet_id ??
+        (showFleetSelector
+          ? fleetOptions.find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ?? fleetOptions[0]?.fleet_id
+          : selectedFleetId) ??
+        nextFleets[0]?.fleet_id ??
         '';
       const nextDriverId =
-        driverResponse.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
-        getDriverOptionsFromList(driverResponse, nextCompanyId, nextFleetId)[0]?.driver_id ??
-        driverResponse[0]?.driver_id ??
+        nextDrivers.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
+        getDriverOptionsFromList(nextDrivers, nextCompanyId, nextFleetId)[0]?.driver_id ??
+        nextDrivers[0]?.driver_id ??
         '';
 
       return {
         ...current,
-        company_id: nextCompanyId,
+        company_id: showCompanySelector ? nextCompanyId : selectedCompanyId || nextCompanyId,
         fleet_id: nextFleetId,
         driver_id: nextDriverId,
       };
@@ -170,6 +192,13 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
 
   useEffect(() => {
     let ignore = false;
+
+    if (isContextLoading || !isScopeReady) {
+      setIsLoading(true);
+      return () => {
+        ignore = true;
+      };
+    }
 
     async function load() {
       const scopeFilters = getScopeFilters();
@@ -189,49 +218,57 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
           return;
         }
 
-        setRecords(recordResponse);
-        setSnapshots(snapshotResponse);
-        setCompanies(companyResponse);
-        setFleets(fleetResponse);
-        setDrivers(driverResponse);
+        const nextRecords = Array.isArray(recordResponse) ? recordResponse : [];
+        const nextSnapshots = Array.isArray(snapshotResponse) ? snapshotResponse : [];
+        const nextCompanies = Array.isArray(companyResponse) ? companyResponse : [];
+        const nextFleets = Array.isArray(fleetResponse) ? fleetResponse : [];
+        const nextDrivers = Array.isArray(driverResponse) ? driverResponse : [];
+
+        setRecords(nextRecords);
+        setSnapshots(nextSnapshots);
+        setCompanies(nextCompanies);
+        setFleets(nextFleets);
+        setDrivers(nextDrivers);
         setRecordForm((current) => {
-          const nextCompanyId = current.company_id || companyResponse[0]?.company_id || '';
+          const nextCompanyId = current.company_id || nextCompanies[0]?.company_id || '';
+          const fleetOptions = getScopedFleetOptions(nextFleets, nextCompanyId);
           const nextFleetId =
-            getFleetOptions(fleetResponse, nextCompanyId).find((fleet) => fleet.fleet_id === current.fleet_id)
-              ?.fleet_id ??
-            getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ??
-            fleetResponse[0]?.fleet_id ??
+            (showFleetSelector
+              ? fleetOptions.find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ?? fleetOptions[0]?.fleet_id
+              : selectedFleetId) ??
+            nextFleets[0]?.fleet_id ??
             '';
           const nextDriverId =
-            driverResponse.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
-            getDriverOptionsFromList(driverResponse, nextCompanyId, nextFleetId)[0]?.driver_id ??
-            driverResponse[0]?.driver_id ??
+            nextDrivers.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
+            getDriverOptionsFromList(nextDrivers, nextCompanyId, nextFleetId)[0]?.driver_id ??
+            nextDrivers[0]?.driver_id ??
             '';
 
           return {
             ...current,
-            company_id: nextCompanyId,
+            company_id: showCompanySelector ? nextCompanyId : selectedCompanyId || nextCompanyId,
             fleet_id: nextFleetId,
             driver_id: nextDriverId,
           };
         });
         setSnapshotForm((current) => {
-          const nextCompanyId = current.company_id || companyResponse[0]?.company_id || '';
+          const nextCompanyId = current.company_id || nextCompanies[0]?.company_id || '';
+          const fleetOptions = getScopedFleetOptions(nextFleets, nextCompanyId);
           const nextFleetId =
-            getFleetOptions(fleetResponse, nextCompanyId).find((fleet) => fleet.fleet_id === current.fleet_id)
-              ?.fleet_id ??
-            getFleetOptions(fleetResponse, nextCompanyId)[0]?.fleet_id ??
-            fleetResponse[0]?.fleet_id ??
+            (showFleetSelector
+              ? fleetOptions.find((fleet) => fleet.fleet_id === current.fleet_id)?.fleet_id ?? fleetOptions[0]?.fleet_id
+              : selectedFleetId) ??
+            nextFleets[0]?.fleet_id ??
             '';
           const nextDriverId =
-            driverResponse.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
-            getDriverOptionsFromList(driverResponse, nextCompanyId, nextFleetId)[0]?.driver_id ??
-            driverResponse[0]?.driver_id ??
+            nextDrivers.find((driver) => driver.driver_id === current.driver_id)?.driver_id ??
+            getDriverOptionsFromList(nextDrivers, nextCompanyId, nextFleetId)[0]?.driver_id ??
+            nextDrivers[0]?.driver_id ??
             '';
 
           return {
             ...current,
-            company_id: nextCompanyId,
+            company_id: showCompanySelector ? nextCompanyId : selectedCompanyId || nextCompanyId,
             fleet_id: nextFleetId,
             driver_id: nextDriverId,
           };
@@ -251,7 +288,7 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
     return () => {
       ignore = true;
     };
-  }, [client, selectedCompanyId, selectedFleetId]);
+  }, [availableFleets, client, isContextLoading, isScopeReady, selectedCompanyId, selectedFleetId, showCompanySelector, showFleetSelector]);
 
   function getDriverOptionsFromList(driverList: DriverProfile[], companyId: string, fleetId: string) {
     return driverList.filter((driver) => driver.company_id === companyId && driver.fleet_id === fleetId);
@@ -259,11 +296,8 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
 
   function resetRecordForm() {
     const companyId = selectedCompanyId || companies[0]?.company_id || '';
-    const fleetId =
-      selectedFleetId ||
-      getFleetOptions(fleets, companyId)[0]?.fleet_id ||
-      fleets[0]?.fleet_id ||
-      '';
+    const fleetOptions = getScopedFleetOptions(fleets, companyId);
+    const fleetId = (showFleetSelector ? selectedFleetId || fleetOptions[0]?.fleet_id : selectedFleetId) || fleets[0]?.fleet_id || '';
     setEditingRecordId(null);
     setRecordForm({
       ...DEFAULT_RECORD_FORM,
@@ -275,11 +309,8 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
 
   function resetSnapshotForm() {
     const companyId = selectedCompanyId || companies[0]?.company_id || '';
-    const fleetId =
-      selectedFleetId ||
-      getFleetOptions(fleets, companyId)[0]?.fleet_id ||
-      fleets[0]?.fleet_id ||
-      '';
+    const fleetOptions = getScopedFleetOptions(fleets, companyId);
+    const fleetId = (showFleetSelector ? selectedFleetId || fleetOptions[0]?.fleet_id : selectedFleetId) || fleets[0]?.fleet_id || '';
     setEditingSnapshotId(null);
     setSnapshotForm({
       ...DEFAULT_SNAPSHOT_FORM,
@@ -290,7 +321,7 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
   }
 
   function handleRecordCompanyChange(companyId: string) {
-    const fleetId = getFleetOptions(fleets, companyId)[0]?.fleet_id ?? '';
+    const fleetId = getScopedFleetOptions(fleets, companyId)[0]?.fleet_id ?? '';
     setRecordForm((current) => ({
       ...current,
       company_id: companyId,
@@ -308,7 +339,7 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
   }
 
   function handleSnapshotCompanyChange(companyId: string) {
-    const fleetId = getFleetOptions(fleets, companyId)[0]?.fleet_id ?? '';
+    const fleetId = getScopedFleetOptions(fleets, companyId)[0]?.fleet_id ?? '';
     setSnapshotForm((current) => ({
       ...current,
       company_id: companyId,
@@ -806,26 +837,30 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
         title={editingRecordId ? '배송 원천 입력 수정' : '배송 원천 입력 생성'}
       >
         <form className="form-stack" onSubmit={handleRecordSubmit}>
-          <label className="field">
-            <span>회사</span>
-            <select onChange={(event) => handleRecordCompanyChange(event.target.value)} value={recordForm.company_id}>
-              {companies.map((company) => (
-                <option key={company.company_id} value={company.company_id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>플릿</span>
-            <select onChange={(event) => handleRecordFleetChange(event.target.value)} value={recordForm.fleet_id}>
-              {getFleetOptions(fleets, recordForm.company_id).map((fleet) => (
-                <option key={fleet.fleet_id} value={fleet.fleet_id}>
-                  {fleet.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {showCompanySelector ? (
+            <label className="field">
+              <span>회사</span>
+              <select onChange={(event) => handleRecordCompanyChange(event.target.value)} value={recordForm.company_id}>
+                {companies.map((company) => (
+                  <option key={company.company_id} value={company.company_id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {showFleetSelector ? (
+            <label className="field">
+              <span>플릿</span>
+              <select onChange={(event) => handleRecordFleetChange(event.target.value)} value={recordForm.fleet_id}>
+                {getScopedFleetOptions(fleets, recordForm.company_id).map((fleet) => (
+                  <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                    {fleet.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="field">
             <span>배송원</span>
             <select
@@ -920,32 +955,36 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
         title={editingSnapshotId ? '일별 snapshot 수정' : '일별 snapshot 생성'}
       >
         <form className="form-stack" onSubmit={handleSnapshotSubmit}>
-          <label className="field">
-            <span>회사</span>
-            <select
-              onChange={(event) => handleSnapshotCompanyChange(event.target.value)}
-              value={snapshotForm.company_id}
-            >
-              {companies.map((company) => (
-                <option key={company.company_id} value={company.company_id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>플릿</span>
-            <select
-              onChange={(event) => handleSnapshotFleetChange(event.target.value)}
-              value={snapshotForm.fleet_id}
-            >
-              {getFleetOptions(fleets, snapshotForm.company_id).map((fleet) => (
-                <option key={fleet.fleet_id} value={fleet.fleet_id}>
-                  {fleet.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {showCompanySelector ? (
+            <label className="field">
+              <span>회사</span>
+              <select
+                onChange={(event) => handleSnapshotCompanyChange(event.target.value)}
+                value={snapshotForm.company_id}
+              >
+                {companies.map((company) => (
+                  <option key={company.company_id} value={company.company_id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {showFleetSelector ? (
+            <label className="field">
+              <span>플릿</span>
+              <select
+                onChange={(event) => handleSnapshotFleetChange(event.target.value)}
+                value={snapshotForm.fleet_id}
+              >
+                {getScopedFleetOptions(fleets, snapshotForm.company_id).map((fleet) => (
+                  <option key={fleet.fleet_id} value={fleet.fleet_id}>
+                    {fleet.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="field">
             <span>배송원</span>
             <select
