@@ -95,6 +95,9 @@ describe('SupportPage', () => {
     await screen.findByRole('heading', { name: '지원 관리' });
     expect(screen.getAllByText('로그인이 안 됩니다').length).toBeGreaterThan(0);
     expect(await screen.findByText('원인 확인 중입니다.')).toBeInTheDocument();
+    expect(
+      screen.getByText('답변을 등록하면 요청자에게 일반 알림이 자동 생성됩니다. Push는 자동 발송되지 않습니다.'),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('답변 내용'), {
       target: { value: '브라우저 캐시 초기화를 안내했습니다.' },
@@ -151,7 +154,7 @@ describe('SupportPage', () => {
     expect(apiMocks.listSupportTickets).toHaveBeenCalledWith(expect.anything(), {
       requester_account_id: '20000000-0000-0000-0000-000000000002',
     });
-    expect(screen.getByText('관리자 답변은 이 화면과 알림함에서 함께 확인할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.getByText('관리자 답변은 이 화면에서 확인합니다.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('문의 제목'), { target: { value: '앱 접속 문의' } });
     fireEvent.change(screen.getByLabelText('문의 본문'), { target: { value: '웹만 열리고 앱 안내가 없습니다.' } });

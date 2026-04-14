@@ -119,6 +119,12 @@ vi.mock('./api/vehicles', () => ({
   listVehicleMasters: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('./api/driverAccountLinks', () => ({
+  listDriverAccountLinks: vi.fn().mockResolvedValue([]),
+  createDriverAccountLink: vi.fn(),
+  unlinkDriverAccountLink: vi.fn(),
+}));
+
 vi.mock('./api/settlementRegistry', () => ({
   getSettlementConfigMetadata: vi.fn().mockResolvedValue({
     sections: [
@@ -158,6 +164,7 @@ vi.mock('./api/settlementRegistry', () => ({
     meal_allowance: '0.0000',
   }),
   updateSettlementConfig: vi.fn(),
+  listSettlementPricingTables: vi.fn().mockResolvedValue([]),
   listSettlementPolicies: vi.fn(),
   createSettlementPolicy: vi.fn(),
   updateSettlementPolicy: vi.fn(),
@@ -246,6 +253,15 @@ describe('Admin App', () => {
   it('uses the unified dashboard as the root route', async () => {
     render(<App />);
 
+    expect(await screen.findByText('운영 요약')).toBeInTheDocument();
+  });
+
+  it('redirects removed /notifications to the dashboard root', async () => {
+    window.history.replaceState({}, '', '/notifications');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
     expect(await screen.findByText('운영 요약')).toBeInTheDocument();
   });
 
@@ -340,8 +356,8 @@ describe('Admin App', () => {
     expect(screen.getByRole('link', { name: '정산 입력' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산 실행' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산 결과' })).toBeInTheDocument();
-    expect(screen.getByLabelText('회사')).toBeInTheDocument();
-    expect(screen.getByLabelText('플릿')).toBeInTheDocument();
+    expect(screen.queryByLabelText('회사')).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText('플릿').length).toBeGreaterThan(1);
   });
 
   it('redirects to the dashboard root after login regardless of the entry route', async () => {
@@ -379,7 +395,7 @@ describe('Admin App', () => {
     await user.click(screen.getByRole('link', { name: '배송원' }));
 
     await waitFor(() => expect(window.location.pathname).toBe('/drivers'));
-    expect(await screen.findByRole('heading', { name: '배송원 목록' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '배송원' })).toBeInTheDocument();
   });
 
   it('normalizes the browser URL to the root route while showing the login screen', async () => {
@@ -446,7 +462,7 @@ describe('Admin App', () => {
     await user.click(screen.getByRole('link', { name: '배송원' }));
 
     await waitFor(() => expect(window.location.pathname).toBe('/drivers'));
-    expect(await screen.findByRole('heading', { name: '배송원 목록' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '배송원' })).toBeInTheDocument();
   });
 
   it('renders the local-only /block route and previews both top notice tones', async () => {

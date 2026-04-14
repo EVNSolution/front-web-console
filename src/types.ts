@@ -117,36 +117,6 @@ export type SupportTicketResponse = {
   updated_at: string;
 };
 
-export type GeneralNotification = {
-  notification_id: string;
-  recipient_account_id: string;
-  category: string;
-  source_type: string;
-  source_ref: string;
-  title: string;
-  body: string;
-  status: 'unread' | 'read' | 'archived';
-  created_at: string;
-  read_at: string | null;
-  archived_at: string | null;
-};
-
-export type PushDeliveryLog = {
-  delivery_log_id: string;
-  target_account_id: string;
-  push_token_id: string | null;
-  channel: string;
-  event_type: string;
-  title: string;
-  body: string;
-  delivery_status: 'simulated_sent' | 'failed';
-  provider_message_id: string;
-  failure_reason: string;
-  inbox_notification_id: string | null;
-  requested_by_account_id: string;
-  requested_at: string;
-  delivered_at: string | null;
-};
 
 export type ManagerAccountSummary = {
   manager_account_id: string;

@@ -260,7 +260,7 @@ function SelfServiceSupportPage({ client, requesterAccountId }: SupportListProps
                     <div className="panel-header">
                       <h3>응답</h3>
                     </div>
-                    <p className="empty-state">관리자 답변은 이 화면과 알림함에서 함께 확인할 수 있습니다.</p>
+                    <p className="empty-state">관리자 답변은 이 화면에서 확인합니다.</p>
                     <SupportResponses client={client} selectedTicketId={selectedTicketId} />
                   </article>
                   <label className="field">
@@ -513,7 +513,7 @@ function ManagementSupportPage({ client }: { client: HttpClient }) {
                 <span>답변 내용</span>
                 <textarea aria-label="답변 내용" onChange={(event) => setResponseBody(event.target.value)} rows={4} value={responseBody} />
               </label>
-              <p className="empty-state">답변을 등록하면 요청자 알림함에 일반 알림이 자동 생성됩니다. Push는 자동 발송되지 않습니다.</p>
+              <p className="empty-state">답변을 등록하면 요청자에게 일반 알림이 자동 생성됩니다. Push는 자동 발송되지 않습니다.</p>
               <button className="button primary" onClick={() => void handleCreateResponse()} type="button">
                 답변 등록
               </button>

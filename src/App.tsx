@@ -64,7 +64,6 @@ import { LoginPage } from './pages/LoginPage';
 import { ManagerNavigationPolicyPage } from './pages/ManagerNavigationPolicyPage';
 import { ManagerRolesPage } from './pages/ManagerRolesPage';
 import { ConsentRecoveryPage } from './pages/ConsentRecoveryPage';
-import { NotificationsPage } from './pages/NotificationsPage';
 import { PersonnelDocumentDetailPage } from './pages/PersonnelDocumentDetailPage';
 import { PersonnelDocumentFormPage } from './pages/PersonnelDocumentFormPage';
 import { PersonnelDocumentsPage } from './pages/PersonnelDocumentsPage';
@@ -713,10 +712,6 @@ export default function App() {
                   <Navigate replace to="/" />
                 )
               }
-            />
-            <Route
-              path="/notifications"
-              element={<NotificationsPage client={client} session={session} />}
             />
             <Route
               path="/regions"
