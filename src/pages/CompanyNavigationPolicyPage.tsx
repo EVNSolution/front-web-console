@@ -48,6 +48,17 @@ const EDITABLE_NAV_KEYS = allNavItemKeys.filter(
   (key) => key !== 'manager_navigation_policy' && key !== 'company_navigation_policy',
 );
 
+function normalizeEditableNavKeys(navKeys: readonly string[]) {
+  return EDITABLE_NAV_KEYS.filter((key) => navKeys.includes(key));
+}
+
+function normalizeCompanyManagerRole(role: CompanyManagerRole): CompanyManagerRole {
+  return {
+    ...role,
+    allowed_nav_keys: normalizeEditableNavKeys(role.allowed_nav_keys),
+  };
+}
+
 type Props = {
   client: HttpClient;
   session: SessionPayload;
@@ -96,9 +107,11 @@ export function CompanyNavigationPolicyPage({ client, session }: Props) {
         if (ignore) {
           return;
         }
-        setRoles(response.roles);
-        const firstEditableRole = response.roles.find((role) => role.code !== 'company_super_admin') ?? null;
-        if (!response.roles.some((role) => role.company_manager_role_id === selectedRoleId)) {
+        const normalizedRoles = response.roles.map(normalizeCompanyManagerRole);
+        setRoles(normalizedRoles);
+        const firstEditableRole =
+          normalizedRoles.find((role) => role.code !== 'company_super_admin') ?? null;
+        if (!normalizedRoles.some((role) => role.company_manager_role_id === selectedRoleId)) {
           setSelectedRoleId(firstEditableRole?.company_manager_role_id ?? '');
         }
       })
@@ -133,7 +146,7 @@ export function CompanyNavigationPolicyPage({ client, session }: Props) {
           : [...role.allowed_nav_keys, navKey];
         return {
           ...role,
-          allowed_nav_keys: EDITABLE_NAV_KEYS.filter((key) => nextKeys.includes(key)),
+          allowed_nav_keys: normalizeEditableNavKeys(nextKeys),
         };
       }),
     );
@@ -148,12 +161,15 @@ export function CompanyNavigationPolicyPage({ client, session }: Props) {
     setErrorMessage(null);
     setStatusMessage(null);
     try {
+      const normalizedAllowedNavKeys = normalizeEditableNavKeys(selectedRole.allowed_nav_keys);
       const updatedRole = await updateCompanyManagerRole(client, selectedRole.company_manager_role_id, {
-        allowedNavKeys: selectedRole.allowed_nav_keys,
+        allowedNavKeys: normalizedAllowedNavKeys,
       });
       setRoles((current) =>
         current.map((role) =>
-          role.company_manager_role_id === updatedRole.company_manager_role_id ? updatedRole : role,
+          role.company_manager_role_id === updatedRole.company_manager_role_id
+            ? normalizeCompanyManagerRole(updatedRole)
+            : role,
         ),
       );
       setStatusMessage('회사 메뉴 정책을 저장했습니다.');

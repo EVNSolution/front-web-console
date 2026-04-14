@@ -36,7 +36,7 @@ describe('CompanyNavigationPolicyPage', () => {
           display_name: '차량 관리자',
           is_system_required: false,
           is_default: true,
-          allowed_nav_keys: ['dashboard', 'vehicles'],
+          allowed_nav_keys: ['dashboard', 'vehicles', 'notifications'],
           assigned_count: 1,
           can_delete: false,
           delete_block_reason: '배정된 관리자가 있습니다.',
@@ -134,6 +134,27 @@ describe('CompanyNavigationPolicyPage', () => {
         '80000000-0000-0000-0000-000000000002',
         {
           allowedNavKeys: ['dashboard', 'vehicles', 'vehicle_assignments'],
+        },
+      );
+    });
+
+    expect(updateCompanyManagerRole.mock.calls[0][2].allowedNavKeys).not.toContain('notifications');
+  });
+
+  it('omits legacy notifications keys from untouched backend role payloads on save', async () => {
+    render(<CompanyNavigationPolicyPage client={{ request: vi.fn() }} session={session} />);
+
+    await screen.findByRole('heading', { name: '회사 메뉴 정책' });
+    expect(screen.queryByLabelText('알림')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => {
+      expect(updateCompanyManagerRole).toHaveBeenCalledWith(
+        expect.anything(),
+        '80000000-0000-0000-0000-000000000002',
+        {
+          allowedNavKeys: ['dashboard', 'vehicles'],
         },
       );
     });

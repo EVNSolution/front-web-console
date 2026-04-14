@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getNavigationPolicy } from '../api/navigationPolicy';
 import type { HttpClient, SessionPayload } from '../api/http';
 import { getErrorMessage } from '../api/http';
-import { getDefaultAllowedNavKeys, type NavItemKey } from '../authScopes';
+import { allNavItemKeys, getDefaultAllowedNavKeys, type NavItemKey } from '../authScopes';
 
 type NavigationPolicyState = {
   allowedNavKeys: NavItemKey[];
@@ -15,6 +15,10 @@ type NavigationPolicyState = {
 type StoredNavigationPolicyState = NavigationPolicyState & {
   sessionKey: string | null;
 };
+
+function filterSupportedNavKeys(navKeys: readonly string[]): NavItemKey[] {
+  return allNavItemKeys.filter((key) => navKeys.includes(key));
+}
 
 function getSessionKey(session: SessionPayload | null) {
   if (session === null) {
@@ -90,7 +94,7 @@ export function useNavigationPolicyWithRefresh(
           return;
         }
         setState({
-          allowedNavKeys: policy.allowed_nav_keys as NavItemKey[],
+          allowedNavKeys: filterSupportedNavKeys(policy.allowed_nav_keys),
           isLoading: false,
           errorMessage: null,
           source: policy.source,
