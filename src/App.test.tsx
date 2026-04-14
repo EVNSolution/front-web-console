@@ -357,7 +357,7 @@ describe('Admin App', () => {
     expect(screen.getByRole('link', { name: '정산 실행' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산 결과' })).toBeInTheDocument();
     expect(screen.queryByLabelText('회사')).not.toBeInTheDocument();
-    expect(screen.getAllByLabelText('플릿').length).toBeGreaterThan(1);
+    expect(screen.getAllByRole('combobox', { name: '플릿' })).toHaveLength(2);
   });
 
   it('redirects to the dashboard root after login regardless of the entry route', async () => {
