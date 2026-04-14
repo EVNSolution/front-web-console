@@ -246,19 +246,6 @@ test('administrator can create a support reply from console UI', async ({ page }
   await expect(page.getByText(replyBody)).toBeVisible({ timeout: 15_000 });
 });
 
-test('seeded notification data is visible in console pages', async ({ page }) => {
-  await signIn(page);
-  const mainNavigation = page.getByLabel('주 메뉴');
-
-  await mainNavigation.getByRole('link', { name: '알림', exact: true }).click();
-  await expect(page).toHaveURL(/\/notifications$/);
-  await expect(page.locator('.page-layout-title', { hasText: '알림 관리' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '발송 입력' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '일반 알림' })).toBeVisible();
-  await expect(page.locator('body')).toContainText('Operator Policy Updated', { timeout: 15_000 });
-  await expect(page.locator('body')).toContainText('Support Ticket Closed', { timeout: 15_000 });
-});
-
 test('seeded administrator can access self-service page', async ({ page }) => {
   await signIn(page);
   const mainNavigation = page.getByLabel('주 메뉴');

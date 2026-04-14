@@ -22,7 +22,6 @@ const NAV_GROUPS: { label: string; items: { key: string; label: string }[] }[] =
       { key: 'accounts', label: '계정 요청' },
       { key: 'announcements', label: '공지' },
       { key: 'support', label: '지원' },
-      { key: 'notifications', label: '알림' },
     ],
   },
   {

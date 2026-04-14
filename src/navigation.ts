@@ -149,13 +149,6 @@ const operationsItems: NavigationItem[] = [
     isVisible: canAccessAccountsScope,
     matchPrefixes: ['/support'],
   },
-  {
-    key: 'notifications',
-    label: '알림',
-    to: '/notifications',
-    isVisible: canAccessAccountsScope,
-    matchPrefixes: ['/notifications'],
-  },
 ];
 
 const dispatchItems: NavigationItem[] = [

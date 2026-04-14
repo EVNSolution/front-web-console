@@ -11,7 +11,6 @@ export type NavItemKey =
   | 'accounts'
   | 'announcements'
   | 'support'
-  | 'notifications'
   | 'companies'
   | 'regions'
   | 'vehicles'
@@ -30,7 +29,6 @@ export const allNavItemKeys: NavItemKey[] = [
   'accounts',
   'announcements',
   'support',
-  'notifications',
   'companies',
   'regions',
   'vehicles',
@@ -158,10 +156,6 @@ export function canManageSupportScope(session: SessionPayload) {
   return canManageAnnouncementScope(session);
 }
 
-export function canManageNotificationScope(session: SessionPayload) {
-  return canManageAnnouncementScope(session);
-}
-
 export function canManageCompanySuperAdmin(session: SessionPayload) {
   return isSystemAdmin(session);
 }
@@ -214,7 +208,6 @@ export function getDefaultAllowedNavKeys(session: SessionPayload): NavItemKey[] 
     allowed.add('accounts');
     allowed.add('announcements');
     allowed.add('support');
-    allowed.add('notifications');
   }
 
   if (canAccessCompanyScope(session)) {

@@ -123,6 +123,7 @@ describe('CompanyNavigationPolicyPage', () => {
       '30000000-0000-0000-0000-000000000001',
     );
     expect(screen.getByRole('option', { name: '배차 운영 관리자' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('알림')).not.toBeInTheDocument();
 
     fireEvent.click(await screen.findByLabelText('차량 배정'));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));

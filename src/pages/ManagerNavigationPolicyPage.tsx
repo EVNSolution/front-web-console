@@ -74,7 +74,6 @@ const POLICY_NAV_KEY_ORDER = [
   'accounts',
   'announcements',
   'support',
-  'notifications',
   'companies',
   'regions',
   'vehicles',

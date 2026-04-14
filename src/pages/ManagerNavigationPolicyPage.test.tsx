@@ -33,7 +33,6 @@ const companyARoles = [
       'accounts',
       'announcements',
       'support',
-      'notifications',
       'companies',
       'regions',
       'vehicles',
@@ -60,7 +59,6 @@ const companyARoles = [
       'accounts',
       'announcements',
       'support',
-      'notifications',
       'regions',
       'vehicles',
       'drivers',
@@ -88,7 +86,6 @@ describe('ManagerNavigationPolicyPage', () => {
         'accounts',
         'announcements',
         'support',
-        'notifications',
         'regions',
         'vehicles',
         'vehicle_assignments',
@@ -155,8 +152,8 @@ describe('ManagerNavigationPolicyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '역할' }));
     fireEvent.click(screen.getByRole('option', { name: '차량 관리자' }));
 
-    expect(screen.getByText('저장된 메뉴 10개')).toBeInTheDocument();
-    expect(screen.getByText('현재 허용 10개')).toBeInTheDocument();
+    expect(screen.getByText('저장된 메뉴 9개')).toBeInTheDocument();
+    expect(screen.getByText('현재 허용 9개')).toBeInTheDocument();
     expect(screen.queryByText('변경 중')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '취소' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument();
@@ -194,7 +191,6 @@ describe('ManagerNavigationPolicyPage', () => {
           'accounts',
           'announcements',
           'support',
-          'notifications',
           'regions',
           'vehicles',
           'vehicle_assignments',
