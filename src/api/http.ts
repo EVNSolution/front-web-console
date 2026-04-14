@@ -54,7 +54,14 @@ export class ApiError extends Error {
 
 export const GENERIC_SERVER_ERROR_MESSAGE = '서버 요청을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.';
 
-export const DEFAULT_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
+export function resolveDefaultApiBaseUrl(rawBaseUrl: string | undefined): string {
+  const normalized = rawBaseUrl?.trim();
+  return normalized && normalized.length > 0 ? normalized : '/api';
+}
+
+export const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL as string | undefined,
+);
 
 export function resolveApiUrl(baseUrl: string, path: string): string {
   const sanitizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
