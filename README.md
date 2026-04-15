@@ -1,5 +1,7 @@
 # front-web-console
 
+## Purpose / Boundary
+
 이 repo는 현재 플랫폼의 단일 웹 콘솔 runtime을 소유한다.
 
 현재 역할:
@@ -24,17 +26,27 @@
 - 사용자-facing current truth는 `통합 웹 콘솔`이다.
 - 별도 `front-operator-console`는 active runtime이 아니라 legacy reference다.
 
-아키텍처 정본:
-- `../../docs/contracts/`
-- `../../docs/boundaries/`
-- `../../docs/decisions/specs/2026-04-06-single-web-console-cutover-design.md`
+## Runtime Contract / Local Role
 
-런타임 규칙:
 - `npm run dev`는 host 개발용 `http://localhost:5174`를 소유한다.
 - Docker image는 `npm run dev`를 띄우지 않고, `npm run build` 결과물을 정적으로 서빙한다.
 - 통합 확인용 `http://localhost:8080`은 gateway 뒤의 built frontend 기준으로 본다.
 
-원격 API 개발 모드:
+## Local Run / Verification
+
+- 빠른 UI loop: `npm run dev`
+- safer remote target 확인: `npm run dev:local-test`
+- static bundle 검증: `npm run build`
+
+## Image Build / Deploy Contract
+
+- GitHub Actions workflow 이름은 `Build front-web-console image`다.
+- workflow는 immutable `front-web-console:<sha>` 이미지를 ECR로 publish 한다.
+- `workflow_dispatch`에서는 optional `vite_api_base_url` input으로 baked API base URL을 줄 수 있다.
+- shared ECS deploy, ALB, ACM, Route53 관리는 `../infra-ev-dashboard-platform/` 이 소유한다.
+
+## Environment Files And Safety Notes
+
 - `VITE_DEV_PROXY_TARGET`을 사용하면 `5174`의 `/api`를 remote gateway로 프록시할 수 있다.
 - `.env.local`은 실데이터 remote target에 붙을 때만 사용한다.
 - `.env.local-test`는 dev/staging 같은 더 안전한 remote target에 우선 사용한다.
@@ -44,3 +56,15 @@
 - 기본 테스트/시연은 `.env.local-test` 기준으로 하고, `ev-dashboard.com`은 실데이터 확인과 배포 검증에서만 사용한다.
 - `hub.evnlogistics.com`은 legacy bridge/historical reference일 뿐, current operator 기본 target이 아니다.
 - 경고: 현재 로컬 프론트 테스트의 CRUD는 실제 DB에 영향을 줍니다. 변경을 원하면, PROXY TARGET을 변경하십시오.
+
+## Key Tests Or Verification Commands
+
+- unit/component: `npm run test`
+- browser smoke: `npm run test:e2e`
+
+## Root Docs / Runbooks
+
+- `../../docs/contracts/`
+- `../../docs/boundaries/`
+- `../../docs/decisions/specs/2026-04-06-single-web-console-cutover-design.md`
+- `../../docs/runbooks/ev-dashboard-preprod-release-gate.md`
