@@ -145,6 +145,26 @@ export type Company = {
   name: string;
 };
 
+export type TenantCompanyContext = {
+  companyId: string;
+  companyName: string;
+  tenantCode: string;
+  workflowProfile: string;
+  enabledFeatures: string[];
+  homeDashboardPreset: Record<string, unknown>;
+  workspacePresets: Record<string, unknown>;
+};
+
+export type WorkspaceBootstrapPayload = {
+  companyId: string | null;
+  companyName: string | null;
+  tenantCode: string | null;
+  workflowProfile: string;
+  enabledFeatures: string[];
+  homeDashboardPreset: Record<string, unknown>;
+  workspacePresets: Record<string, unknown>;
+};
+
 export type Fleet = {
   fleet_id: string;
   route_no?: number;

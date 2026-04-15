@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import { login, logout, signupRequestIntake } from './api/auth';
+import { resolvePublicCompanyTenant } from './api/companyTenant';
 import {
   createHttpClient,
   DEFAULT_API_BASE_URL,
@@ -11,6 +12,7 @@ import {
   type SessionPayload,
 } from './api/http';
 import { listPublicCompanies } from './api/organization';
+import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
 import { Layout } from './components/Layout';
 import {
   DISPLAY_DURATION_MS,
@@ -22,6 +24,9 @@ import {
   resolveTopNotificationTemplate,
   type TopNotificationTemplateKey,
 } from './components/topNotificationTemplates';
+import { CockpitShell } from './cockpit/CockpitShell';
+import { CheonhaDashboardPage } from './cockpit/cheonha/CheonhaDashboardPage';
+import { CheonhaSettlementWorkspace } from './cockpit/cheonha/CheonhaSettlementWorkspace';
 import { RequireAdmin } from './components/RequireAdmin';
 import { RequireRoleScope } from './components/RequireRoleScope';
 import { SettlementSectionLayout } from './components/SettlementSectionLayout';
@@ -85,6 +90,8 @@ import { VehicleFormPage } from './pages/VehicleFormPage';
 import { VehicleOperatorAccessFormPage } from './pages/VehicleOperatorAccessFormPage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { clearStoredSession, loadStoredSession, persistSession } from './sessionPersistence';
+import { resolveTenantEntry } from './tenant/resolveTenantEntry';
+import type { TenantCompanyContext, WorkspaceBootstrapPayload } from './types';
 import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { accountItem, dashboardItem, isNavigationItemActive, navigationGroups } from './navigation';
 import type { NavItemKey } from './authScopes';
@@ -206,7 +213,26 @@ function isLocalDebugRouteEnabled() {
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
+function CockpitPlaceholderPage({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <section className="cockpit-workspace-panel">
+      <h1>{title}</h1>
+      <p>{description}</p>
+    </section>
+  );
+}
+
 export default function App() {
+  const tenantEntry = useMemo(
+    () => resolveTenantEntry(typeof window === 'undefined' ? undefined : window.location.hostname),
+    [],
+  );
   const [session, setSession] = useState<SessionPayload | null>(() => loadStoredSession());
   const [authError, setAuthError] = useState<string | null>(null);
   const [authStatusMessage, setAuthStatusMessage] = useState<string | null>(null);
@@ -217,6 +243,10 @@ export default function App() {
   const [publicCompanies, setPublicCompanies] = useState<{ company_id: string; route_no?: number; name: string }[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tenantCompany, setTenantCompany] = useState<TenantCompanyContext | null>(null);
+  const [workspaceBootstrap, setWorkspaceBootstrap] = useState<WorkspaceBootstrapPayload | null>(null);
+  const [workspaceBootstrapError, setWorkspaceBootstrapError] = useState<string | null>(null);
+  const [isLoadingWorkspaceBootstrap, setIsLoadingWorkspaceBootstrap] = useState(false);
   const sessionRef = useRef<SessionPayload | null>(session);
   const clientRef = useRef<HttpClient | null>(null);
   const notificationIdRef = useRef(0);
@@ -317,28 +347,56 @@ export default function App() {
     let ignore = false;
     setIsLoadingCompanies(true);
     setCompanyErrorMessage(null);
-    void listPublicCompanies()
-      .then((companies) => {
-        if (!ignore) {
-          setPublicCompanies(companies);
-        }
-      })
-      .catch((error) => {
-        if (!ignore) {
-          setCompanyErrorMessage(getErrorMessage(error, '회사 목록을 불러올 수 없습니다.'));
-          setPublicCompanies([]);
-        }
-      })
-      .finally(() => {
-        if (!ignore) {
-          setIsLoadingCompanies(false);
-        }
-      });
+    if (tenantEntry?.type === 'company') {
+      void resolvePublicCompanyTenant(tenantEntry.tenantCode)
+        .then((company) => {
+          if (!ignore) {
+            setTenantCompany(company);
+            setPublicCompanies([
+              {
+                company_id: company.companyId,
+                name: company.companyName,
+              },
+            ]);
+          }
+        })
+        .catch((error) => {
+          if (!ignore) {
+            setTenantCompany(null);
+            setCompanyErrorMessage(getErrorMessage(error, '회사 정보를 불러올 수 없습니다.'));
+            setPublicCompanies([]);
+          }
+        })
+        .finally(() => {
+          if (!ignore) {
+            setIsLoadingCompanies(false);
+          }
+        });
+    } else {
+      setTenantCompany(null);
+      void listPublicCompanies()
+        .then((companies) => {
+          if (!ignore) {
+            setPublicCompanies(companies);
+          }
+        })
+        .catch((error) => {
+          if (!ignore) {
+            setCompanyErrorMessage(getErrorMessage(error, '회사 목록을 불러올 수 없습니다.'));
+            setPublicCompanies([]);
+          }
+        })
+        .finally(() => {
+          if (!ignore) {
+            setIsLoadingCompanies(false);
+          }
+        });
+    }
 
     return () => {
       ignore = true;
     };
-  }, [session]);
+  }, [session, tenantEntry]);
 
   useEffect(() => {
     if (session !== null || typeof window === 'undefined') {
@@ -373,6 +431,42 @@ export default function App() {
   }
 
   const client = clientRef.current as HttpClient;
+
+  useEffect(() => {
+    if (!session || tenantEntry?.type !== 'company') {
+      setWorkspaceBootstrap(null);
+      setWorkspaceBootstrapError(null);
+      setIsLoadingWorkspaceBootstrap(false);
+      return;
+    }
+
+    let ignore = false;
+    setIsLoadingWorkspaceBootstrap(true);
+    setWorkspaceBootstrapError(null);
+
+    void getWorkspaceBootstrap(client, tenantEntry.tenantCode)
+      .then((payload) => {
+        if (!ignore) {
+          setWorkspaceBootstrap(payload);
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setWorkspaceBootstrap(null);
+          setWorkspaceBootstrapError(getErrorMessage(error, '워크스페이스 정보를 불러올 수 없습니다.'));
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingWorkspaceBootstrap(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [client, session, tenantEntry]);
+
   const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
     client,
     session,
@@ -462,6 +556,14 @@ export default function App() {
           isSubmitting={isSubmitting}
           onLogin={handleLogin}
           onSignup={handleSignup}
+          presetCompany={
+            tenantCompany
+              ? {
+                  company_id: tenantCompany.companyId,
+                  name: tenantCompany.companyName,
+                }
+              : null
+          }
           statusMessage={authStatusMessage}
         />
       </>
@@ -513,6 +615,94 @@ export default function App() {
           <p className="hero-copy">이 콘솔은 웹 관리자 계정만 사용할 수 있습니다. 로그아웃 후 관리자 계정으로 다시 로그인하세요.</p>
           <button className="button primary" onClick={() => void handleLogout()} type="button">
             로그인 화면으로
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  if (tenantEntry?.type === 'company') {
+    const cockpitCompanyName = workspaceBootstrap?.companyName ?? tenantCompany?.companyName ?? tenantEntry.tenantCode;
+
+    if (isLoadingWorkspaceBootstrap) {
+      return (
+        <div className="auth-shell admin-auth-shell">
+          <section className="auth-panel panel blocked-panel">
+            <p className="panel-kicker">Workspace Bootstrap</p>
+            <h2>{cockpitCompanyName}</h2>
+            <p className="hero-copy">회사 전용 cockpit 정보를 불러오는 중입니다.</p>
+          </section>
+        </div>
+      );
+    }
+
+    if (workspaceBootstrapError) {
+      return (
+        <div className="auth-shell admin-auth-shell">
+          <section className="auth-panel panel blocked-panel">
+            <p className="panel-kicker">Workspace Bootstrap</p>
+            <h2>{cockpitCompanyName}</h2>
+            <p className="hero-copy">{workspaceBootstrapError}</p>
+            <button className="button primary" onClick={() => void handleLogout()} type="button">
+              로그아웃
+            </button>
+          </section>
+        </div>
+      );
+    }
+
+    if (workspaceBootstrap?.workflowProfile === 'cheonha_ops_v1') {
+      return (
+        <>
+          {topNotificationNode}
+          <BrowserRouter future={ROUTER_FUTURE}>
+            <Routes>
+              <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} />}>
+                <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
+                <Route path="/settlement/*" element={<CheonhaSettlementWorkspace />} />
+                <Route
+                  path="/vehicle"
+                  element={
+                    <CockpitPlaceholderPage
+                      description="차량 cockpit은 다음 단계에서 연결할 예정입니다."
+                      title="차량"
+                    />
+                  }
+                />
+                <Route
+                  path="/placeholder-1"
+                  element={
+                    <CockpitPlaceholderPage
+                      description="후속 업무 템플릿을 이 자리에 연결합니다."
+                      title="빈 카드"
+                    />
+                  }
+                />
+                <Route
+                  path="/placeholder-2"
+                  element={
+                    <CockpitPlaceholderPage
+                      description="후속 업무 템플릿을 이 자리에 연결합니다."
+                      title="빈 카드"
+                    />
+                  }
+                />
+                <Route path="*" element={<Navigate replace to="/" />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </>
+      );
+    }
+
+    return (
+      <div className="auth-shell admin-auth-shell">
+        <section className="auth-panel panel blocked-panel">
+          <p className="panel-kicker">Workflow Profile</p>
+          <h2>{cockpitCompanyName}</h2>
+          <p className="hero-copy">이 tenant에 연결된 cockpit profile을 아직 렌더링할 수 없습니다.</p>
+          <button className="button primary" onClick={() => void handleLogout()} type="button">
+            로그아웃
           </button>
         </section>
       </div>

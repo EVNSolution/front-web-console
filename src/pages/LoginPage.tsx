@@ -60,6 +60,7 @@ type LoginPageProps = {
   isSubmitting: boolean;
   onLogin: (credentials: { email: string; password: string }) => void | Promise<void>;
   onSignup: (payload: SignupFormPayload) => void | Promise<void>;
+  presetCompany?: Company | null;
   statusMessage?: string | null;
 };
 
@@ -71,6 +72,7 @@ export function LoginPage({
   isSubmitting,
   onLogin,
   onSignup,
+  presetCompany = null,
   statusMessage,
 }: LoginPageProps) {
   const [view, setView] = useState<'login' | 'signup' | 'password'>('login');
@@ -95,19 +97,28 @@ export function LoginPage({
   const [signupError, setSignupError] = useState<string | null>(null);
   const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
   const [passwordResetStatus, setPasswordResetStatus] = useState<string | null>(null);
+  const isCompanyPreset = presetCompany !== null;
+  const selectableCompanies = useMemo(() => (presetCompany ? [presetCompany] : companies), [companies, presetCompany]);
 
   const filteredCompanies = useMemo(() => {
+    if (isCompanyPreset) {
+      return selectableCompanies;
+    }
     const keyword = companySearch.trim().toLowerCase();
     if (!keyword) {
-      return companies;
+      return selectableCompanies;
     }
-    return companies.filter((company) => {
+    return selectableCompanies.filter((company) => {
       const routeNo = company.route_no ? String(company.route_no) : '';
       return company.name.toLowerCase().includes(keyword) || routeNo.includes(keyword);
     });
-  }, [companies, companySearch]);
+  }, [companySearch, isCompanyPreset, selectableCompanies]);
 
   useEffect(() => {
+    if (presetCompany) {
+      setSignupCompanyId(presetCompany.company_id);
+      return;
+    }
     if (!filteredCompanies.length) {
       setSignupCompanyId('');
       return;
@@ -115,7 +126,7 @@ export function LoginPage({
     if (!filteredCompanies.some((company) => company.company_id === signupCompanyId)) {
       setSignupCompanyId(filteredCompanies[0].company_id);
     }
-  }, [filteredCompanies, signupCompanyId]);
+  }, [filteredCompanies, presetCompany, signupCompanyId]);
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -179,7 +190,7 @@ export function LoginPage({
               />
               <div className="login-media-overlay">
                 <strong>EV&amp;Solution</strong>
-                <span>통합 운영 웹 콘솔</span>
+                <span>{presetCompany ? `${presetCompany.name} 전용 콘솔` : '통합 운영 웹 콘솔'}</span>
               </div>
             </div>
           </section>
@@ -189,6 +200,7 @@ export function LoginPage({
               <h1 className="login-page-title">
                 {view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : '비밀번호 변경'}
               </h1>
+              {presetCompany ? <p className="tenant-entry-caption">{presetCompany.name} 전용 워크스페이스</p> : null}
 
               {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
               {statusMessage ? <div className="success-banner">{statusMessage}</div> : null}
@@ -279,29 +291,38 @@ export function LoginPage({
                       />
                     </label>
                     {shouldShowPasswordHint(signupPassword) ? <p className="auth-field-hint">{PASSWORD_RULE_TEXT}</p> : null}
-                    <label className="field">
-                      <input
-                        aria-label="회사 검색"
-                        onChange={(event) => setCompanySearch(event.target.value)}
-                        placeholder="회사명 검색"
-                        value={companySearch}
-                      />
-                    </label>
-                    <label className="field">
-                      <select
-                        aria-label="회사 선택"
-                        disabled={isLoadingCompanies || filteredCompanies.length === 0}
-                        onChange={(event) => setSignupCompanyId(event.target.value)}
-                        value={signupCompanyId}
-                      >
-                        {filteredCompanies.length === 0 ? <option value="">선택 가능한 회사가 없습니다.</option> : null}
-                        {filteredCompanies.map((company) => (
-                          <option key={company.company_id} value={company.company_id}>
-                            {company.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    {isCompanyPreset ? (
+                      <div className="tenant-lock-badge">
+                        <strong>{presetCompany.name}</strong>
+                        <span>회원가입 요청은 이 회사 전용 문맥으로 접수됩니다.</span>
+                      </div>
+                    ) : (
+                      <>
+                        <label className="field">
+                          <input
+                            aria-label="회사 검색"
+                            onChange={(event) => setCompanySearch(event.target.value)}
+                            placeholder="회사명 검색"
+                            value={companySearch}
+                          />
+                        </label>
+                        <label className="field">
+                          <select
+                            aria-label="회사 선택"
+                            disabled={isLoadingCompanies || filteredCompanies.length === 0}
+                            onChange={(event) => setSignupCompanyId(event.target.value)}
+                            value={signupCompanyId}
+                          >
+                            {filteredCompanies.length === 0 ? <option value="">선택 가능한 회사가 없습니다.</option> : null}
+                            {filteredCompanies.map((company) => (
+                              <option key={company.company_id} value={company.company_id}>
+                                {company.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </>
+                    )}
                     <label className="auth-check-row">
                       <input
                         aria-label="관리자 계정 신청"
