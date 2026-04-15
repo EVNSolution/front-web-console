@@ -39,5 +39,7 @@
 - `.env.local`은 실데이터 remote target에 붙을 때만 사용한다.
 - `.env.local-test`는 dev/staging 같은 더 안전한 remote target에 우선 사용한다.
 - `npm run dev:local-test`는 `local-test` mode로 실행되어 `.env.local-test`를 읽는다.
+- 현재 dev/local-test remote target 기본값은 `https://clever-hub-dev-public-alb-709320164.ap-northeast-2.elb.amazonaws.com` 이다.
 - 현재 실데이터 remote target 기본값은 `https://hub.evnlogistics.com`이다.
+- 기본 테스트/시연은 `.env.local-test` 기준으로 하고, `hub.evnlogistics.com`은 실데이터 확인과 배포 검증에서만 사용한다.
 - 경고: 현재 로컬 프론트 테스트의 CRUD는 실제 DB에 영향을 줍니다. 변경을 원하면, PROXY TARGET을 변경하십시오.
