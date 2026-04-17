@@ -20,13 +20,14 @@ function isSettlementRoute(pathname: string) {
 
 export function SubdomainAccordionNav({ companyName, onLogout }: SubdomainAccordionNavProps) {
   const location = useLocation();
+  const settlementRouteActive = isSettlementRoute(location.pathname);
   const [isSettlementExpanded, setIsSettlementExpanded] = useState(() => isSettlementRoute(location.pathname));
 
   useEffect(() => {
-    if (isSettlementRoute(location.pathname)) {
+    if (settlementRouteActive) {
       setIsSettlementExpanded(true);
     }
-  }, [location.pathname]);
+  }, [settlementRouteActive]);
 
   return (
     <aside className="cockpit-rail">
@@ -45,8 +46,15 @@ export function SubdomainAccordionNav({ companyName, onLogout }: SubdomainAccord
         <section className="cockpit-nav-group">
           <button
             aria-expanded={isSettlementExpanded}
-            className={isSettlementRoute(location.pathname) ? 'cockpit-nav-toggle is-active' : 'cockpit-nav-toggle'}
-            onClick={() => setIsSettlementExpanded((current) => !current)}
+            className={settlementRouteActive ? 'cockpit-nav-toggle is-active' : 'cockpit-nav-toggle'}
+            onClick={() => {
+              if (settlementRouteActive) {
+                setIsSettlementExpanded(true);
+                return;
+              }
+
+              setIsSettlementExpanded((current) => !current);
+            }}
             type="button"
           >
             <span>정산</span>

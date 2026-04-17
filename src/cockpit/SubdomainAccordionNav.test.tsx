@@ -59,4 +59,15 @@ describe('SubdomainAccordionNav', () => {
     expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
     expect(screen.getByRole('link', { name: '배차 데이터' })).not.toHaveClass('is-active');
   });
+
+  it('keeps settlement expanded while a settlement child route is active', async () => {
+    const user = userEvent.setup();
+    renderNav('/settlement/driver-management');
+
+    await user.click(screen.getByRole('button', { name: '정산' }));
+
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: '배송원 관리' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
+  });
 });
