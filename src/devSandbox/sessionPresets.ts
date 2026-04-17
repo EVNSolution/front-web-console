@@ -58,7 +58,23 @@ const DEV_SESSION_PRESETS: Record<DevSessionPresetName, DevSessionPreset> = {
 };
 
 function normalizeHost(hostname: string | undefined): string {
-  return (hostname?.trim().toLowerCase() ?? '').split(':')[0] ?? '';
+  const normalized = hostname?.trim().toLowerCase() ?? '';
+  if (!normalized) {
+    return '';
+  }
+
+  try {
+    return new URL(`http://${normalized}`).hostname;
+  } catch {
+    if (normalized.startsWith('[')) {
+      const closingBracketIndex = normalized.indexOf(']');
+      if (closingBracketIndex > 0) {
+        return normalized.slice(1, closingBracketIndex);
+      }
+    }
+
+    return normalized;
+  }
 }
 
 export function resolveAllowedSessionPreset(hostname: string | undefined): DevSessionPresetName[] {

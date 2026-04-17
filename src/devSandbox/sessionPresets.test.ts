@@ -14,4 +14,8 @@ describe('resolveAllowedSessionPreset', () => {
   it('returns no presets for unknown subdomains', () => {
     expect(resolveAllowedSessionPreset('alpha.ev-dashboard.com')).toEqual([]);
   });
+
+  it('handles ipv6-style host strings without collapsing at the first colon', () => {
+    expect(resolveAllowedSessionPreset('[2001:db8::1]:5174')).toEqual([]);
+  });
 });
