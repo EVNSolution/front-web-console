@@ -8,6 +8,7 @@ import { ApiError, GENERIC_SERVER_ERROR_MESSAGE } from './api/http';
 import { loadStoredSession } from './sessionPersistence';
 import { listPublicCompanies } from './api/organization';
 import { listVehicleMasters } from './api/vehicles';
+import { isLocalSandboxMode } from './devSandbox/mode';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
 const session = {
@@ -143,6 +144,10 @@ vi.mock('./api/dispatchRegistry', () => ({
   createDispatchPlan: vi.fn(),
   getDispatchPlan: vi.fn(),
   updateDispatchPlan: vi.fn(),
+}));
+
+vi.mock('./devSandbox/mode', () => ({
+  isLocalSandboxMode: vi.fn(),
 }));
 
 vi.mock('./api/vehicles', () => ({
@@ -281,6 +286,7 @@ describe('Admin App', () => {
     window.history.replaceState({}, '', '/');
     vi.mocked(loadStoredSession).mockReturnValue(session);
     vi.mocked(resolveTenantEntry).mockReturnValue(null);
+    vi.mocked(isLocalSandboxMode).mockReturnValue(false);
     vi.mocked(loginApi).mockReset();
     vi.mocked(listVehicleMasters).mockResolvedValue([]);
   });
@@ -558,5 +564,26 @@ describe('Admin App', () => {
     expect(topNotice).toHaveTextContent(GENERIC_SERVER_ERROR_MESSAGE);
     expect(topNotice).toHaveAttribute('data-tone', 'error');
     expect(document.querySelector('.error-banner.is-suppressed-by-top-notice')).not.toBeNull();
+  });
+
+  it('does not expose the dev session route outside local-sandbox mode', async () => {
+    vi.mocked(isLocalSandboxMode).mockReturnValue(false);
+    window.history.replaceState({}, '', '/__dev__/session');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+    expect(screen.queryByRole('button', { name: '세션 주입' })).not.toBeInTheDocument();
+    expect(screen.queryByText('현재 host')).not.toBeInTheDocument();
+  });
+
+  it('renders the dev session route only in local-sandbox mode', async () => {
+    vi.mocked(isLocalSandboxMode).mockReturnValue(true);
+    window.history.replaceState({}, '', '/__dev__/session');
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: '세션 주입' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '세션 초기화' })).toBeInTheDocument();
   });
 });

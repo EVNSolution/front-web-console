@@ -67,6 +67,7 @@ import { DriversPage } from './pages/DriversPage';
 import { FleetDetailPage } from './pages/FleetDetailPage';
 import { FleetFormPage } from './pages/FleetFormPage';
 import { LoginPage } from './pages/LoginPage';
+import { DevSessionPage } from './pages/DevSessionPage';
 import { ManagerNavigationPolicyPage } from './pages/ManagerNavigationPolicyPage';
 import { ManagerRolesPage } from './pages/ManagerRolesPage';
 import { ConsentRecoveryPage } from './pages/ConsentRecoveryPage';
@@ -91,6 +92,7 @@ import { VehicleFormPage } from './pages/VehicleFormPage';
 import { VehicleOperatorAccessFormPage } from './pages/VehicleOperatorAccessFormPage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { clearStoredSession, loadStoredSession, persistSession } from './sessionPersistence';
+import { isLocalSandboxMode } from './devSandbox/mode';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 import type { TenantCompanyContext, WorkspaceBootstrapPayload } from './types';
 import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
@@ -903,7 +905,7 @@ function MainDomainShell({
   );
 }
 
-export default function App() {
+function AppContent() {
   const tenantEntry = useMemo(
     () => resolveTenantEntry(typeof window === 'undefined' ? undefined : window.location.hostname),
     [],
@@ -1454,4 +1456,23 @@ export default function App() {
       topNotificationNode={topNotificationNode}
     />
   );
+}
+
+export default function App() {
+  const isLocalSandbox = isLocalSandboxMode();
+  const isDevSessionRoute =
+    typeof window !== 'undefined' && window.location.pathname === '/__dev__/session';
+
+  if (isLocalSandbox && isDevSessionRoute) {
+    return (
+      <BrowserRouter future={ROUTER_FUTURE}>
+        <Routes>
+          <Route path="/__dev__/session" element={<DevSessionPage />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  return <AppContent />;
 }
