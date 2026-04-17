@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SettlementOverviewPage } from './SettlementOverviewPage';
@@ -112,15 +112,20 @@ describe('SettlementOverviewPage', () => {
     );
 
     await screen.findByRole('heading', { name: '정산 운영 요약' });
-    expect(await screen.findByText('Second Driver')).toBeInTheDocument();
-    expect(await screen.findByText('최신 정산 조회 가능: 61명')).toBeInTheDocument();
-    expect(screen.getByText('Settlement Runs')).toBeInTheDocument();
-    expect(screen.getByText('Settlement Items')).toBeInTheDocument();
-    expect(screen.getAllByText('Seed Driver').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '7' })).toBeInTheDocument();
-    expect(screen.getByText('...')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(apiMocks.listPagedDriverLatestSettlements).toHaveBeenCalled();
+      expect(screen.getByText(/최신 정산 조회 가능:\s*61명/)).toBeInTheDocument();
+      expect(screen.getByText('Second Driver')).toBeInTheDocument();
+    });
+    expect(await screen.findByText('Settlement Runs')).toBeInTheDocument();
+    expect(await screen.findByText('Settlement Items')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText('Seed Driver').length).toBeGreaterThan(0);
+      expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '7' })).toBeInTheDocument();
+      expect(screen.getByText('...')).toBeInTheDocument();
+    });
     expect(
       screen.getByText(
         (_, element) =>
