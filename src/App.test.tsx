@@ -41,6 +41,23 @@ const companyManagerSession = {
   availableAccountTypes: ['manager'],
 };
 
+async function withHostname<T>(url: string, run: () => Promise<T>): Promise<T> {
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: new URL(url),
+  });
+
+  try {
+    return await run();
+  } finally {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
+  }
+}
+
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -287,13 +304,17 @@ describe('Admin App', () => {
   });
 
   it('rejects a company manager session on the main domain before rendering the admin shell', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(companyManagerSession);
-    vi.mocked(resolveTenantEntry).mockReturnValue(null);
+    await withHostname('https://ev-dashboard.com/', async () => {
+      vi.mocked(loadStoredSession).mockReturnValue(companyManagerSession);
+      vi.mocked(resolveTenantEntry).mockReturnValue(null);
 
-    render(<App />);
+      window.history.replaceState({}, '', '/');
+      render(<App />);
 
-    expect(screen.queryByText('운영 요약')).not.toBeInTheDocument();
-    expect(screen.queryByText('CLEVER 통합 웹 콘솔')).not.toBeInTheDocument();
+      expect(window.location.hostname).toBe('ev-dashboard.com');
+      expect(screen.queryByText('운영 요약')).not.toBeInTheDocument();
+      expect(screen.queryByText('CLEVER 통합 웹 콘솔')).not.toBeInTheDocument();
+    });
   });
 
   it('redirects removed /notifications to the dashboard root', async () => {
