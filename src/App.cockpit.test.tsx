@@ -73,8 +73,17 @@ describe('App cockpit entry', () => {
     });
   });
 
-  it('renders the Cheonha cockpit dashboard after workspace bootstrap resolves', async () => {
+  it('lands the company shell root on the cockpit dashboard', async () => {
     vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
     vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
       companyId: '30000000-0000-0000-0000-000000000001',
       companyName: '천하운수',
@@ -85,12 +94,130 @@ describe('App cockpit entry', () => {
       workspacePresets: {},
     });
 
+    window.history.replaceState({}, '', '/');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '천하운수' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
     expect(screen.getByText('정산').closest('a')).toHaveAttribute('href', '/settlement');
     expect(screen.getByText('차량').closest('a')).toHaveAttribute('href', '/vehicle');
     expect(screen.getAllByText('빈 카드')).toHaveLength(2);
+  });
+
+  it('keeps settlement under /settlement', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/settlement');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '배차 데이터' })).toHaveAttribute('href', '/settlement/dispatch-data');
+    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveAttribute('href', '/settlement/driver-management');
+  });
+
+  it('keeps the company shell from exposing a top-level dispatch route', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/dispatch');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(await screen.findAllByText('천하운수')).toHaveLength(2);
+    expect(window.location.pathname).toBe('/');
+    expect(screen.queryByText('배차 관리 권한 필요')).not.toBeInTheDocument();
+  });
+
+  it('keeps the company shell from exposing other legacy top-level workspace routes', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/vehicle');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(window.location.pathname).toBe('/');
+  });
+
+  it('blocks unknown company hosts after public resolve instead of opening the generic shell', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolveTenantEntry).mockReturnValue({
+      type: 'company',
+      tenantCode: 'unknown',
+      host: 'unknown.ev-dashboard.com',
+    });
+    vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new Error('missing company'));
+
+    window.history.replaceState({}, '', '/');
+    render(<App />);
+
+    expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+    expect(screen.queryByText('천하운수 전용 워크스페이스')).not.toBeInTheDocument();
+    expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
   });
 
   it('hides company search and select in signup for tenant subdomains', async () => {

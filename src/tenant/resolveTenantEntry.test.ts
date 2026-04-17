@@ -21,4 +21,12 @@ describe('resolveTenantEntry', () => {
     expect(resolveTenantEntry('admin.ev-dashboard.com')).toBeNull();
     expect(resolveTenantEntry('cheonha.example.com')).toBeNull();
   });
+
+  it('rejects malformed cockpit hosts with empty labels', () => {
+    expect(resolveTenantEntry('foo..ev-dashboard.com')).toBeNull();
+  });
+
+  it('rejects nested subdomains outside the canonical company host shape', () => {
+    expect(resolveTenantEntry('ops.cheonha.ev-dashboard.com')).toBeNull();
+  });
 });

@@ -101,6 +101,8 @@ const ROUTER_FUTURE = {
   v7_startTransition: true,
 } as const;
 
+const TENANT_NOT_FOUND_MESSAGE = '존재하지 않는 회사 서브도메인입니다.';
+
 function resolveFirstAllowedPath(session: SessionPayload, allowedNavKeys: NavItemKey[]) {
   const allowed = new Set(allowedNavKeys);
   if (allowed.has(dashboardItem.key)) {
@@ -213,26 +215,12 @@ function isLocalDebugRouteEnabled() {
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
-function CockpitPlaceholderPage({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <section className="cockpit-workspace-panel">
-      <h1>{title}</h1>
-      <p>{description}</p>
-    </section>
-  );
-}
-
 export default function App() {
   const tenantEntry = useMemo(
     () => resolveTenantEntry(typeof window === 'undefined' ? undefined : window.location.hostname),
     [],
   );
+  const isCompanyTenant = tenantEntry?.type === 'company';
   const [session, setSession] = useState<SessionPayload | null>(() => loadStoredSession());
   const [authError, setAuthError] = useState<string | null>(null);
   const [authStatusMessage, setAuthStatusMessage] = useState<string | null>(null);
@@ -247,6 +235,9 @@ export default function App() {
   const [workspaceBootstrap, setWorkspaceBootstrap] = useState<WorkspaceBootstrapPayload | null>(null);
   const [workspaceBootstrapError, setWorkspaceBootstrapError] = useState<string | null>(null);
   const [isLoadingWorkspaceBootstrap, setIsLoadingWorkspaceBootstrap] = useState(false);
+  const [tenantResolutionStatus, setTenantResolutionStatus] = useState<'loading' | 'resolved' | 'not_found'>(
+    () => (isCompanyTenant ? 'loading' : 'resolved'),
+  );
   const sessionRef = useRef<SessionPayload | null>(session);
   const clientRef = useRef<HttpClient | null>(null);
   const notificationIdRef = useRef(0);
@@ -339,41 +330,19 @@ export default function App() {
   }, [showTopNotificationTemplate]);
 
   useEffect(() => {
-    if (session) {
-      setCompanyErrorMessage(null);
-      return;
-    }
+    if (!isCompanyTenant) {
+      if (session) {
+        setCompanyErrorMessage(null);
+        setTenantCompany(null);
+        setTenantResolutionStatus('resolved');
+        return;
+      }
 
-    let ignore = false;
-    setIsLoadingCompanies(true);
-    setCompanyErrorMessage(null);
-    if (tenantEntry?.type === 'company') {
-      void resolvePublicCompanyTenant(tenantEntry.tenantCode)
-        .then((company) => {
-          if (!ignore) {
-            setTenantCompany(company);
-            setPublicCompanies([
-              {
-                company_id: company.companyId,
-                name: company.companyName,
-              },
-            ]);
-          }
-        })
-        .catch((error) => {
-          if (!ignore) {
-            setTenantCompany(null);
-            setCompanyErrorMessage(getErrorMessage(error, '회사 정보를 불러올 수 없습니다.'));
-            setPublicCompanies([]);
-          }
-        })
-        .finally(() => {
-          if (!ignore) {
-            setIsLoadingCompanies(false);
-          }
-        });
-    } else {
+      let ignore = false;
       setTenantCompany(null);
+      setTenantResolutionStatus('resolved');
+      setIsLoadingCompanies(true);
+      setCompanyErrorMessage(null);
       void listPublicCompanies()
         .then((companies) => {
           if (!ignore) {
@@ -391,12 +360,47 @@ export default function App() {
             setIsLoadingCompanies(false);
           }
         });
+
+      return () => {
+        ignore = true;
+      };
     }
+
+    let ignore = false;
+    setTenantResolutionStatus('loading');
+    setTenantCompany(null);
+    setCompanyErrorMessage(null);
+    setIsLoadingCompanies(true);
+    void resolvePublicCompanyTenant(tenantEntry.tenantCode)
+      .then((company) => {
+        if (!ignore) {
+          setTenantCompany(company);
+          setPublicCompanies([
+            {
+              company_id: company.companyId,
+              name: company.companyName,
+            },
+          ]);
+          setTenantResolutionStatus('resolved');
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setTenantCompany(null);
+          setPublicCompanies([]);
+          setTenantResolutionStatus('not_found');
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingCompanies(false);
+        }
+      });
 
     return () => {
       ignore = true;
     };
-  }, [session, tenantEntry]);
+  }, [isCompanyTenant, session, tenantEntry]);
 
   useEffect(() => {
     if (session !== null || typeof window === 'undefined') {
@@ -433,7 +437,7 @@ export default function App() {
   const client = clientRef.current as HttpClient;
 
   useEffect(() => {
-    if (!session || tenantEntry?.type !== 'company') {
+    if (!session || tenantEntry?.type !== 'company' || tenantResolutionStatus !== 'resolved') {
       setWorkspaceBootstrap(null);
       setWorkspaceBootstrapError(null);
       setIsLoadingWorkspaceBootstrap(false);
@@ -465,7 +469,7 @@ export default function App() {
     return () => {
       ignore = true;
     };
-  }, [client, session, tenantEntry]);
+  }, [client, session, tenantEntry, tenantResolutionStatus]);
 
   const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
     client,
@@ -621,7 +625,31 @@ export default function App() {
     );
   }
 
-  if (tenantEntry?.type === 'company') {
+  if (isCompanyTenant) {
+    if (tenantResolutionStatus === 'not_found') {
+      return (
+        <div className="auth-shell admin-auth-shell">
+          <section className="auth-panel panel blocked-panel">
+            <p className="panel-kicker">Tenant Resolve</p>
+            <h2>{TENANT_NOT_FOUND_MESSAGE}</h2>
+            <p className="hero-copy">공개 tenant 확인에 실패했습니다. 호스트를 다시 확인한 뒤 로그인하세요.</p>
+          </section>
+        </div>
+      );
+    }
+
+    if (tenantResolutionStatus === 'loading') {
+      return (
+        <div className="auth-shell admin-auth-shell">
+          <section className="auth-panel panel blocked-panel">
+            <p className="panel-kicker">Tenant Resolve</p>
+            <h2>회사 문맥을 확인하는 중입니다.</h2>
+            <p className="hero-copy">서브도메인에 연결된 tenant를 조회하고 있습니다.</p>
+          </section>
+        </div>
+      );
+    }
+
     const cockpitCompanyName = workspaceBootstrap?.companyName ?? tenantCompany?.companyName ?? tenantEntry.tenantCode;
 
     if (isLoadingWorkspaceBootstrap) {
@@ -660,33 +688,6 @@ export default function App() {
               <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} />}>
                 <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
                 <Route path="/settlement/*" element={<CheonhaSettlementWorkspace />} />
-                <Route
-                  path="/vehicle"
-                  element={
-                    <CockpitPlaceholderPage
-                      description="차량 cockpit은 다음 단계에서 연결할 예정입니다."
-                      title="차량"
-                    />
-                  }
-                />
-                <Route
-                  path="/placeholder-1"
-                  element={
-                    <CockpitPlaceholderPage
-                      description="후속 업무 템플릿을 이 자리에 연결합니다."
-                      title="빈 카드"
-                    />
-                  }
-                />
-                <Route
-                  path="/placeholder-2"
-                  element={
-                    <CockpitPlaceholderPage
-                      description="후속 업무 템플릿을 이 자리에 연결합니다."
-                      title="빈 카드"
-                    />
-                  }
-                />
                 <Route path="*" element={<Navigate replace to="/" />} />
               </Route>
             </Routes>
