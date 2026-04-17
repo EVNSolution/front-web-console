@@ -160,7 +160,7 @@ describe('App cockpit entry', () => {
     expect(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
-    expect(document.querySelector('.cockpit-topbar')).toBeNull();
+    expect(document.querySelector('.console-topbar')).toBeNull();
   });
 
   it('keeps settlement under /settlement', async () => {
