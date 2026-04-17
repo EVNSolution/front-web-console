@@ -1,55 +1,37 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 
+import type { HttpClient, SessionPayload } from '../../api/http';
+import { CheonhaDispatchDataPage } from './CheonhaDispatchDataPage';
+import { CheonhaRuleShellPanel } from './CheonhaRuleShellPanel';
+import { CheonhaSettlementHomePage } from './CheonhaSettlementHomePage';
+import { CheonhaSettlementProcessPage } from './CheonhaSettlementProcessPage';
+
+type CheonhaSettlementWorkspaceProps = {
+  client?: HttpClient;
+  companyName?: string;
+  session?: SessionPayload | null;
+};
+
 const settlementTabs = [
-  {
-    slug: 'dispatch-data',
-    label: '배차 데이터',
-    description: '배차 데이터 업로드와 초기 정산 준비 흐름을 이 탭에 붙입니다.',
-  },
-  {
-    slug: 'driver-management',
-    label: '배송원 관리',
-    description: '정산 대상 배송원 확인과 계정 상태 관리를 이 탭에 붙입니다.',
-  },
-  {
-    slug: 'operations-status',
-    label: '운영 현황',
-    description: '운영 지표와 예외 상황 요약을 이 탭에 붙입니다.',
-  },
-  {
-    slug: 'settlement-processing',
-    label: '정산 처리',
-    description: '월별 정산 실행과 검토 흐름을 이 탭에 붙입니다.',
-  },
-  {
-    slug: 'team-management',
-    label: '팀 관리',
-    description: '팀 기준 정보와 운영 설정 관리를 이 탭에 붙입니다.',
-  },
+  { slug: 'home', label: '홈' },
+  { slug: 'dispatch', label: '배차 데이터' },
+  { slug: 'crew', label: '배송원 관리' },
+  { slug: 'operations', label: '운영 현황' },
+  { slug: 'process', label: '정산 처리' },
+  { slug: 'team', label: '팀 관리' },
 ] as const;
 
-function SettlementWorkspacePanel({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <section className="cockpit-workspace-panel">
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </section>
-  );
-}
-
-export function CheonhaSettlementWorkspace() {
+export function CheonhaSettlementWorkspace({
+  client,
+  companyName = '천하운수',
+  session,
+}: CheonhaSettlementWorkspaceProps) {
   return (
     <div className="cockpit-workspace">
       <header className="cockpit-workspace-header">
         <p className="cockpit-kicker">정산 Workspace</p>
-        <h1>천하운수 정산</h1>
-        <p className="cockpit-copy">기존 프로토타입의 익숙한 순서를 유지하고, 내부 구현은 현재 콘솔 디자인 시스템을 따릅니다.</p>
+        <h1>{companyName} 정산</h1>
+        <p className="cockpit-copy">배차 업로드부터 snapshot 검토까지 실제 워크플로우를 같은 정산 문맥 안에서 이어갑니다.</p>
       </header>
       <nav aria-label="정산 탭" className="cockpit-tab-strip">
         {settlementTabs.map((tab) => (
@@ -62,16 +44,42 @@ export function CheonhaSettlementWorkspace() {
           </NavLink>
         ))}
       </nav>
-      <Routes>
-        <Route index element={<Navigate replace to="/settlement/dispatch-data" />} />
-        {settlementTabs.map((tab) => (
+      <div className="cockpit-workspace-stage">
+        <Routes>
+          <Route index element={<Navigate replace to="/settlement/home" />} />
+          <Route path="home" element={<CheonhaSettlementHomePage />} />
+          <Route path="dispatch" element={<CheonhaDispatchDataPage client={client} session={session} />} />
           <Route
-            element={<SettlementWorkspacePanel description={tab.description} title={tab.label} />}
-            key={tab.slug}
-            path={tab.slug}
+            path="crew"
+            element={
+              <CheonhaRuleShellPanel
+                description="배송원 운영 규칙과 계정 연계 화면은 아직 cockpit shell만 제공합니다."
+                title="배송원 관리"
+              />
+            }
           />
-        ))}
-      </Routes>
+          <Route
+            path="operations"
+            element={
+              <CheonhaRuleShellPanel
+                description="운영 현황과 예외 규칙 화면은 아직 cockpit shell만 제공합니다. 근태는 홈에서 요약으로 계속 확인합니다."
+                title="운영 현황"
+              />
+            }
+          />
+          <Route path="process" element={<CheonhaSettlementProcessPage client={client} session={session} />} />
+          <Route
+            path="team"
+            element={
+              <CheonhaRuleShellPanel
+                description="팀 기준 정보와 운영 룰 편집 화면은 아직 cockpit shell만 제공합니다."
+                title="팀 관리"
+              />
+            }
+          />
+          <Route path="*" element={<Navigate replace to="/settlement/home" />} />
+        </Routes>
+      </div>
     </div>
   );
 }
