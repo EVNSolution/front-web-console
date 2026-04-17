@@ -204,20 +204,31 @@ describe('App cockpit entry', () => {
   });
 
   it('blocks unknown company hosts after public resolve instead of opening the generic shell', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
     vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolveTenantEntry).mockReturnValue({
-      type: 'company',
-      tenantCode: 'unknown',
-      host: 'unknown.ev-dashboard.com',
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: new URL('https://unknown.ev-dashboard.com/'),
     });
-    vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new Error('missing company'));
+    try {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new Error('missing company'));
 
-    window.history.replaceState({}, '', '/');
-    render(<App />);
+      window.history.replaceState({}, '', '/');
+      render(<App />);
 
-    expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
-    expect(screen.queryByText('천하운수 전용 워크스페이스')).not.toBeInTheDocument();
-    expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+      expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(screen.queryByText('천하운수 전용 워크스페이스')).not.toBeInTheDocument();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
   });
 
   it('hides company search and select in signup for tenant subdomains', async () => {

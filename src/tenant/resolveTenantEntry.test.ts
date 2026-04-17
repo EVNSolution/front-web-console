@@ -18,6 +18,7 @@ describe('resolveTenantEntry', () => {
   });
 
   it('ignores reserved or foreign subdomains', () => {
+    expect(resolveTenantEntry('api.ev-dashboard.com')).toBeNull();
     expect(resolveTenantEntry('admin.ev-dashboard.com')).toBeNull();
     expect(resolveTenantEntry('cheonha.example.com')).toBeNull();
   });
