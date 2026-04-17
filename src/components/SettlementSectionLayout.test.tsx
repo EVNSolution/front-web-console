@@ -9,6 +9,23 @@ const apiMocks = vi.hoisted(() => ({
   listFleets: vi.fn(),
 }));
 
+const systemAdminSession = {
+  accessToken: 'token',
+  sessionKind: 'normal',
+  email: 'system@example.com',
+  identity: {
+    identityId: 'identity-1',
+    name: '시스템 관리자',
+    birthDate: '1990-01-01',
+    status: 'active',
+  },
+  activeAccount: {
+    accountType: 'system_admin',
+    accountId: 'system-admin-1',
+  },
+  availableAccountTypes: ['system_admin'],
+};
+
 vi.mock('../api/organization', () => ({
   listCompanies: apiMocks.listCompanies,
   listFleets: apiMocks.listFleets,
@@ -44,7 +61,7 @@ describe('SettlementSectionLayout', () => {
         <Routes>
           <Route
             path="/settlements"
-            element={<SettlementSectionLayout client={{ request: vi.fn() }} />}
+            element={<SettlementSectionLayout client={{ request: vi.fn() }} session={systemAdminSession} />}
           >
             <Route path="criteria" element={<SettlementContextEcho />} />
             <Route path="inputs" element={<SettlementContextEcho />} />

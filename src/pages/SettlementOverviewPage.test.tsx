@@ -24,6 +24,8 @@ vi.mock('../api/settlementOps', () => ({
 }));
 
 describe('SettlementOverviewPage', () => {
+  const client = { request: vi.fn() };
+
   it('renders summary strip and paged latest settlement context', async () => {
     apiMocks.listCompanies.mockResolvedValue([
       { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
@@ -104,8 +106,8 @@ describe('SettlementOverviewPage', () => {
     });
 
     render(
-      <SettlementFlowProvider client={{ request: vi.fn() }}>
-        <SettlementOverviewPage client={{ request: vi.fn() }} />
+      <SettlementFlowProvider client={client}>
+        <SettlementOverviewPage client={client} />
       </SettlementFlowProvider>,
     );
 
