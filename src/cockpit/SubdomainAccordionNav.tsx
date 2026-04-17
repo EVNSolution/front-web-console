@@ -7,11 +7,12 @@ type SubdomainAccordionNavProps = {
 };
 
 const settlementItems = [
-  { label: '배차 데이터', to: '/settlement/dispatch-data' },
-  { label: '배송원 관리', to: '/settlement/driver-management' },
-  { label: '운영 현황', to: '/settlement/operations-status' },
-  { label: '정산 처리', to: '/settlement/settlement-processing' },
-  { label: '팀 관리', to: '/settlement/team-management' },
+  { label: '홈', to: '/settlement/home' },
+  { label: '배차 데이터', to: '/settlement/dispatch' },
+  { label: '배송원 관리', to: '/settlement/crew' },
+  { label: '운영 현황', to: '/settlement/operations' },
+  { label: '정산 처리', to: '/settlement/process' },
+  { label: '팀 관리', to: '/settlement/team' },
 ] as const;
 
 function isSettlementRoute(pathname: string) {

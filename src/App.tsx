@@ -708,7 +708,18 @@ export default function App() {
             <Routes>
               <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} />}>
                 <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
-                <Route path="/settlement/*" element={<CheonhaSettlementWorkspace />} />
+                <Route
+                  path="/settlement/*"
+                  element={
+                    <CheonhaSettlementWorkspace
+                      client={client}
+                      companyName={cockpitCompanyName}
+                      session={session}
+                    />
+                  }
+                />
+                <Route path="/settlements/inputs" element={<Navigate replace to="/settlement/process" />} />
+                <Route path="/settlements/*" element={<Navigate replace to="/settlement/home" />} />
                 <Route path="*" element={<Navigate replace to="/" />} />
               </Route>
             </Routes>

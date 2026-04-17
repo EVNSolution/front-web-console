@@ -4493,6 +4493,52 @@ textarea:focus {
   font-size: 0.9rem;
 }
 
+.cockpit-shell-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.cockpit-shell-preview-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 247, 253, 0.94));
+}
+
+.cockpit-shell-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.cockpit-shell-preview-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #102743;
+}
+
+.cockpit-shell-preview-field {
+  gap: 0.28rem;
+}
+
+.cockpit-shell-preview-field input {
+  min-height: 2.5rem;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  border-radius: 14px;
+  background: rgba(241, 244, 248, 0.92);
+  color: #7a87a3;
+}
+
+.cockpit-shell-preview-field input:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 @media (max-width: 760px) {
   .cockpit-month-switch {
     justify-items: stretch;

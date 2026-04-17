@@ -78,4 +78,12 @@ describe('CheonhaSettlementWorkspace', () => {
     expect(screen.getByRole('link', { name: '배차 데이터' })).not.toHaveClass('is-active');
     expect(screen.queryByRole('link', { name: '근태' })).not.toBeInTheDocument();
   });
+
+  it('redirects legacy settlement child slugs to the canonical process route', async () => {
+    renderWorkspace('/settlement/settlement-processing');
+
+    expect(await screen.findByRole('heading', { level: 2, name: '정산 처리 화면' })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/settlement/process');
+    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveClass('is-active');
+  });
 });

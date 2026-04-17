@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, SessionPayload } from '../../api/http';
@@ -6,15 +6,38 @@ import { CheonhaSettlementProcessPage } from './CheonhaSettlementProcessPage';
 
 const settlementInputsSpy = vi.fn();
 
-vi.mock('../../pages/SettlementInputsPage', () => ({
-  SettlementInputsPage: (props: unknown) => {
-    settlementInputsSpy(props);
-    return <section><h2>정산 입력 요약</h2><p>read/snapshot workflow surface</p></section>;
-  },
+vi.mock('../../api/organization', () => ({
+  listCompanies: vi.fn().mockResolvedValue([]),
+  listFleets: vi.fn().mockResolvedValue([
+    {
+      fleet_id: 'fleet-1',
+      company_id: 'company-1',
+      name: '천하 메인 플릿',
+    },
+  ]),
 }));
 
+vi.mock('../../pages/SettlementInputsPage', async () => {
+  const { useSettlementFlow } = await vi.importActual<typeof import('../../components/SettlementFlowContext')>(
+    '../../components/SettlementFlowContext',
+  );
+
+  return {
+    SettlementInputsPage: (props: unknown) => {
+      const flow = useSettlementFlow();
+      settlementInputsSpy({ ...((props ?? {}) as Record<string, unknown>), flow });
+      return (
+        <section>
+          <h2>정산 입력 요약</h2>
+          <p>{flow.isLoading ? '문맥 로딩 중' : `문맥:${flow.selectedCompanyId}/${flow.selectedFleetId}`}</p>
+        </section>
+      );
+    },
+  };
+});
+
 describe('CheonhaSettlementProcessPage', () => {
-  it('renders the existing read and snapshot workflow surface instead of a placeholder', () => {
+  it('renders the existing read and snapshot workflow surface inside the settlement flow provider', async () => {
     const client = { request: vi.fn() } satisfies HttpClient;
     const session = {
       accessToken: 'token',
@@ -39,11 +62,16 @@ describe('CheonhaSettlementProcessPage', () => {
     render(<CheonhaSettlementProcessPage client={client} session={session} />);
 
     expect(screen.getByRole('heading', { level: 2, name: '정산 입력 요약' })).toBeInTheDocument();
-    expect(screen.getByText('read/snapshot workflow surface')).toBeInTheDocument();
-    expect(settlementInputsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        client,
-      }),
-    );
+    await waitFor(() => {
+      expect(settlementInputsSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client,
+          flow: expect.objectContaining({
+            isLoading: true,
+            showFleetSelector: true,
+          }),
+        }),
+      );
+    });
   });
 });

@@ -34,6 +34,7 @@ describe('SubdomainAccordionNav', () => {
 
     expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
@@ -45,15 +46,16 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('button', { name: '정산' }));
 
-    expect(screen.getByRole('link', { name: '배차 데이터' })).toHaveAttribute('href', '/settlement/dispatch-data');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveAttribute('href', '/settlement/driver-management');
-    expect(screen.getByRole('link', { name: '운영 현황' })).toHaveAttribute('href', '/settlement/operations-status');
-    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveAttribute('href', '/settlement/settlement-processing');
-    expect(screen.getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team-management');
+    expect(screen.getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
+    expect(screen.getByRole('link', { name: '배차 데이터' })).toHaveAttribute('href', '/settlement/dispatch');
+    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveAttribute('href', '/settlement/crew');
+    expect(screen.getByRole('link', { name: '운영 현황' })).toHaveAttribute('href', '/settlement/operations');
+    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveAttribute('href', '/settlement/process');
+    expect(screen.getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
   });
 
   it('marks the active child item for the current route', () => {
-    renderNav('/settlement/driver-management');
+    renderNav('/settlement/crew');
 
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
@@ -62,7 +64,7 @@ describe('SubdomainAccordionNav', () => {
 
   it('keeps settlement expanded while a settlement child route is active', async () => {
     const user = userEvent.setup();
-    renderNav('/settlement/driver-management');
+    renderNav('/settlement/crew');
 
     await user.click(screen.getByRole('button', { name: '정산' }));
 

@@ -1,4 +1,5 @@
 import type { HttpClient, SessionPayload } from '../../api/http';
+import { SettlementFlowProvider } from '../../components/SettlementFlowContext';
 import { SettlementInputsPage } from '../../pages/SettlementInputsPage';
 import { useCheonhaWorkspaceDependencies } from './CheonhaDispatchDataPage';
 
@@ -8,7 +9,11 @@ type CheonhaSettlementProcessPageProps = {
 };
 
 export function CheonhaSettlementProcessPage(props: CheonhaSettlementProcessPageProps) {
-  const { client } = useCheonhaWorkspaceDependencies(props);
+  const { client, session } = useCheonhaWorkspaceDependencies(props);
 
-  return <SettlementInputsPage client={client} />;
+  return (
+    <SettlementFlowProvider client={client} session={session ?? undefined}>
+      <SettlementInputsPage client={client} />
+    </SettlementFlowProvider>
+  );
 }
