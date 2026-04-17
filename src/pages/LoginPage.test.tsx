@@ -47,9 +47,27 @@ describe('Admin LoginPage', () => {
       expect(screen.getByText('비밀번호는 영문 대문자, 소문자, 기호를 각각 1개 이상 포함해야 합니다.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'google 로그인' })).toBeDisabled();
       expect(screen.getByRole('button', { name: '카카오 로그인' })).toBeDisabled();
+      expect(screen.queryByRole('heading', { name: 'Alpha Company' })).not.toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
     },
     10_000,
   );
+
+  it('renders a company identity header only for subdomain login', () => {
+    render(
+      <LoginPage
+        companies={[{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Alpha Company', route_no: 1 }]}
+        isSubmitting={false}
+        onLogin={vi.fn()}
+        onSignup={vi.fn()}
+        presetCompany={{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Alpha Company', route_no: 1 }}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Alpha Company' })).toBeInTheDocument();
+    expect(screen.getByText('회사 전용 로그인')).toBeInTheDocument();
+    expect(screen.getByText('Alpha Company 전용 콘솔')).toBeInTheDocument();
+  });
 
   it('shows email and password helpers only after input starts', async () => {
     const user = userEvent.setup();

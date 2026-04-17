@@ -410,7 +410,8 @@ describe('App cockpit entry', () => {
 
     render(<App />);
 
-    expect(await screen.findByText('천하운수 전용 워크스페이스')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '천하운수' })).toBeInTheDocument();
+    expect(screen.getByText('회사 전용 로그인')).toBeInTheDocument();
     expect(screen.getByText('천하운수 전용 콘솔')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '회원가입' }));

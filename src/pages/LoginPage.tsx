@@ -197,10 +197,16 @@ export function LoginPage({
 
           <section className="login-auth-panel">
             <div className="login-form-shell">
+              {presetCompany ? (
+                <div className="login-company-identity">
+                  <span className="login-company-label">회사 전용 로그인</span>
+                  <h2 className="login-company-name">{presetCompany.name}</h2>
+                  <p className="tenant-entry-caption">전용 워크스페이스</p>
+                </div>
+              ) : null}
               <h1 className="login-page-title">
                 {view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : '비밀번호 변경'}
               </h1>
-              {presetCompany ? <p className="tenant-entry-caption">{presetCompany.name} 전용 워크스페이스</p> : null}
 
               {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
               {statusMessage ? <div className="success-banner">{statusMessage}</div> : null}

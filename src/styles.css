@@ -679,6 +679,34 @@ textarea:focus {
   gap: 1.25rem;
 }
 
+.login-company-identity {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 1.1rem 1rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(28, 32, 43, 0.08);
+  background:
+    linear-gradient(180deg, rgba(205, 222, 0, 0.18), rgba(205, 222, 0, 0.05)),
+    #ffffff;
+  text-align: center;
+}
+
+.login-company-label {
+  color: #4f5b13;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.login-company-name {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  line-height: 1;
+}
+
 .auth-link-row {
   display: flex;
   flex-wrap: wrap;
@@ -4077,7 +4105,7 @@ textarea:focus {
 }
 
 .tenant-entry-caption {
-  margin: -0.25rem 0 0.75rem;
+  margin: 0;
   color: #4e5b7c;
   font-size: 0.92rem;
 }
