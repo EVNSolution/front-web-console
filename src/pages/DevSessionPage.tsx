@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { resetLocalSandboxMockState } from '../devSandbox/mockState';
 import { clearStoredSession, persistSession } from '../sessionPersistence';
 import { resolveAllowedSessionPreset, resolveDevSessionPreset } from '../devSandbox/sessionPresets';
 
@@ -30,6 +31,7 @@ export function DevSessionPage() {
 
   function handleReset() {
     clearStoredSession();
+    resetLocalSandboxMockState();
     navigate('/', { replace: true });
   }
 

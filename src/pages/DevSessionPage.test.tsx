@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { clearStoredSession, persistSession } from '../sessionPersistence';
+import { resetLocalSandboxMockState } from '../devSandbox/mockState';
 import { DevSessionPage } from './DevSessionPage';
 
 const navigate = vi.fn();
@@ -23,6 +24,10 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../sessionPersistence', () => ({
   clearStoredSession: vi.fn(),
   persistSession: vi.fn(),
+}));
+
+vi.mock('../devSandbox/mockState', () => ({
+  resetLocalSandboxMockState: vi.fn(),
 }));
 
 function withHostname<T>(url: string, run: () => T): T {
@@ -47,6 +52,7 @@ describe('DevSessionPage', () => {
     navigate.mockReset();
     vi.mocked(persistSession).mockReset();
     vi.mocked(clearStoredSession).mockReset();
+    vi.mocked(resetLocalSandboxMockState).mockReset();
     window.history.replaceState({}, '', '/__dev__/session');
   });
 
@@ -109,6 +115,7 @@ describe('DevSessionPage', () => {
     await user.click(screen.getByRole('button', { name: '세션 초기화' }));
 
     expect(clearStoredSession).toHaveBeenCalledTimes(1);
+    expect(resetLocalSandboxMockState).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith('/', { replace: true });
   });
 });

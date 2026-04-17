@@ -25,7 +25,7 @@ describe('local sandbox settlement runs', () => {
     uninstallFetchMock = undefined;
   });
 
-  it('creates a settlement run through the real page code and mocked /api surface', async () => {
+  it('creates, updates, and deletes a settlement run through the real page code and mocked /api surface', async () => {
     const client = createHttpClient({
       baseUrl: '/api',
       getAccessToken: () => cheonhaSession.accessToken,
@@ -55,5 +55,21 @@ describe('local sandbox settlement runs', () => {
     });
     expect(screen.getByRole('cell', { name: '2026-03-01 ~ 2026-03-31' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: '초안' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('cell', { name: '2026-03-01 ~ 2026-03-31' }));
+
+    const editDialog = await screen.findByRole('dialog', { name: '정산 실행 수정' });
+    await user.selectOptions(within(editDialog).getByRole('combobox', { name: '상태' }), 'approved');
+    await user.click(within(editDialog).getByRole('button', { name: '정산 실행 수정' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('cell', { name: '승인됨' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: '삭제' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('현재 문맥에 정산 실행이 없습니다.')).toBeInTheDocument();
+    });
   });
 });
