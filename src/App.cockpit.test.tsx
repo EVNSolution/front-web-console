@@ -142,7 +142,7 @@ describe('App cockpit entry', () => {
     });
 
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         name: '천하운수 운영 대시보드',
       }),
     ).toBeInTheDocument();
@@ -370,6 +370,8 @@ describe('App cockpit entry', () => {
       render(<App />);
 
       expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: '로그인' })).not.toBeInTheDocument();
       expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
     });
@@ -422,6 +424,27 @@ describe('App cockpit entry', () => {
       expect(screen.getByText('회원가입 요청은 이 회사 전용 문맥으로 접수됩니다.')).toBeInTheDocument();
       expect(screen.queryByLabelText('회사 검색')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('회사 선택')).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps the main-domain signed-out entry generic', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+
+    await withHostname('https://ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
+      expect(screen.getByText('통합 운영 웹 콘솔')).toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
+      expect(resolvePublicCompanyTenant).not.toHaveBeenCalled();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
     });
   });
 });

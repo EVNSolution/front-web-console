@@ -49,6 +49,7 @@ describe('Admin LoginPage', () => {
       expect(screen.getByRole('button', { name: '카카오 로그인' })).toBeDisabled();
       expect(screen.queryByRole('heading', { name: 'Alpha Company' })).not.toBeInTheDocument();
       expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.getByText('통합 운영 웹 콘솔')).toBeInTheDocument();
     },
     10_000,
   );
