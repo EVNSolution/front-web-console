@@ -102,8 +102,8 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
     expect(screen.getByText('정산').closest('a')).toHaveAttribute('href', '/settlement');
-    expect(screen.getByText('차량').closest('a')).toHaveAttribute('href', '/vehicle');
-    expect(screen.getAllByText('빈 카드')).toHaveLength(2);
+    expect(screen.queryByText('차량')).not.toBeInTheDocument();
+    expect(screen.queryByText('빈 카드')).not.toBeInTheDocument();
   });
 
   it('keeps settlement under /settlement', async () => {
