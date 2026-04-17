@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { loadStoredSession } from './sessionPersistence';
 import { resolvePublicCompanyTenant } from './api/companyTenant';
+import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
@@ -61,6 +62,23 @@ vi.mock('./hooks/useNavigationPolicy', () => ({
     isLoading: false,
   })),
 }));
+
+async function withHostname<T>(url: string, run: () => Promise<T>): Promise<T> {
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: new URL(url),
+  });
+
+  try {
+    return await run();
+  } finally {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
+  }
+}
 
 describe('App cockpit entry', () => {
   beforeEach(() => {
@@ -208,14 +226,10 @@ describe('App cockpit entry', () => {
       './tenant/resolveTenantEntry',
     );
     vi.mocked(loadStoredSession).mockReturnValue(session);
-    const originalLocation = window.location;
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: new URL('https://unknown.ev-dashboard.com/'),
-    });
-    try {
+
+    await withHostname('https://unknown.ev-dashboard.com/', async () => {
       vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
-      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new Error('missing company'));
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new ApiError(404, 'company_not_found', 'missing', {}));
 
       window.history.replaceState({}, '', '/');
       render(<App />);
@@ -223,12 +237,47 @@ describe('App cockpit entry', () => {
       expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
       expect(screen.queryByText('천하운수 전용 워크스페이스')).not.toBeInTheDocument();
       expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
-    } finally {
-      Object.defineProperty(window, 'location', {
-        configurable: true,
-        value: originalLocation,
-      });
-    }
+    });
+  });
+
+  it('blocks unknown company hosts before rendering the generic login shell when signed out', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+
+    await withHostname('https://unknown.ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new ApiError(404, 'company_not_found', 'missing', {}));
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: '로그인' })).not.toBeInTheDocument();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows a retryable resolve error instead of treating non-404 tenant resolve failures as not found', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+
+    await withHostname('https://cheonha.ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(
+        new ApiError(503, 'service_unavailable', 'tenant service unavailable', {}),
+      );
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByText('회사 문맥을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.')).toBeInTheDocument();
+      expect(screen.queryByText('존재하지 않는 회사 서브도메인입니다.')).not.toBeInTheDocument();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    });
   });
 
   it('hides company search and select in signup for tenant subdomains', async () => {

@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from
 import { login, logout, signupRequestIntake } from './api/auth';
 import { resolvePublicCompanyTenant } from './api/companyTenant';
 import {
+  ApiError,
   createHttpClient,
   DEFAULT_API_BASE_URL,
   GENERIC_SERVER_ERROR_MESSAGE,
@@ -102,6 +103,7 @@ const ROUTER_FUTURE = {
 } as const;
 
 const TENANT_NOT_FOUND_MESSAGE = '존재하지 않는 회사 서브도메인입니다.';
+const TENANT_RESOLVE_ERROR_MESSAGE = '회사 문맥을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.';
 
 function resolveFirstAllowedPath(session: SessionPayload, allowedNavKeys: NavItemKey[]) {
   const allowed = new Set(allowedNavKeys);
@@ -235,7 +237,7 @@ export default function App() {
   const [workspaceBootstrap, setWorkspaceBootstrap] = useState<WorkspaceBootstrapPayload | null>(null);
   const [workspaceBootstrapError, setWorkspaceBootstrapError] = useState<string | null>(null);
   const [isLoadingWorkspaceBootstrap, setIsLoadingWorkspaceBootstrap] = useState(false);
-  const [tenantResolutionStatus, setTenantResolutionStatus] = useState<'loading' | 'resolved' | 'not_found'>(
+  const [tenantResolutionStatus, setTenantResolutionStatus] = useState<'loading' | 'resolved' | 'not_found' | 'error'>(
     () => (isCompanyTenant ? 'loading' : 'resolved'),
   );
   const sessionRef = useRef<SessionPayload | null>(session);
@@ -384,11 +386,18 @@ export default function App() {
           setTenantResolutionStatus('resolved');
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!ignore) {
           setTenantCompany(null);
           setPublicCompanies([]);
-          setTenantResolutionStatus('not_found');
+          if (error instanceof ApiError && error.status === 404) {
+            setTenantResolutionStatus('not_found');
+            setCompanyErrorMessage(null);
+            return;
+          }
+
+          setTenantResolutionStatus('error');
+          setCompanyErrorMessage(TENANT_RESOLVE_ERROR_MESSAGE);
         }
       })
       .finally(() => {
@@ -548,6 +557,42 @@ export default function App() {
     />
   ) : null;
 
+  if (isCompanyTenant && tenantResolutionStatus === 'not_found') {
+    return (
+      <div className="auth-shell admin-auth-shell">
+        <section className="auth-panel panel blocked-panel">
+          <p className="panel-kicker">Tenant Resolve</p>
+          <h2>{TENANT_NOT_FOUND_MESSAGE}</h2>
+          <p className="hero-copy">공개 tenant 확인에 실패했습니다. 호스트를 다시 확인한 뒤 로그인하세요.</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (isCompanyTenant && tenantResolutionStatus === 'loading') {
+    return (
+      <div className="auth-shell admin-auth-shell">
+        <section className="auth-panel panel blocked-panel">
+          <p className="panel-kicker">Tenant Resolve</p>
+          <h2>회사 문맥을 확인하는 중입니다.</h2>
+          <p className="hero-copy">서브도메인에 연결된 tenant를 조회하고 있습니다.</p>
+        </section>
+      </div>
+    );
+  }
+
+  if (isCompanyTenant && tenantResolutionStatus === 'error') {
+    return (
+      <div className="auth-shell admin-auth-shell">
+        <section className="auth-panel panel blocked-panel">
+          <p className="panel-kicker">Tenant Resolve</p>
+          <h2>회사 문맥 확인 실패</h2>
+          <p className="hero-copy">{companyErrorMessage ?? TENANT_RESOLVE_ERROR_MESSAGE}</p>
+        </section>
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <>
@@ -626,30 +671,6 @@ export default function App() {
   }
 
   if (isCompanyTenant) {
-    if (tenantResolutionStatus === 'not_found') {
-      return (
-        <div className="auth-shell admin-auth-shell">
-          <section className="auth-panel panel blocked-panel">
-            <p className="panel-kicker">Tenant Resolve</p>
-            <h2>{TENANT_NOT_FOUND_MESSAGE}</h2>
-            <p className="hero-copy">공개 tenant 확인에 실패했습니다. 호스트를 다시 확인한 뒤 로그인하세요.</p>
-          </section>
-        </div>
-      );
-    }
-
-    if (tenantResolutionStatus === 'loading') {
-      return (
-        <div className="auth-shell admin-auth-shell">
-          <section className="auth-panel panel blocked-panel">
-            <p className="panel-kicker">Tenant Resolve</p>
-            <h2>회사 문맥을 확인하는 중입니다.</h2>
-            <p className="hero-copy">서브도메인에 연결된 tenant를 조회하고 있습니다.</p>
-          </section>
-        </div>
-      );
-    }
-
     const cockpitCompanyName = workspaceBootstrap?.companyName ?? tenantCompany?.companyName ?? tenantEntry.tenantCode;
 
     if (isLoadingWorkspaceBootstrap) {
