@@ -363,7 +363,10 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(window.location.pathname).toBe('/');
+    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/');
+    });
   });
 
   it('blocks unknown company hosts after public resolve instead of opening the generic shell', async () => {

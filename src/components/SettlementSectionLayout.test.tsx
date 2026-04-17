@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { SessionPayload } from '../api/http';
 import { SettlementSectionLayout } from './SettlementSectionLayout';
 
 const apiMocks = vi.hoisted(() => ({
@@ -9,7 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   listFleets: vi.fn(),
 }));
 
-const systemAdminSession = {
+const systemAdminSession: SessionPayload = {
   accessToken: 'token',
   sessionKind: 'normal',
   email: 'system@example.com',
