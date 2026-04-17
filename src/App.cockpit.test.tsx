@@ -119,13 +119,23 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
+
     expect(
-      screen.getByRole('link', {
+      screen.getByRole('heading', {
+        name: '천하운수 운영 대시보드',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '최근 6개월 수입/지출' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '금월 배차표 기반 근태' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '금일 배차' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '이전 월' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '다음 월' })).toBeInTheDocument();
+    expect(screen.getByText('2026년 4월')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {
         name: '정산 천하운수 전용 정산 워크스페이스로 이동합니다. 열기',
       }),
-    ).toHaveAttribute('href', '/settlement');
-    expect(screen.queryByText('차량')).not.toBeInTheDocument();
-    expect(screen.queryByText('빈 카드')).not.toBeInTheDocument();
+    ).not.toBeInTheDocument();
   });
 
   it('renders the subdomain shell with a left-side accordion nav instead of a top bar', async () => {
@@ -231,7 +241,7 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(await screen.findAllByText('천하운수')).toHaveLength(2);
+    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/');
     expect(screen.queryByText('배차 관리 권한 필요')).not.toBeInTheDocument();
   });

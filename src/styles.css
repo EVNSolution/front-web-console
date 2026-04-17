@@ -4263,6 +4263,127 @@ textarea:focus {
   color: #5d6c87;
 }
 
+.cockpit-dashboard-hero-copy {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.cockpit-month-switch {
+  display: grid;
+  gap: 0.7rem;
+  justify-items: end;
+}
+
+.cockpit-dashboard-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(15, 102, 153, 0.08);
+  color: #0f6699;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cockpit-month-switch-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(20, 40, 70, 0.08);
+}
+
+.cockpit-month-switch-controls strong {
+  min-width: 7.5rem;
+  text-align: center;
+  font-size: 0.96rem;
+  color: #102743;
+}
+
+.cockpit-month-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.65rem 0.95rem;
+  background: rgba(15, 102, 153, 0.08);
+  color: #0f6699;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cockpit-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.cockpit-dashboard-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.3rem 1.4rem;
+  border-radius: 24px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
+}
+
+.cockpit-dashboard-section-header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cockpit-dashboard-section-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #102743;
+}
+
+.cockpit-dashboard-section-header p {
+  margin: 0;
+  color: #5d6c87;
+}
+
+.cockpit-dashboard-summary-grid,
+.cockpit-dashboard-metric-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cockpit-dashboard-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.cockpit-dashboard-summary-card,
+.cockpit-dashboard-metric {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 247, 253, 0.94));
+  border: 1px solid rgba(20, 40, 70, 0.08);
+}
+
+.cockpit-dashboard-summary-card span,
+.cockpit-dashboard-metric span {
+  color: #5d6c87;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.cockpit-dashboard-summary-card strong,
+.cockpit-dashboard-metric strong {
+  font-size: 1.45rem;
+  color: #102743;
+}
+
+.cockpit-dashboard-summary-card p {
+  margin: 0;
+  color: #7a87a3;
+  font-size: 0.8rem;
+}
+
 .cockpit-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -4323,6 +4444,14 @@ textarea:focus {
 }
 
 @media (max-width: 760px) {
+  .cockpit-month-switch {
+    justify-items: stretch;
+  }
+
+  .cockpit-month-switch-controls {
+    justify-content: space-between;
+  }
+
   .cockpit-shell {
     grid-template-columns: 1fr;
   }
