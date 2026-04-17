@@ -1,12 +1,17 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
 import { loadStoredSession } from './sessionPersistence';
 import { resolvePublicCompanyTenant } from './api/companyTenant';
+import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
+
+function getCurrentMonthLabel(date = new Date()) {
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+}
 
 const session = {
   accessToken: 'token',
@@ -27,6 +32,36 @@ const session = {
   availableAccountTypes: ['manager'],
 };
 
+const systemAdminSession = {
+  ...session,
+  email: 'system-admin@example.com',
+  activeAccount: {
+    accountType: 'system_admin' as const,
+    accountId: '20000000-0000-0000-0000-000000000002',
+    companyId: null,
+    roleType: null,
+  },
+  availableAccountTypes: ['system_admin'],
+};
+
+const wrongCompanySession = {
+  ...session,
+  activeAccount: {
+    ...session.activeAccount,
+    companyId: '30000000-0000-0000-0000-000000000099',
+  },
+};
+
+const cockpitBootstrap = {
+  companyId: '30000000-0000-0000-0000-000000000001',
+  companyName: '천하운수',
+  tenantCode: 'cheonha',
+  workflowProfile: 'cheonha_ops_v1',
+  enabledFeatures: ['settlement', 'vehicle'],
+  homeDashboardPreset: {},
+  workspacePresets: {},
+};
+
 vi.mock('./sessionPersistence', () => ({
   clearStoredSession: vi.fn(),
   loadStoredSession: vi.fn(),
@@ -41,6 +76,14 @@ vi.mock('./api/auth', () => ({
 
 vi.mock('./api/organization', () => ({
   listPublicCompanies: vi.fn().mockResolvedValue([]),
+  listCompanies: vi.fn().mockResolvedValue([]),
+  listFleets: vi.fn().mockResolvedValue([
+    {
+      fleet_id: 'fleet-1',
+      company_id: '30000000-0000-0000-0000-000000000001',
+      name: '천하 메인 플릿',
+    },
+  ]),
 }));
 
 vi.mock('./api/companyTenant', () => ({
@@ -62,6 +105,32 @@ vi.mock('./hooks/useNavigationPolicy', () => ({
   })),
 }));
 
+vi.mock('./pages/SettlementInputsPage', () => ({
+  SettlementInputsPage: () => (
+    <section>
+      <h2>정산 입력 요약</h2>
+      <p>cockpit alias surface</p>
+    </section>
+  ),
+}));
+
+async function withHostname<T>(url: string, run: () => Promise<T>): Promise<T> {
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: new URL(url),
+  });
+
+  try {
+    return await run();
+  } finally {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
+  }
+}
+
 describe('App cockpit entry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -73,8 +142,17 @@ describe('App cockpit entry', () => {
     });
   });
 
-  it('renders the Cheonha cockpit dashboard after workspace bootstrap resolves', async () => {
+  it('lands the company shell root on the cockpit dashboard', async () => {
     vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
     vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
       companyId: '30000000-0000-0000-0000-000000000001',
       companyName: '천하운수',
@@ -85,12 +163,272 @@ describe('App cockpit entry', () => {
       workspacePresets: {},
     });
 
+    window.history.replaceState({}, '', '/');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '천하운수' })).toBeInTheDocument();
-    expect(screen.getByText('정산').closest('a')).toHaveAttribute('href', '/settlement');
-    expect(screen.getByText('차량').closest('a')).toHaveAttribute('href', '/vehicle');
-    expect(screen.getAllByText('빈 카드')).toHaveLength(2);
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '천하운수 운영 대시보드',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '최근 6개월 수입/지출' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '금월 배차표 기반 근태' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '금일 배차' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '이전 월' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '다음 월' })).toBeDisabled();
+    expect(screen.getByText(getCurrentMonthLabel())).toBeInTheDocument();
+    expect(screen.getAllByText('데이터 미연동')).toHaveLength(9);
+    expect(screen.queryByText('₩0')).not.toBeInTheDocument();
+    expect(screen.queryByText('0명')).not.toBeInTheDocument();
+    expect(screen.queryByText('0건')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {
+        name: '정산 천하운수 전용 정산 워크스페이스로 이동합니다. 열기',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the subdomain shell with a left-side accordion nav instead of a top bar', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    expect(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
+    expect(document.querySelector('.console-topbar')).toBeNull();
+  });
+
+  it('keeps settlement under /settlement', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/settlement');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    const subdomainNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(within(subdomainNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(subdomainNav).getByRole('link', { name: '배차 데이터' })).toHaveAttribute(
+      'href',
+      '/settlement/dispatch',
+    );
+    expect(within(subdomainNav).getByRole('link', { name: '배송원 관리' })).toHaveAttribute(
+      'href',
+      '/settlement/crew',
+    );
+  });
+
+  it('fails closed on removed /settlements aliases in the cockpit shell', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/settlements/inputs');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+      expect(window.location.pathname).toBe('/');
+    });
+    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    expect(screen.queryByText('cockpit alias surface')).not.toBeInTheDocument();
+  });
+
+  it('keeps the company shell from exposing a top-level dispatch route', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/dispatch');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/');
+    expect(screen.queryByText('배차 관리 권한 필요')).not.toBeInTheDocument();
+  });
+
+  it('keeps the company shell from exposing other legacy top-level workspace routes', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/vehicle');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/');
+    });
+  });
+
+  it('blocks unknown company hosts after public resolve instead of opening the generic shell', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+
+    await withHostname('https://unknown.ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new ApiError(404, 'company_not_found', 'missing', {}));
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    });
+  });
+
+  it('blocks unknown company hosts before rendering the generic login shell when signed out', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+
+    await withHostname('https://unknown.ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(new ApiError(404, 'company_not_found', 'missing', {}));
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: '로그인' })).not.toBeInTheDocument();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows a retryable resolve error instead of treating non-404 tenant resolve failures as not found', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+
+    await withHostname('https://cheonha.ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+      vi.mocked(resolvePublicCompanyTenant).mockRejectedValue(
+        new ApiError(503, 'service_unavailable', 'tenant service unavailable', {}),
+      );
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByText('회사 문맥을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.')).toBeInTheDocument();
+      expect(screen.queryByText('존재하지 않는 회사 서브도메인입니다.')).not.toBeInTheDocument();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    });
   });
 
   it('hides company search and select in signup for tenant subdomains', async () => {
@@ -108,7 +446,9 @@ describe('App cockpit entry', () => {
 
     render(<App />);
 
-    expect(await screen.findByText('천하운수 전용 워크스페이스')).toBeInTheDocument();
+    expect(await screen.findByText('천하운수')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '천하운수' })).not.toBeInTheDocument();
+    expect(screen.getByText('회사 전용 로그인')).toBeInTheDocument();
     expect(screen.getByText('천하운수 전용 콘솔')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '회원가입' }));
@@ -118,5 +458,59 @@ describe('App cockpit entry', () => {
       expect(screen.queryByLabelText('회사 검색')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('회사 선택')).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps the main-domain signed-out entry generic', async () => {
+    const actualTenantModule = await vi.importActual<typeof import('./tenant/resolveTenantEntry')>(
+      './tenant/resolveTenantEntry',
+    );
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+
+    await withHostname('https://ev-dashboard.com/', async () => {
+      vi.mocked(resolveTenantEntry).mockImplementation(actualTenantModule.resolveTenantEntry);
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
+      expect(screen.getByText('통합 운영 웹 콘솔')).toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
+      expect(resolvePublicCompanyTenant).not.toHaveBeenCalled();
+      expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
+    });
+  });
+
+  it('rejects a system-admin session on a company subdomain before entering the cockpit shell', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(systemAdminSession);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue(cockpitBootstrap);
+
+    render(<App />);
+
+    await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
+    expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
+    expect(screen.getByText('회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
+    expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
+  });
+
+  it('rejects a company manager session on the wrong company subdomain before entering the cockpit shell', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(wrongCompanySession);
+    vi.mocked(resolveTenantEntry).mockReturnValue({
+      type: 'company',
+      tenantCode: 'other-company',
+      host: 'other-company.ev-dashboard.com',
+    });
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue(cockpitBootstrap);
+
+    render(<App />);
+
+    await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
+    expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
+    expect(screen.getByText('회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
+    expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
   });
 });

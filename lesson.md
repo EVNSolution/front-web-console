@@ -37,3 +37,16 @@ Keep the front default strict:
 - explicit non-blank override -> keep it as-is
 
 Lock that behavior with a small unit test before rebuilding the image.
+
+## Subdomain Shell Contract
+
+The company subdomain is a dedicated product surface, not a menu branch inside the main domain shell.
+
+- main domain stays on the system-admin surface
+- company manager sessions are rejected from the main-domain shell
+- system-admin sessions are rejected from the subdomain shell
+- subdomain `/` opens the dashboard first
+- subdomain login keeps the company header visible
+- the subdomain left accordion stays ordered as `대시보드 / 정산`
+- settlement internal navigation stays ordered as `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
+- the rule shell stays structural only: no persisted editor, no save button, no submit action, and no write API path

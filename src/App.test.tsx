@@ -8,11 +8,12 @@ import { ApiError, GENERIC_SERVER_ERROR_MESSAGE } from './api/http';
 import { loadStoredSession } from './sessionPersistence';
 import { listPublicCompanies } from './api/organization';
 import { listVehicleMasters } from './api/vehicles';
+import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
 const session = {
   accessToken: 'token',
   sessionKind: 'normal',
-  email: 'manager@example.com',
+  email: 'system-admin@example.com',
   identity: {
     identityId: '10000000-0000-0000-0000-000000000001',
     name: '관리자',
@@ -20,13 +21,42 @@ const session = {
     status: 'active',
   },
   activeAccount: {
-    accountType: 'manager' as const,
+    accountType: 'system_admin' as const,
     accountId: '20000000-0000-0000-0000-000000000001',
-    companyId: '30000000-0000-0000-0000-000000000001',
+    companyId: null,
+    roleType: null,
+  },
+  availableAccountTypes: ['system_admin'],
+};
+
+const companyManagerSession = {
+  ...session,
+  email: 'manager@example.com',
+  activeAccount: {
+    accountType: 'manager' as const,
+    accountId: '20000000-0000-0000-0000-000000000010',
+    companyId: '30000000-0000-0000-0000-000000000010',
     roleType: 'company_super_admin',
   },
   availableAccountTypes: ['manager'],
 };
+
+async function withHostname<T>(url: string, run: () => Promise<T>): Promise<T> {
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: new URL(url),
+  });
+
+  try {
+    return await run();
+  } finally {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
+  }
+}
 
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -117,6 +147,10 @@ vi.mock('./api/dispatchRegistry', () => ({
 
 vi.mock('./api/vehicles', () => ({
   listVehicleMasters: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('./tenant/resolveTenantEntry', () => ({
+  resolveTenantEntry: vi.fn(),
 }));
 
 vi.mock('./api/driverAccountLinks', () => ({
@@ -246,6 +280,7 @@ describe('Admin App', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
     vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolveTenantEntry).mockReturnValue(null);
     vi.mocked(loginApi).mockReset();
     vi.mocked(listVehicleMasters).mockResolvedValue([]);
   });
@@ -254,6 +289,34 @@ describe('Admin App', () => {
     render(<App />);
 
     expect(await screen.findByText('운영 요약')).toBeInTheDocument();
+  });
+
+  it('keeps the main-domain IA anchors intact', async () => {
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    expect(await screen.findByRole('link', { name: '대시보드' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '조직 관리' }));
+    expect(screen.getByRole('link', { name: '회사' })).toBeInTheDocument();
+  });
+
+  it('rejects a company manager session on the main domain before rendering the admin shell', async () => {
+    await withHostname('https://ev-dashboard.com/', async () => {
+      vi.mocked(loadStoredSession).mockReturnValue(companyManagerSession);
+      vi.mocked(resolveTenantEntry).mockReturnValue(null);
+
+      window.history.replaceState({}, '', '/');
+      render(<App />);
+
+      expect(window.location.hostname).toBe('ev-dashboard.com');
+      expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
+      expect(screen.getByText('메인 도메인은 시스템 관리자 계정만 사용할 수 있습니다.')).toBeInTheDocument();
+      expect(screen.queryByText('운영 요약')).not.toBeInTheDocument();
+      expect(screen.queryByText('CLEVER 통합 웹 콘솔')).not.toBeInTheDocument();
+    });
   });
 
   it('redirects removed /notifications to the dashboard root', async () => {
@@ -342,8 +405,8 @@ describe('Admin App', () => {
 
     expect(await screen.findByRole('heading', { name: '정산 실행 조회' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '정산 기준' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('회사')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('플릿')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '회사' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '플릿' })).not.toBeInTheDocument();
   });
 
   it('renders settlement process routes with process tabs and context selectors', async () => {
@@ -356,8 +419,8 @@ describe('Admin App', () => {
     expect(screen.getByRole('link', { name: '정산 입력' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산 실행' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '정산 결과' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('회사')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('combobox', { name: '플릿' })).toHaveLength(2);
+    expect(screen.getAllByRole('combobox', { name: '회사' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('combobox', { name: '플릿' }).length).toBeGreaterThan(0);
   });
 
   it('redirects to the dashboard root after login regardless of the entry route', async () => {

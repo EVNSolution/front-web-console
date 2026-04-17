@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DispatchUploadsPage } from './DispatchUploadsPage';
@@ -170,6 +170,12 @@ describe('DispatchUploadsPage', () => {
     return file;
   }
 
+  function LocationProbe() {
+    const location = useLocation();
+
+    return <p data-testid="location">{location.pathname}</p>;
+  }
+
   it('boots settlement preparation from the upload scope without a dispatch plan', async () => {
     dispatchRegistryMocks.listDispatchUploadBatches.mockResolvedValue([
       {
@@ -200,6 +206,7 @@ describe('DispatchUploadsPage', () => {
     render(
       <MemoryRouter>
         <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+        <LocationProbe />
       </MemoryRouter>,
     );
 
@@ -227,6 +234,7 @@ describe('DispatchUploadsPage', () => {
         },
       );
     });
+    expect(screen.getByTestId('location')).toHaveTextContent('/settlements/inputs');
   });
 
   it('keeps the settlement handoff CTA at the top and disables it before confirmed uploads exist', async () => {
@@ -508,6 +516,58 @@ describe('DispatchUploadsPage', () => {
     expect(screen.queryByText(/1차 MVP/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/phase 1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/정산 근거로 사용합니다/i)).not.toBeInTheDocument();
+  });
+
+  it('can override cockpit CTA targets without changing the main-hub defaults', async () => {
+    dispatchRegistryMocks.listDispatchUploadBatches.mockResolvedValue([
+      {
+        upload_batch_id: 'upload-batch-1',
+        dispatch_plan_id: null,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        dispatch_date: '2026-03-24',
+        source_filename: 'dispatch.xlsx',
+        upload_status: 'confirmed',
+        created_at: '2026-03-24T09:00:00Z',
+        updated_at: '2026-03-24T09:10:00Z',
+        rows: [
+          {
+            upload_row_id: 'upload-row-1',
+            row_index: 1,
+            external_user_name: 'ZD홍길동',
+            small_region_text: '10H2',
+            detailed_region_text: '10H2-가',
+            box_count: 133,
+            household_count: 90,
+            matched_driver_id: 'driver-1',
+          },
+        ],
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/settlement/dispatch']}>
+        <DispatchUploadsPage
+          client={{ request: vi.fn() }}
+          dispatchBoardsPath="/settlement/dispatch"
+          session={systemAdminSession}
+          settlementInputsPath="/settlement/process"
+        />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '배차 계획 보기' })).toHaveAttribute('href', '/settlement/dispatch');
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('배차일'), '2026-03-24');
+    await user.click(screen.getByRole('button', { name: '정산 시작하기' }));
+
+    await waitFor(() => {
+      expect(deliveryRecordMocks.bootstrapDailySnapshotsFromDispatch).toHaveBeenCalled();
+    });
+    expect(screen.getByTestId('location')).toHaveTextContent('/settlement/process');
   });
 
   it('hides company selection for company managers and locks the upload scope to the active company', async () => {

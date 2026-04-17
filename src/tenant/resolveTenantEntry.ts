@@ -13,7 +13,7 @@ export function resolveTenantEntry(hostname: string | undefined): TenantEntry | 
   }
 
   const hostParts = normalizedHost.split('.');
-  if (hostParts.length < 3) {
+  if (hostParts.length !== 3 || hostParts.some((part) => part.length === 0)) {
     return null;
   }
 

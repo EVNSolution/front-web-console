@@ -2,12 +2,30 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { SessionPayload } from '../api/http';
 import { SettlementSectionLayout } from './SettlementSectionLayout';
 
 const apiMocks = vi.hoisted(() => ({
   listCompanies: vi.fn(),
   listFleets: vi.fn(),
 }));
+
+const systemAdminSession: SessionPayload = {
+  accessToken: 'token',
+  sessionKind: 'normal',
+  email: 'system@example.com',
+  identity: {
+    identityId: 'identity-1',
+    name: '시스템 관리자',
+    birthDate: '1990-01-01',
+    status: 'active',
+  },
+  activeAccount: {
+    accountType: 'system_admin',
+    accountId: 'system-admin-1',
+  },
+  availableAccountTypes: ['system_admin'],
+};
 
 vi.mock('../api/organization', () => ({
   listCompanies: apiMocks.listCompanies,
@@ -44,7 +62,7 @@ describe('SettlementSectionLayout', () => {
         <Routes>
           <Route
             path="/settlements"
-            element={<SettlementSectionLayout client={{ request: vi.fn() }} />}
+            element={<SettlementSectionLayout client={{ request: vi.fn() }} session={systemAdminSession} />}
           >
             <Route path="criteria" element={<SettlementContextEcho />} />
             <Route path="inputs" element={<SettlementContextEcho />} />

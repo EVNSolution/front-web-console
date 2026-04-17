@@ -261,9 +261,67 @@ describe('SettlementInputsPage', () => {
     expect(screen.getByText(/박스 133/)).toBeInTheDocument();
     expect(screen.getByText(/10H2/)).toBeInTheDocument();
     expect(screen.getByText('dispatch-upload-row:upload-row-1')).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: /배차 보드로 이동/i }, { timeout: 3000 })).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: /정산 실행으로 이동/i }, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /배차 보드로 이동/i }, { timeout: 3000 })).toHaveAttribute(
+      'href',
+      '/dispatch/boards',
+    );
+    expect(await screen.findByRole('link', { name: /정산 실행으로 이동/i }, { timeout: 3000 })).toHaveAttribute(
+      'href',
+      '/settlements/runs',
+    );
   }, 10000);
+
+  it('can override process-surface CTAs to stay inside the cockpit settlement workspace', async () => {
+    mockedListCompanies.mockResolvedValue([
+      { company_id: '30000000-0000-0000-0000-000000000001', route_no: 1, name: 'Seed Company' },
+    ]);
+    mockedListFleets.mockResolvedValue([
+      {
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        route_no: 1,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        name: 'Seed Fleet',
+      },
+    ]);
+    mockedListDrivers.mockResolvedValue([
+      {
+        driver_id: '10000000-0000-0000-0000-000000000001',
+        route_no: 1,
+        company_id: '30000000-0000-0000-0000-000000000001',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+        name: 'Seed Driver',
+        external_user_name: 'seed-driver',
+        ev_id: 'EV-001',
+        phone_number: '010-1234-5678',
+        address: 'Seoul',
+      },
+    ]);
+    mockedListDeliveryRecords.mockResolvedValue([]);
+    mockedListDailyDeliveryInputSnapshots.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <SettlementFlowProvider client={{ request: vi.fn() }} session={fleetManagerSingleSession}>
+          <SettlementInputsPage
+            client={{ request: vi.fn() }}
+            dispatchBoardsPath="/settlement/dispatch"
+            settlementRunsPath="/settlement/process"
+          />
+        </SettlementFlowProvider>
+      </MemoryRouter>,
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryByText('정산 입력을 불러오는 중입니다...'),
+      { timeout: 3000 },
+    );
+
+    expect(screen.getByRole('link', { name: /배차 보드로 이동/i })).toHaveAttribute('href', '/settlement/dispatch');
+    expect(screen.getByRole('link', { name: /정산 실행으로 이동/i })).toHaveAttribute(
+      'href',
+      '/settlement/process',
+    );
+  });
 
   it('keeps company fixed and only exposes fleet selection in manual record modal for company super admins', async () => {
     mockedListCompanies.mockResolvedValue([

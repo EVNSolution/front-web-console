@@ -6,6 +6,8 @@ import type { Company, Fleet } from '../types';
 import { getSettlementContextSelectorMode, type SettlementContextSelectorMode } from '../authScopes';
 import { getFleetOptions } from '../pages/settlementAdminHelpers';
 
+const EMPTY_ASSIGNED_FLEET_IDS: string[] = [];
+
 type SettlementFlowContextValue = {
   companies: Company[];
   fleets: Fleet[];
@@ -37,7 +39,7 @@ export function SettlementFlowProvider({ client, children, session }: Settlement
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectorMode = getSettlementContextSelectorMode(session ?? { activeAccount: null } as SessionPayload);
-  const assignedFleetIds = session?.activeAccount?.assignedFleetIds ?? [];
+  const assignedFleetIds = session?.activeAccount?.assignedFleetIds ?? EMPTY_ASSIGNED_FLEET_IDS;
   const defaultFleetId = session?.activeAccount?.defaultFleetId ?? null;
   const fixedCompanyId = session?.activeAccount?.companyId ?? '';
   const showCompanySelector = selectorMode === 'company_and_fleet';

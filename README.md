@@ -38,6 +38,17 @@
 - safer remote target 확인: `npm run dev:local-test`
 - static bundle 검증: `npm run build`
 
+## Subdomain Shell Contract
+
+- main domain remains the system-admin surface
+- company manager sessions are rejected from the main-domain shell
+- system-admin sessions are rejected from the subdomain shell
+- subdomain `/` opens the dashboard first
+- subdomain login shows the company header
+- subdomain accordion order is `대시보드 / 정산`
+- settlement internal menu order is `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
+- rule-shell behavior is structural only: no persisted editor, no save action, no submit action, and no write API
+
 ## Image Build / Deploy Contract
 
 - GitHub Actions workflow 이름은 `Build front-web-console image`다.
@@ -61,6 +72,17 @@
 
 - unit/component: `npm run test`
 - browser smoke: `npm run test:e2e`
+
+## Manual Verification Matrix
+
+Use this checklist for the subdomain shell regression pass:
+
+- main domain still shows system-admin surface
+- company manager session is rejected from main-domain shell
+- system-admin session is rejected from subdomain shell
+- subdomain `/` opens dashboard
+- subdomain settlement menu order matches spec
+- subdomain login shows company header
 
 ## Root Docs / Runbooks
 

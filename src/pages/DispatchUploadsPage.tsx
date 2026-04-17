@@ -18,10 +18,17 @@ import type { Company, DispatchUploadBatch, DriverProfile, Fleet } from '../type
 
 type DispatchUploadsPageProps = {
   client: HttpClient;
+  dispatchBoardsPath?: string;
   session: SessionPayload;
+  settlementInputsPath?: string;
 };
 
-export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProps) {
+export function DispatchUploadsPage({
+  client,
+  dispatchBoardsPath = '/dispatch/boards',
+  session,
+  settlementInputsPath = '/settlements/inputs',
+}: DispatchUploadsPageProps) {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [fleets, setFleets] = useState<Fleet[]>([]);
@@ -223,7 +230,7 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
         service_date: dispatchDate,
       });
       setStatusMessage('배차표 업로드 기준으로 정산 입력 snapshot을 준비했습니다.');
-      navigate('/settlements/inputs');
+      navigate(settlementInputsPath);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -381,7 +388,7 @@ export function DispatchUploadsPage({ client, session }: DispatchUploadsPageProp
                 <span className="dispatch-upload-scope-stat">박스 {uploadSummary.totalBoxCount}</span>
               </div>
               <div className="dispatch-upload-sidebar-actions">
-                <Link className="button ghost" to="/dispatch/boards">
+                <Link className="button ghost" to={dispatchBoardsPath}>
                   배차 계획 보기
                 </Link>
               </div>
