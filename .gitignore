@@ -1,6 +1,7 @@
 playwright-report/
 test-results/
 node_modules/
+.worktrees/
 .env.local
 .env.local-test
 
