@@ -9,6 +9,10 @@ import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
+function getCurrentMonthLabel(date = new Date()) {
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+}
+
 const session = {
   accessToken: 'token',
   sessionKind: 'normal',
@@ -128,9 +132,13 @@ describe('App cockpit entry', () => {
     expect(screen.getByRole('heading', { name: '최근 6개월 수입/지출' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '금월 배차표 기반 근태' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '금일 배차' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '이전 월' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '다음 월' })).toBeInTheDocument();
-    expect(screen.getByText('2026년 4월')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '이전 월' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '다음 월' })).toBeDisabled();
+    expect(screen.getByText(getCurrentMonthLabel())).toBeInTheDocument();
+    expect(screen.getAllByText('데이터 미연동')).toHaveLength(9);
+    expect(screen.queryByText('₩0')).not.toBeInTheDocument();
+    expect(screen.queryByText('0명')).not.toBeInTheDocument();
+    expect(screen.queryByText('0건')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', {
         name: '정산 천하운수 전용 정산 워크스페이스로 이동합니다. 열기',

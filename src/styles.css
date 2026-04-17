@@ -4289,15 +4289,20 @@ textarea:focus {
 .cockpit-month-switch-controls {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.7rem;
+  row-gap: 0.45rem;
   padding: 0.35rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(20, 40, 70, 0.08);
+  max-width: 100%;
 }
 
 .cockpit-month-switch-controls strong {
   min-width: 7.5rem;
+  max-width: 100%;
   text-align: center;
   font-size: 0.96rem;
   color: #102743;
@@ -4311,6 +4316,12 @@ textarea:focus {
   color: #0f6699;
   font-weight: 700;
   cursor: pointer;
+}
+
+.cockpit-month-button:disabled {
+  background: rgba(93, 108, 135, 0.08);
+  color: #7a87a3;
+  cursor: not-allowed;
 }
 
 .cockpit-dashboard-grid {
@@ -4378,7 +4389,8 @@ textarea:focus {
   color: #102743;
 }
 
-.cockpit-dashboard-summary-card p {
+.cockpit-dashboard-summary-card p,
+.cockpit-dashboard-metric p {
   margin: 0;
   color: #7a87a3;
   font-size: 0.8rem;
@@ -4449,7 +4461,15 @@ textarea:focus {
   }
 
   .cockpit-month-switch-controls {
-    justify-content: space-between;
+    width: 100%;
+    justify-content: center;
+    border-radius: 24px;
+  }
+
+  .cockpit-month-switch-controls strong {
+    order: -1;
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .cockpit-shell {
