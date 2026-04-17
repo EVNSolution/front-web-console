@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import { login, logout, signupRequestIntake } from './api/auth';
@@ -238,9 +238,11 @@ function getDomainAccessState({
     session?.activeAccount?.companyId === tenantCompany.companyId;
 
   return {
+    hasSession: session !== null,
     isBlocked:
-      (isCompanyTenant && tenantResolutionStatus === 'resolved' && !isMatchingCompanySession) ||
-      (!isCompanyTenant && !isSystemAdminSession),
+      session !== null &&
+      ((isCompanyTenant && tenantResolutionStatus === 'resolved' && !isMatchingCompanySession) ||
+        (!isCompanyTenant && !isSystemAdminSession)),
     isMatchingCompanySession,
   };
 }
@@ -265,6 +267,639 @@ function DomainAccessBlockedPanel({
         </button>
       </section>
     </div>
+  );
+}
+
+function MainDomainShell({
+  client,
+  handleLogout,
+  handleNavigationRedirect,
+  postLoginRedirectTick,
+  policyRedirectTick,
+  isLocalDebugRouteVisible,
+  session,
+  sessionRef,
+  setSession,
+  showTopNotification,
+  topNotificationNode,
+}: {
+  client: HttpClient;
+  handleLogout: () => Promise<void>;
+  handleNavigationRedirect: () => void;
+  postLoginRedirectTick: number;
+  policyRedirectTick: number;
+  isLocalDebugRouteVisible: boolean;
+  session: SessionPayload;
+  sessionRef: MutableRefObject<SessionPayload | null>;
+  setSession: Dispatch<SetStateAction<SessionPayload | null>>;
+  showTopNotification: (message: string, tone: TopNotificationTone, options?: { dedupeKey?: string }) => void;
+  topNotificationNode: ReactNode;
+}) {
+  const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
+    client,
+    session,
+    policyRedirectTick,
+  );
+
+  return (
+    <>
+      {topNotificationNode}
+      <BrowserRouter future={ROUTER_FUTURE}>
+        <PostLoginRouteEffect redirectTick={postLoginRedirectTick} />
+        <NavigationPolicyRouteEffect
+          allowedNavKeys={allowedNavKeys}
+          isLoading={isNavigationPolicyLoading}
+          onRedirect={handleNavigationRedirect}
+          session={session}
+        />
+        <RequireAdmin session={session} onLogout={handleLogout}>
+          <Routes>
+            <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
+              <Route path="/" element={<DashboardPage client={client} session={session} />} />
+              <Route
+                path="/me"
+                element={
+                  <AccountPage
+                    client={client}
+                    onSessionChange={(nextSession) => {
+                      sessionRef.current = nextSession;
+                      setSession(nextSession);
+                    }}
+                    session={session}
+                  />
+                }
+              />
+              <Route path="/account" element={<Navigate replace to="/me" />} />
+              <Route path="/admin/account-requests" element={<AccountsPage client={client} session={session} />} />
+              <Route path="/accounts" element={<Navigate replace to="/admin/account-requests" />} />
+              <Route
+                path="/admin/menu-policy"
+                element={
+                  <RequireRoleScope
+                    message="메뉴 정책은 시스템 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="메뉴 정책 권한 필요"
+                    when={canManageCompanySuperAdmin}
+                  >
+                    <ManagerNavigationPolicyPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/admin/navigation-policy" element={<Navigate replace to="/admin/menu-policy" />} />
+              <Route
+                path="/admin/manager-roles"
+                element={
+                  <RequireRoleScope
+                    message="관리자 역할은 시스템 관리자와 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="관리자 역할 권한 필요"
+                    when={canManageManagerRoles}
+                  >
+                    <ManagerRolesPage client={client} onShowNotice={showTopNotification} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/company/menu-policy"
+                element={
+                  <RequireRoleScope
+                    message="회사 메뉴 정책은 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 메뉴 정책 권한 필요"
+                    when={canManageCompanyNavigationPolicy}
+                  >
+                    <CompanyNavigationPolicyPage client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/company/navigation-policy" element={<Navigate replace to="/company/menu-policy" />} />
+              <Route path="/organization" element={<Navigate replace to="/companies" />} />
+              <Route path="/dispatch" element={<Navigate replace to="/dispatch/boards" />} />
+              <Route
+                path="/dispatch/uploads"
+                element={
+                  <RequireRoleScope
+                    message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배차 관리 권한 필요"
+                    when={canAccessDispatchScope}
+                  >
+                    <DispatchUploadsPage client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/dispatch/boards"
+                element={
+                  <RequireRoleScope
+                    message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배차 관리 권한 필요"
+                    when={canAccessDispatchScope}
+                  >
+                    <DispatchBoardsPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/dispatch/boards/:fleetRef/:dispatchDate"
+                element={
+                  <RequireRoleScope
+                    message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배차 관리 권한 필요"
+                    when={canAccessDispatchScope}
+                  >
+                    <DispatchBoardDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/dispatch/plans/new"
+                element={
+                  <RequireRoleScope
+                    message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배차 관리 권한 필요"
+                    when={canAccessDispatchScope}
+                  >
+                    <DispatchPlanFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/dispatch/plans/:dispatchPlanRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배차 관리 권한 필요"
+                    when={canAccessDispatchScope}
+                  >
+                    <DispatchPlanFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/announcements" element={<AnnouncementsPage client={client} session={session} />} />
+              <Route
+                path="/announcements/new"
+                element={
+                  <RequireRoleScope
+                    message="공지 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="공지 관리 권한 필요"
+                    when={canManageAnnouncementScope}
+                  >
+                    <AnnouncementFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/announcements/:announcementSlug"
+                element={<AnnouncementDetailPage client={client} session={session} />}
+              />
+              <Route
+                path="/announcements/:announcementSlug/edit"
+                element={
+                  <RequireRoleScope
+                    message="공지 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="공지 관리 권한 필요"
+                    when={canManageAnnouncementScope}
+                  >
+                    <AnnouncementFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/support" element={<SupportPage client={client} session={session} />} />
+              <Route
+                path="/block"
+                element={
+                  isLocalDebugRouteVisible ? (
+                    <TopNotificationPreviewPage onShowNotice={showTopNotification} />
+                  ) : (
+                    <Navigate replace to="/" />
+                  )
+                }
+              />
+              <Route
+                path="/regions"
+                element={
+                  <RequireRoleScope
+                    message="권역은 시스템 관리자와 회사 관리자 레벨에서 조회할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="권역 조회 권한 필요"
+                    when={canAccessRegionScope}
+                  >
+                    <RegionsPage client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/regions/new"
+                element={
+                  <RequireRoleScope
+                    message="권역 정본 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="권역 관리 권한 필요"
+                    when={canManageRegionScope}
+                  >
+                    <RegionFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/regions/:regionRef"
+                element={
+                  <RequireRoleScope
+                    message="권역은 시스템 관리자와 회사 관리자 레벨에서 조회할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="권역 조회 권한 필요"
+                    when={canAccessRegionScope}
+                  >
+                    <RegionDetailPage client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/regions/:regionRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="권역 정본 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="권역 관리 권한 필요"
+                    when={canManageRegionScope}
+                  >
+                    <RegionFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <CompaniesPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies/new"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <CompanyFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies/:companyRef"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <CompanyDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies/:companyRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <CompanyFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies/:companyRef/fleets/new"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <FleetFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies/:companyRef/fleets/:fleetRef"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <FleetDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/companies/:companyRef/fleets/:fleetRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="회사 관리 권한 필요"
+                    when={canAccessCompanyScope}
+                  >
+                    <FleetFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/drivers" element={<DriversPage client={client} session={session} />} />
+              <Route
+                path="/drivers/new"
+                element={
+                  <RequireRoleScope
+                    message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배송원 관리 권한 필요"
+                    when={canManageDriverProfileScope}
+                  >
+                    <DriverFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/drivers/:driverRef" element={<DriverDetailPage client={client} session={session} />} />
+              <Route
+                path="/drivers/:driverRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배송원 관리 권한 필요"
+                    when={canManageDriverProfileScope}
+                  >
+                    <DriverFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/personnel-documents"
+                element={
+                  <RequireRoleScope
+                    message="인사문서는 관리자 계정에서만 접근할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="인사문서 접근 권한 필요"
+                    when={canAccessPersonnelDocumentScope}
+                  >
+                    <PersonnelDocumentsPage client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/personnel-documents/new"
+                element={
+                  <RequireRoleScope
+                    message="인사문서 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="인사문서 관리 권한 필요"
+                    when={canManagePersonnelDocumentScope}
+                  >
+                    <PersonnelDocumentFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/personnel-documents/:documentRef"
+                element={
+                  <RequireRoleScope
+                    message="인사문서는 관리자 계정에서만 접근할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="인사문서 접근 권한 필요"
+                    when={canAccessPersonnelDocumentScope}
+                  >
+                    <PersonnelDocumentDetailPage client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/personnel-documents/:documentRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="인사문서 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="인사문서 관리 권한 필요"
+                    when={canManagePersonnelDocumentScope}
+                  >
+                    <PersonnelDocumentFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehiclesPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/new"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/:vehicleRef"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/:vehicleRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/:vehicleRef/accesses/new"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleOperatorAccessFormPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentsPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments/new"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments/:assignmentRef"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments/:assignmentRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/settlements/overview"
+                element={
+                  <RequireRoleScope
+                    message="정산은 시스템 관리자, 회사 전체 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="정산 관리 권한 필요"
+                    when={canAccessSettlementScope}
+                  >
+                    <SettlementFlowProvider client={client} session={session}>
+                      <SettlementOverviewPage client={client} />
+                    </SettlementFlowProvider>
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/settlements"
+                element={
+                  <RequireRoleScope
+                    message="정산은 시스템 관리자, 회사 전체 관리자, 정산 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="정산 관리 권한 필요"
+                    when={canAccessSettlementScope}
+                  >
+                    <SettlementSectionLayout client={client} session={session} />
+                  </RequireRoleScope>
+                }
+              >
+                <Route index element={<Navigate replace to="/settlements/overview" />} />
+                <Route path="criteria" element={<SettlementCriteriaPage client={client} session={session} />} />
+                <Route path="inputs" element={<SettlementInputsPage client={client} />} />
+                <Route path="runs" element={<SettlementRunsPage client={client} />} />
+                <Route path="results" element={<SettlementResultsPage client={client} />} />
+              </Route>
+              <Route path="*" element={<Navigate replace to="/" />} />
+            </Route>
+          </Routes>
+        </RequireAdmin>
+      </BrowserRouter>
+    </>
   );
 }
 
@@ -537,12 +1172,6 @@ export default function App() {
     };
   }, [client, domainAccessState.isMatchingCompanySession, tenantEntry, tenantResolutionStatus]);
 
-  const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
-    client,
-    session,
-    policyRedirectTick,
-  );
-
   async function handleLogin(credentials: { email: string; password: string }) {
     setIsSubmitting(true);
     setAuthError(null);
@@ -811,607 +1440,96 @@ export default function App() {
     );
   }
 
-  return (
-    <>
-      {topNotificationNode}
-      <BrowserRouter future={ROUTER_FUTURE}>
-        <PostLoginRouteEffect redirectTick={postLoginRedirectTick} />
-        <NavigationPolicyRouteEffect
-          allowedNavKeys={allowedNavKeys}
-          isLoading={isNavigationPolicyLoading}
-          onRedirect={handleNavigationRedirect}
+  if (!session) {
+    return (
+      <>
+        {topNotificationNode}
+        <LoginPage
+          companies={publicCompanies}
+          companyErrorMessage={companyErrorMessage}
+          errorMessage={authError}
+          isLoadingCompanies={isLoadingCompanies}
+          isSubmitting={isSubmitting}
+          onLogin={handleLogin}
+          onSignup={handleSignup}
+          presetCompany={
+            tenantCompany
+              ? {
+                  company_id: tenantCompany.companyId,
+                  name: tenantCompany.companyName,
+                }
+              : null
+          }
+          statusMessage={authStatusMessage}
+        />
+      </>
+    );
+  }
+
+  if (session.sessionKind === 'consent_recovery') {
+    return (
+      <ConsentRecoveryPage
+        client={client}
+        onLogout={handleLogout}
+        onRecovered={(nextSession) => {
+          sessionRef.current = nextSession;
+          setSession(nextSession);
+        }}
+      />
+    );
+  }
+
+  if (session.activeAccount === null) {
+    return (
+      <div className="stack app-shell">
+        <section className="panel blocked-panel">
+          <p className="panel-kicker">승인 대기</p>
+          <h2>웹 관리자 계정 승인 전입니다.</h2>
+          <p className="hero-copy">내 계정 화면에서 현재 단계와 요청 내용을 확인하고, 필요하면 요청을 취소하거나 다시 생성할 수 있습니다.</p>
+          <button className="button primary" onClick={() => void handleLogout()} type="button">
+            로그아웃
+          </button>
+        </section>
+        <AccountPage
+          client={client}
+          onSessionChange={(nextSession) => {
+            sessionRef.current = nextSession;
+            setSession(nextSession);
+          }}
           session={session}
         />
-        <RequireAdmin session={session} onLogout={handleLogout}>
-          <Routes>
-            <Route element={<Layout session={session} onLogout={handleLogout} allowedNavKeys={allowedNavKeys} />}>
-            <Route path="/" element={<DashboardPage client={client} session={session} />} />
-            <Route
-              path="/me"
-              element={
-                <AccountPage
-                  client={client}
-                  onSessionChange={(nextSession) => {
-                    sessionRef.current = nextSession;
-                    setSession(nextSession);
-                  }}
-                  session={session}
-                />
-              }
-            />
-            <Route path="/account" element={<Navigate replace to="/me" />} />
-            <Route path="/admin/account-requests" element={<AccountsPage client={client} session={session} />} />
-            <Route path="/accounts" element={<Navigate replace to="/admin/account-requests" />} />
-            <Route
-              path="/admin/menu-policy"
-              element={
-                <RequireRoleScope
-                  message="메뉴 정책은 시스템 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="메뉴 정책 권한 필요"
-                  when={canManageCompanySuperAdmin}
-                >
-                  <ManagerNavigationPolicyPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route path="/admin/navigation-policy" element={<Navigate replace to="/admin/menu-policy" />} />
-            <Route
-              path="/admin/manager-roles"
-              element={
-                <RequireRoleScope
-                  message="관리자 역할은 시스템 관리자와 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="관리자 역할 권한 필요"
-                  when={canManageManagerRoles}
-                >
-                  <ManagerRolesPage client={client} onShowNotice={showTopNotification} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/company/menu-policy"
-              element={
-                <RequireRoleScope
-                  message="회사 메뉴 정책은 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 메뉴 정책 권한 필요"
-                  when={canManageCompanyNavigationPolicy}
-                >
-                  <CompanyNavigationPolicyPage client={client} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route path="/company/navigation-policy" element={<Navigate replace to="/company/menu-policy" />} />
-            <Route path="/organization" element={<Navigate replace to="/companies" />} />
-            <Route path="/dispatch" element={<Navigate replace to="/dispatch/boards" />} />
-            <Route
-              path="/dispatch/uploads"
-              element={
-                <RequireRoleScope
-                  message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배차 관리 권한 필요"
-                  when={canAccessDispatchScope}
-                >
-                  <DispatchUploadsPage client={client} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/dispatch/boards"
-              element={
-                <RequireRoleScope
-                  message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배차 관리 권한 필요"
-                  when={canAccessDispatchScope}
-                >
-                  <DispatchBoardsPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/dispatch/boards/:fleetRef/:dispatchDate"
-              element={
-                <RequireRoleScope
-                  message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배차 관리 권한 필요"
-                  when={canAccessDispatchScope}
-                >
-                  <DispatchBoardDetailPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/dispatch/plans/new"
-              element={
-                <RequireRoleScope
-                  message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배차 관리 권한 필요"
-                  when={canAccessDispatchScope}
-                >
-                  <DispatchPlanFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/dispatch/plans/:dispatchPlanRef/edit"
-              element={
-                <RequireRoleScope
-                  message="배차는 시스템 관리자, 회사 전체 관리자, 플릿 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배차 관리 권한 필요"
-                  when={canAccessDispatchScope}
-                >
-                  <DispatchPlanFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route path="/announcements" element={<AnnouncementsPage client={client} session={session} />} />
-            <Route
-              path="/announcements/new"
-              element={
-                <RequireRoleScope
-                  message="공지 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="공지 관리 권한 필요"
-                  when={canManageAnnouncementScope}
-                >
-                  <AnnouncementFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/announcements/:announcementSlug"
-              element={<AnnouncementDetailPage client={client} session={session} />}
-            />
-            <Route
-              path="/announcements/:announcementSlug/edit"
-              element={
-                <RequireRoleScope
-                  message="공지 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="공지 관리 권한 필요"
-                  when={canManageAnnouncementScope}
-                >
-                  <AnnouncementFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/support"
-              element={<SupportPage client={client} session={session} />}
-            />
-            <Route
-              path="/block"
-              element={
-                isLocalDebugRouteVisible ? (
-                  <TopNotificationPreviewPage onShowNotice={showTopNotification} />
-                ) : (
-                  <Navigate replace to="/" />
-                )
-              }
-            />
-            <Route
-              path="/regions"
-              element={
-                <RequireRoleScope
-                  message="권역은 시스템 관리자와 회사 관리자 레벨에서 조회할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="권역 조회 권한 필요"
-                  when={canAccessRegionScope}
-                >
-                  <RegionsPage client={client} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/regions/new"
-              element={
-                <RequireRoleScope
-                  message="권역 정본 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="권역 관리 권한 필요"
-                  when={canManageRegionScope}
-                >
-                  <RegionFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/regions/:regionRef"
-              element={
-                <RequireRoleScope
-                  message="권역은 시스템 관리자와 회사 관리자 레벨에서 조회할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="권역 조회 권한 필요"
-                  when={canAccessRegionScope}
-                >
-                  <RegionDetailPage client={client} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/regions/:regionRef/edit"
-              element={
-                <RequireRoleScope
-                  message="권역 정본 생성과 수정은 시스템 관리자 또는 회사 전체 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="권역 관리 권한 필요"
-                  when={canManageRegionScope}
-                >
-                  <RegionFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <CompaniesPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies/new"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <CompanyFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies/:companyRef"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <CompanyDetailPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies/:companyRef/edit"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <CompanyFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies/:companyRef/fleets/new"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <FleetFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies/:companyRef/fleets/:fleetRef"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <FleetDetailPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/companies/:companyRef/fleets/:fleetRef/edit"
-              element={
-                <RequireRoleScope
-                  message="회사 정본은 시스템 관리자 또는 회사 전체 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="회사 관리 권한 필요"
-                  when={canAccessCompanyScope}
-                >
-                  <FleetFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route path="/drivers" element={<DriversPage client={client} session={session} />} />
-            <Route
-              path="/drivers/new"
-              element={
-                <RequireRoleScope
-                  message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배송원 관리 권한 필요"
-                  when={canManageDriverProfileScope}
-                >
-                  <DriverFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route path="/drivers/:driverRef" element={<DriverDetailPage client={client} session={session} />} />
-            <Route
-              path="/drivers/:driverRef/edit"
-              element={
-                <RequireRoleScope
-                  message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="배송원 관리 권한 필요"
-                  when={canManageDriverProfileScope}
-                >
-                  <DriverFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/personnel-documents"
-              element={
-                <RequireRoleScope
-                  message="인사문서는 관리자 계정에서만 접근할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="인사문서 접근 권한 필요"
-                  when={canAccessPersonnelDocumentScope}
-                >
-                  <PersonnelDocumentsPage client={client} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/personnel-documents/new"
-              element={
-                <RequireRoleScope
-                  message="인사문서 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="인사문서 관리 권한 필요"
-                  when={canManagePersonnelDocumentScope}
-                >
-                  <PersonnelDocumentFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/personnel-documents/:documentRef"
-              element={
-                <RequireRoleScope
-                  message="인사문서는 관리자 계정에서만 접근할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="인사문서 접근 권한 필요"
-                  when={canAccessPersonnelDocumentScope}
-                >
-                  <PersonnelDocumentDetailPage client={client} session={session} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/personnel-documents/:documentRef/edit"
-              element={
-                <RequireRoleScope
-                  message="인사문서 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="인사문서 관리 권한 필요"
-                  when={canManagePersonnelDocumentScope}
-                >
-                  <PersonnelDocumentFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicles"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehiclesPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicles/new"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicles/:vehicleRef"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleDetailPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicles/:vehicleRef/edit"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicles/:vehicleRef/accesses/new"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleOperatorAccessFormPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicle-assignments"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleAssignmentsPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicle-assignments/new"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleAssignmentFormPage client={client} mode="create" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicle-assignments/:assignmentRef"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleAssignmentDetailPage client={client} />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/vehicle-assignments/:assignmentRef/edit"
-              element={
-                <RequireRoleScope
-                  message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="차량 관리 권한 필요"
-                  when={canAccessVehicleScope}
-                >
-                  <VehicleAssignmentFormPage client={client} mode="edit" />
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/settlements/overview"
-              element={
-                <RequireRoleScope
-                  message="정산은 시스템 관리자, 회사 전체 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="정산 관리 권한 필요"
-                  when={canAccessSettlementScope}
-                >
-                  <SettlementFlowProvider client={client} session={session}>
-                    <SettlementOverviewPage client={client} />
-                  </SettlementFlowProvider>
-                </RequireRoleScope>
-              }
-            />
-            <Route
-              path="/settlements"
-              element={
-                <RequireRoleScope
-                  message="정산은 시스템 관리자, 회사 전체 관리자, 정산 관리자만 관리할 수 있습니다."
-                  onLogout={handleLogout}
-                  session={session}
-                  title="정산 관리 권한 필요"
-                  when={canAccessSettlementScope}
-                >
-                  <SettlementSectionLayout client={client} session={session} />
-                </RequireRoleScope>
-              }
-            >
-              <Route index element={<Navigate replace to="/settlements/overview" />} />
-              <Route path="criteria" element={<SettlementCriteriaPage client={client} session={session} />} />
-              <Route path="inputs" element={<SettlementInputsPage client={client} />} />
-              <Route path="runs" element={<SettlementRunsPage client={client} />} />
-              <Route path="results" element={<SettlementResultsPage client={client} />} />
-            </Route>
-              <Route path="*" element={<Navigate replace to="/" />} />
-            </Route>
-          </Routes>
-        </RequireAdmin>
-      </BrowserRouter>
-    </>
+      </div>
+    );
+  }
+
+  if (session.activeAccount.accountType === 'driver') {
+    return (
+      <div className="auth-shell admin-auth-shell">
+        <section className="auth-panel panel blocked-panel">
+          <p className="panel-kicker">접근 제어</p>
+          <h2>관리자 권한 필요</h2>
+          <p className="hero-copy">이 콘솔은 웹 관리자 계정만 사용할 수 있습니다. 로그아웃 후 관리자 계정으로 다시 로그인하세요.</p>
+          <button className="button primary" onClick={() => void handleLogout()} type="button">
+            로그인 화면으로
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <MainDomainShell
+      client={client}
+      handleLogout={handleLogout}
+      handleNavigationRedirect={handleNavigationRedirect}
+      isLocalDebugRouteVisible={isLocalDebugRouteVisible}
+      postLoginRedirectTick={postLoginRedirectTick}
+      policyRedirectTick={policyRedirectTick}
+      session={session}
+      sessionRef={sessionRef}
+      setSession={setSession}
+      showTopNotification={showTopNotification}
+      topNotificationNode={topNotificationNode}
+    />
   );
 }
