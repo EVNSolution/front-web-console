@@ -217,6 +217,34 @@ function isLocalDebugRouteEnabled() {
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
+function getDomainAccessState({
+  isCompanyTenant,
+  session,
+  tenantCompany,
+  tenantResolutionStatus,
+}: {
+  isCompanyTenant: boolean;
+  session: SessionPayload | null;
+  tenantCompany: TenantCompanyContext | null;
+  tenantResolutionStatus: 'loading' | 'resolved' | 'not_found' | 'error';
+}) {
+  const isSystemAdminSession = session?.activeAccount?.accountType === 'system_admin';
+  const isManagerSession = session?.activeAccount?.accountType === 'manager';
+  const isMatchingCompanySession =
+    isCompanyTenant &&
+    tenantResolutionStatus === 'resolved' &&
+    isManagerSession &&
+    tenantCompany !== null &&
+    session?.activeAccount?.companyId === tenantCompany.companyId;
+
+  return {
+    isBlocked:
+      (isCompanyTenant && tenantResolutionStatus === 'resolved' && !isMatchingCompanySession) ||
+      (!isCompanyTenant && !isSystemAdminSession),
+    isMatchingCompanySession,
+  };
+}
+
 function DomainAccessBlockedPanel({
   description,
   title,
@@ -467,24 +495,15 @@ export default function App() {
   }
 
   const client = clientRef.current as HttpClient;
-  const isSystemAdminSession = session?.activeAccount?.accountType === 'system_admin';
-  const isManagerSession = session?.activeAccount?.accountType === 'manager';
-  const isCompanySessionOnMatchingSubdomain =
-    isCompanyTenant &&
-    tenantResolutionStatus === 'resolved' &&
-    isManagerSession &&
-    tenantCompany !== null &&
-    session?.activeAccount?.companyId === tenantCompany.companyId;
+  const domainAccessState = getDomainAccessState({
+    isCompanyTenant,
+    session,
+    tenantCompany,
+    tenantResolutionStatus,
+  });
 
   useEffect(() => {
-    if (
-      !session ||
-      tenantEntry?.type !== 'company' ||
-      tenantResolutionStatus !== 'resolved' ||
-      !isManagerSession ||
-      tenantCompany === null ||
-      session.activeAccount?.companyId !== tenantCompany.companyId
-    ) {
+    if (!domainAccessState.isMatchingCompanySession || tenantEntry?.type !== 'company') {
       setWorkspaceBootstrap(null);
       setWorkspaceBootstrapError(null);
       setIsLoadingWorkspaceBootstrap(false);
@@ -516,7 +535,7 @@ export default function App() {
     return () => {
       ignore = true;
     };
-  }, [client, isManagerSession, session, tenantCompany, tenantEntry, tenantResolutionStatus]);
+  }, [client, domainAccessState.isMatchingCompanySession, tenantEntry, tenantResolutionStatus]);
 
   const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
     client,
@@ -708,20 +727,14 @@ export default function App() {
     );
   }
 
-  if (isCompanyTenant && tenantResolutionStatus === 'resolved' && !isCompanySessionOnMatchingSubdomain) {
+  if (domainAccessState.isBlocked) {
     return (
       <DomainAccessBlockedPanel
-        description="회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다."
-        onLogout={handleLogout}
-        title="도메인 접근 권한 필요"
-      />
-    );
-  }
-
-  if (!isCompanyTenant && !isSystemAdminSession) {
-    return (
-      <DomainAccessBlockedPanel
-        description="메인 도메인은 시스템 관리자 계정만 사용할 수 있습니다."
+        description={
+          isCompanyTenant
+            ? '회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.'
+            : '메인 도메인은 시스템 관리자 계정만 사용할 수 있습니다.'
+        }
         onLogout={handleLogout}
         title="도메인 접근 권한 필요"
       />

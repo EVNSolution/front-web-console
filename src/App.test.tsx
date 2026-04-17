@@ -312,6 +312,8 @@ describe('Admin App', () => {
       render(<App />);
 
       expect(window.location.hostname).toBe('ev-dashboard.com');
+      expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
+      expect(screen.getByText('메인 도메인은 시스템 관리자 계정만 사용할 수 있습니다.')).toBeInTheDocument();
       expect(screen.queryByText('운영 요약')).not.toBeInTheDocument();
       expect(screen.queryByText('CLEVER 통합 웹 콘솔')).not.toBeInTheDocument();
     });

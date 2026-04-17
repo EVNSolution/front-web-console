@@ -486,6 +486,8 @@ describe('App cockpit entry', () => {
     render(<App />);
 
     await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
+    expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
+    expect(screen.getByText('회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
     expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
   });
@@ -503,6 +505,8 @@ describe('App cockpit entry', () => {
     render(<App />);
 
     await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
+    expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
+    expect(screen.getByText('회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
     expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
   });
