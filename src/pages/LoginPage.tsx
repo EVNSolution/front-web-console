@@ -200,7 +200,7 @@ export function LoginPage({
               {presetCompany ? (
                 <div className="login-company-identity">
                   <span className="login-company-label">회사 전용 로그인</span>
-                  <h2 className="login-company-name">{presetCompany.name}</h2>
+                  <p className="login-company-name">{presetCompany.name}</p>
                   <p className="tenant-entry-caption">전용 워크스페이스</p>
                 </div>
               ) : null}

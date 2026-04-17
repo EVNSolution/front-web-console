@@ -53,7 +53,7 @@ describe('Admin LoginPage', () => {
     10_000,
   );
 
-  it('renders a company identity header only for subdomain login', () => {
+  it('renders a centered company identity block without introducing another page heading for subdomain login', () => {
     render(
       <LoginPage
         companies={[{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Alpha Company', route_no: 1 }]}
@@ -64,7 +64,9 @@ describe('Admin LoginPage', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Alpha Company' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '로그인' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Alpha Company' })).not.toBeInTheDocument();
+    expect(screen.getByText('Alpha Company')).toBeInTheDocument();
     expect(screen.getByText('회사 전용 로그인')).toBeInTheDocument();
     expect(screen.getByText('Alpha Company 전용 콘솔')).toBeInTheDocument();
   });

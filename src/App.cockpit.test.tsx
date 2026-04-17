@@ -350,7 +350,8 @@ describe('App cockpit entry', () => {
       render(<App />);
 
       expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
-      expect(screen.queryByText('천하운수 전용 워크스페이스')).not.toBeInTheDocument();
+      expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
+      expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
       expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
     });
   });
@@ -410,7 +411,8 @@ describe('App cockpit entry', () => {
 
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: '천하운수' })).toBeInTheDocument();
+    expect(await screen.findByText('천하운수')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '천하운수' })).not.toBeInTheDocument();
     expect(screen.getByText('회사 전용 로그인')).toBeInTheDocument();
     expect(screen.getByText('천하운수 전용 콘솔')).toBeInTheDocument();
 
