@@ -50,3 +50,34 @@ The company subdomain is a dedicated product surface, not a menu branch inside t
 - the subdomain left accordion stays ordered as `대시보드 / 정산`
 - settlement internal navigation stays ordered as `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
 - the rule shell stays structural only: no persisted editor, no save button, no submit action, and no write API path
+
+## Local Dev Mode Split
+
+`front-web-console` has three distinct local modes:
+
+- `npm run dev`
+  - host loop for `localhost:5174`
+  - no sandbox route
+  - no browser-side `/api` mock layer
+- `npm run dev:local-test`
+  - safer remote proxy rehearsal
+  - reads `.env.local-test`
+  - may still proxy `/api` to a remote target
+  - no sandbox route
+- `npm run dev:local-sandbox`
+  - host-based manual test mode for `ev-dashboard.com` and `cheonha.ev-dashboard.com`
+  - `/__dev__/session` is enabled
+  - `/api` is always mocked in-browser
+  - never falls through to a real `/api`
+
+Host entries to keep in sync with that mode:
+
+- `127.0.0.1 ev-dashboard.com`
+- `127.0.0.1 cheonha.ev-dashboard.com`
+
+Reset contract:
+
+- `세션 초기화` clears the stored session payload
+- `세션 초기화` clears local sandbox preset bookkeeping
+- `세션 초기화` clears mock API memory state
+- after reset, the page should behave like a fresh signed-out local-sandbox session

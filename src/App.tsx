@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import { login, logout, signupRequestIntake } from './api/auth';
@@ -67,7 +67,6 @@ import { DriversPage } from './pages/DriversPage';
 import { FleetDetailPage } from './pages/FleetDetailPage';
 import { FleetFormPage } from './pages/FleetFormPage';
 import { LoginPage } from './pages/LoginPage';
-import { DevSessionPage } from './pages/DevSessionPage';
 import { ManagerNavigationPolicyPage } from './pages/ManagerNavigationPolicyPage';
 import { ManagerRolesPage } from './pages/ManagerRolesPage';
 import { ConsentRecoveryPage } from './pages/ConsentRecoveryPage';
@@ -92,7 +91,6 @@ import { VehicleFormPage } from './pages/VehicleFormPage';
 import { VehicleOperatorAccessFormPage } from './pages/VehicleOperatorAccessFormPage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { clearStoredSession, loadStoredSession, persistSession } from './sessionPersistence';
-import { isLocalSandboxMode } from './devSandbox/mode';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 import type { TenantCompanyContext, WorkspaceBootstrapPayload } from './types';
 import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
@@ -217,6 +215,30 @@ function isLocalDebugRouteEnabled() {
   }
 
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
+
+function DevSessionRoute() {
+  const [DevSessionPage, setDevSessionPage] = useState<ComponentType | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void import('./pages/DevSessionPage').then(({ DevSessionPage: LoadedDevSessionPage }) => {
+      if (!cancelled) {
+        setDevSessionPage(() => LoadedDevSessionPage);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (DevSessionPage === null) {
+    return null;
+  }
+
+  return <DevSessionPage />;
 }
 
 function getDomainAccessState({
@@ -1452,10 +1474,10 @@ function AppContent() {
 
 function AppRouteGate() {
   const location = useLocation();
-  const isLocalSandbox = isLocalSandboxMode();
+  const isLocalSandbox = import.meta.env.MODE === 'local-sandbox';
 
   if (isLocalSandbox && location.pathname === '/__dev__/session') {
-    return <DevSessionPage />;
+    return <DevSessionRoute />;
   }
 
   return <AppContent />;

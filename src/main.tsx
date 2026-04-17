@@ -2,11 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
-import { bootstrapLocalSandbox } from './devSandbox/bootstrap';
 import './styles.css';
 
 async function startApp() {
-  await bootstrapLocalSandbox();
+  if (import.meta.env.MODE === 'local-sandbox') {
+    const { bootstrapLocalSandbox } = await import('./devSandbox/bootstrap');
+    await bootstrapLocalSandbox();
+  }
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

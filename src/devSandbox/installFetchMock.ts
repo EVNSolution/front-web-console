@@ -188,7 +188,8 @@ async function handleApiRequest(input: RequestInfo | URL, init?: RequestInit): P
   }
 
   if (apiPath.startsWith('/settlements/runs/') && apiPath.endsWith('/')) {
-    const settlementRunId = apiPath.split('/').filter(Boolean).at(-1 - 0);
+    const settlementRunSegments = apiPath.split('/').filter(Boolean);
+    const settlementRunId = settlementRunSegments[settlementRunSegments.length - 1];
     if (!settlementRunId) {
       return errorResponse(404, 'settlement_run_not_found', '정산 실행을 찾을 수 없습니다.');
     }

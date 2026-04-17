@@ -8,7 +8,6 @@ import { ApiError, GENERIC_SERVER_ERROR_MESSAGE } from './api/http';
 import { loadStoredSession } from './sessionPersistence';
 import { listPublicCompanies } from './api/organization';
 import { listVehicleMasters } from './api/vehicles';
-import { isLocalSandboxMode } from './devSandbox/mode';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
 const session = {
@@ -146,10 +145,6 @@ vi.mock('./api/dispatchRegistry', () => ({
   updateDispatchPlan: vi.fn(),
 }));
 
-vi.mock('./devSandbox/mode', () => ({
-  isLocalSandboxMode: vi.fn(),
-}));
-
 vi.mock('./api/vehicles', () => ({
   listVehicleMasters: vi.fn().mockResolvedValue([]),
 }));
@@ -279,6 +274,7 @@ vi.mock('./api/regions', () => ({
 
 describe('Admin App', () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
@@ -286,9 +282,9 @@ describe('Admin App', () => {
     window.history.replaceState({}, '', '/');
     vi.mocked(loadStoredSession).mockReturnValue(session);
     vi.mocked(resolveTenantEntry).mockReturnValue(null);
-    vi.mocked(isLocalSandboxMode).mockReturnValue(false);
     vi.mocked(loginApi).mockReset();
     vi.mocked(listVehicleMasters).mockResolvedValue([]);
+    vi.stubEnv('MODE', 'test');
   });
 
   it('uses the unified dashboard as the root route', async () => {
@@ -567,7 +563,6 @@ describe('Admin App', () => {
   });
 
   it('does not expose the dev session route outside local-sandbox mode', async () => {
-    vi.mocked(isLocalSandboxMode).mockReturnValue(false);
     window.history.replaceState({}, '', '/__dev__/session');
 
     render(<App />);
@@ -578,7 +573,7 @@ describe('Admin App', () => {
   });
 
   it('renders the dev session route only in local-sandbox mode', async () => {
-    vi.mocked(isLocalSandboxMode).mockReturnValue(true);
+    vi.stubEnv('MODE', 'local-sandbox');
     window.history.replaceState({}, '', '/__dev__/session');
 
     render(<App />);

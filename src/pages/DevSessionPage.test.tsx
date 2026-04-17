@@ -67,6 +67,7 @@ describe('DevSessionPage', () => {
 
     expect(screen.getByText('ev-dashboard.com:5174')).toBeInTheDocument();
     expect(screen.getByText('system_admin')).toBeInTheDocument();
+    expect(screen.queryByText('cheonha_manager')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '세션 주입' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '세션 초기화' })).toBeInTheDocument();
   });
@@ -82,6 +83,7 @@ describe('DevSessionPage', () => {
 
     expect(screen.getByText('cheonha.ev-dashboard.com:5174')).toBeInTheDocument();
     expect(screen.getByText('cheonha_manager')).toBeInTheDocument();
+    expect(screen.queryByText('system_admin')).not.toBeInTheDocument();
   });
 
   it('persists the preset session and redirects home when injecting', async () => {
