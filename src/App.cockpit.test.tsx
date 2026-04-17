@@ -222,7 +222,7 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    expect(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
+    expect(await screen.findByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
     expect(document.querySelector('.console-topbar')).toBeNull();
