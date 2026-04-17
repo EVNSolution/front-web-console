@@ -217,6 +217,29 @@ function isLocalDebugRouteEnabled() {
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
+function DomainAccessBlockedPanel({
+  description,
+  title,
+  onLogout,
+}: {
+  description: string;
+  title: string;
+  onLogout: () => void | Promise<void>;
+}) {
+  return (
+    <div className="auth-shell admin-auth-shell">
+      <section className="auth-panel panel blocked-panel">
+        <p className="panel-kicker">접근 제어</p>
+        <h2>{title}</h2>
+        <p className="hero-copy">{description}</p>
+        <button className="button primary" onClick={() => void onLogout()} type="button">
+          로그인 화면으로
+        </button>
+      </section>
+    </div>
+  );
+}
+
 export default function App() {
   const tenantEntry = useMemo(
     () => resolveTenantEntry(typeof window === 'undefined' ? undefined : window.location.hostname),
@@ -444,9 +467,24 @@ export default function App() {
   }
 
   const client = clientRef.current as HttpClient;
+  const isSystemAdminSession = session?.activeAccount?.accountType === 'system_admin';
+  const isManagerSession = session?.activeAccount?.accountType === 'manager';
+  const isCompanySessionOnMatchingSubdomain =
+    isCompanyTenant &&
+    tenantResolutionStatus === 'resolved' &&
+    isManagerSession &&
+    tenantCompany !== null &&
+    session?.activeAccount?.companyId === tenantCompany.companyId;
 
   useEffect(() => {
-    if (!session || tenantEntry?.type !== 'company' || tenantResolutionStatus !== 'resolved') {
+    if (
+      !session ||
+      tenantEntry?.type !== 'company' ||
+      tenantResolutionStatus !== 'resolved' ||
+      !isManagerSession ||
+      tenantCompany === null ||
+      session.activeAccount?.companyId !== tenantCompany.companyId
+    ) {
       setWorkspaceBootstrap(null);
       setWorkspaceBootstrapError(null);
       setIsLoadingWorkspaceBootstrap(false);
@@ -478,7 +516,7 @@ export default function App() {
     return () => {
       ignore = true;
     };
-  }, [client, session, tenantEntry, tenantResolutionStatus]);
+  }, [client, isManagerSession, session, tenantCompany, tenantEntry, tenantResolutionStatus]);
 
   const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
     client,
@@ -667,6 +705,26 @@ export default function App() {
           </button>
         </section>
       </div>
+    );
+  }
+
+  if (isCompanyTenant && tenantResolutionStatus === 'resolved' && !isCompanySessionOnMatchingSubdomain) {
+    return (
+      <DomainAccessBlockedPanel
+        description="회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다."
+        onLogout={handleLogout}
+        title="도메인 접근 권한 필요"
+      />
+    );
+  }
+
+  if (!isCompanyTenant && !isSystemAdminSession) {
+    return (
+      <DomainAccessBlockedPanel
+        description="메인 도메인은 시스템 관리자 계정만 사용할 수 있습니다."
+        onLogout={handleLogout}
+        title="도메인 접근 권한 필요"
+      />
     );
   }
 

@@ -32,6 +32,36 @@ const session = {
   availableAccountTypes: ['manager'],
 };
 
+const systemAdminSession = {
+  ...session,
+  email: 'system-admin@example.com',
+  activeAccount: {
+    accountType: 'system_admin' as const,
+    accountId: '20000000-0000-0000-0000-000000000002',
+    companyId: null,
+    roleType: null,
+  },
+  availableAccountTypes: ['system_admin'],
+};
+
+const wrongCompanySession = {
+  ...session,
+  activeAccount: {
+    ...session.activeAccount,
+    companyId: '30000000-0000-0000-0000-000000000099',
+  },
+};
+
+const cockpitBootstrap = {
+  companyId: '30000000-0000-0000-0000-000000000001',
+  companyName: '천하운수',
+  tenantCode: 'cheonha',
+  workflowProfile: 'cheonha_ops_v1',
+  enabledFeatures: ['settlement', 'vehicle'],
+  homeDashboardPreset: {},
+  workspacePresets: {},
+};
+
 vi.mock('./sessionPersistence', () => ({
   clearStoredSession: vi.fn(),
   loadStoredSession: vi.fn(),
@@ -446,5 +476,34 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).not.toHaveBeenCalled();
       expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
     });
+  });
+
+  it('rejects a system-admin session on a company subdomain before entering the cockpit shell', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(systemAdminSession);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue(cockpitBootstrap);
+
+    render(<App />);
+
+    await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
+    expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
+    expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
+  });
+
+  it('rejects a company manager session on the wrong company subdomain before entering the cockpit shell', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(wrongCompanySession);
+    vi.mocked(resolveTenantEntry).mockReturnValue({
+      type: 'company',
+      tenantCode: 'other-company',
+      host: 'other-company.ev-dashboard.com',
+    });
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue(cockpitBootstrap);
+
+    render(<App />);
+
+    await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
+    expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
+    expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
   });
 });
