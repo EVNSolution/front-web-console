@@ -66,10 +66,12 @@ describe('CheonhaSettlementProcessPage', () => {
       expect(settlementInputsSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           client,
+          dispatchBoardsPath: '/settlement/dispatch',
           flow: expect.objectContaining({
             isLoading: true,
             showFleetSelector: true,
           }),
+          settlementRunsPath: '/settlement/process',
         }),
       );
     });

@@ -79,11 +79,17 @@ describe('CheonhaSettlementWorkspace', () => {
     expect(screen.queryByRole('link', { name: '근태' })).not.toBeInTheDocument();
   });
 
-  it('redirects legacy settlement child slugs to the canonical process route', async () => {
-    renderWorkspace('/settlement/settlement-processing');
+  it.each([
+    '/settlement/dispatch-data',
+    '/settlement/driver-management',
+    '/settlement/operations-status',
+    '/settlement/settlement-processing',
+    '/settlement/team-management',
+  ])('fails closed on removed legacy settlement child slug %s', async (legacyPath) => {
+    renderWorkspace(legacyPath);
 
-    expect(await screen.findByRole('heading', { level: 2, name: '정산 처리 화면' })).toBeInTheDocument();
-    expect(screen.getByTestId('location')).toHaveTextContent('/settlement/process');
-    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveClass('is-active');
+    expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
+    expect(screen.getByRole('link', { name: '홈' })).toHaveClass('is-active');
   });
 });

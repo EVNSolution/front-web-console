@@ -718,8 +718,6 @@ export default function App() {
                     />
                   }
                 />
-                <Route path="/settlements/inputs" element={<Navigate replace to="/settlement/process" />} />
-                <Route path="/settlements/*" element={<Navigate replace to="/settlement/home" />} />
                 <Route path="*" element={<Navigate replace to="/" />} />
               </Route>
             </Routes>

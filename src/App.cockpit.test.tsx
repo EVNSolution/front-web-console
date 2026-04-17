@@ -239,7 +239,7 @@ describe('App cockpit entry', () => {
     );
   });
 
-  it('keeps legacy settlement inputs aliases inside the cockpit process route', async () => {
+  it('fails closed on removed /settlements aliases in the cockpit shell', async () => {
     vi.mocked(loadStoredSession).mockReturnValue(session);
     vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
       companyId: '30000000-0000-0000-0000-000000000001',
@@ -266,10 +266,10 @@ describe('App cockpit entry', () => {
     await waitFor(() => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
-      expect(window.location.pathname).toBe('/settlement/process');
+      expect(window.location.pathname).toBe('/');
     });
-    expect(await screen.findByRole('heading', { name: '정산 입력 요약' })).toBeInTheDocument();
-    expect(screen.getByText('cockpit alias surface')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    expect(screen.queryByText('cockpit alias surface')).not.toBeInTheDocument();
   });
 
   it('keeps the company shell from exposing a top-level dispatch route', async () => {

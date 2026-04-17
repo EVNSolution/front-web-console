@@ -43,7 +43,9 @@ describe('CheonhaDispatchDataPage', () => {
     expect(dispatchUploadsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         client,
+        dispatchBoardsPath: '/settlement/dispatch',
         session,
+        settlementInputsPath: '/settlement/process',
       }),
     );
   });

@@ -40,6 +40,8 @@ import {
 
 type SettlementInputsPageProps = {
   client: HttpClient;
+  dispatchBoardsPath?: string;
+  settlementRunsPath?: string;
 };
 
 const DEFAULT_RECORD_FORM = {
@@ -81,7 +83,11 @@ function getPayloadNumber(payload: Record<string, unknown>, key: string) {
   return typeof value === 'number' ? value : 0;
 }
 
-export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
+export function SettlementInputsPage({
+  client,
+  dispatchBoardsPath = '/dispatch/boards',
+  settlementRunsPath = '/settlements/runs',
+}: SettlementInputsPageProps) {
   const {
     availableFleets,
     isLoading: isContextLoading,
@@ -596,10 +602,10 @@ export function SettlementInputsPage({ client }: SettlementInputsPageProps) {
               <div className="panel-toolbar-actions">
                 <span className="table-meta">record {filteredRecords.length}건</span>
                 <span className="table-meta">snapshot {filteredSnapshots.length}건</span>
-                <Link className="button ghost small" to="/dispatch/boards">
+                <Link className="button ghost small" to={dispatchBoardsPath}>
                   배차 보드로 이동
                 </Link>
-                <Link className="button ghost small" to="/settlements/runs">
+                <Link className="button ghost small" to={settlementRunsPath}>
                   정산 실행으로 이동
                 </Link>
               </div>

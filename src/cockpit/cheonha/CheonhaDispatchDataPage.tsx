@@ -61,5 +61,12 @@ export function CheonhaDispatchDataPage(props: CheonhaWorkspaceDependenciesProps
     );
   }
 
-  return <DispatchUploadsPage client={client} session={session} />;
+  return (
+    <DispatchUploadsPage
+      client={client}
+      dispatchBoardsPath="/settlement/dispatch"
+      session={session}
+      settlementInputsPath="/settlement/process"
+    />
+  );
 }

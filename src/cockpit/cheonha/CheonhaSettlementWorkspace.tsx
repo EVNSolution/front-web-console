@@ -21,14 +21,6 @@ const settlementTabs = [
   { slug: 'team', label: '팀 관리' },
 ] as const;
 
-const settlementRouteAliases = [
-  { path: 'dispatch-data', to: '/settlement/dispatch' },
-  { path: 'driver-management', to: '/settlement/crew' },
-  { path: 'operations-status', to: '/settlement/operations' },
-  { path: 'settlement-processing', to: '/settlement/process' },
-  { path: 'team-management', to: '/settlement/team' },
-] as const;
-
 export function CheonhaSettlementWorkspace({
   client,
   companyName = '천하운수',
@@ -85,9 +77,6 @@ export function CheonhaSettlementWorkspace({
               />
             }
           />
-          {settlementRouteAliases.map((alias) => (
-            <Route key={alias.path} path={alias.path} element={<Navigate replace to={alias.to} />} />
-          ))}
           <Route path="*" element={<Navigate replace to="/settlement/home" />} />
         </Routes>
       </div>
