@@ -30,7 +30,9 @@ describe('CheonhaSettlementHomePage', () => {
 
     expect(processCard).toBeInTheDocument();
     expect(processSteps).toHaveLength(4);
-    expect(processSteps.map((step) => step.textContent)).toEqual(['배차 업로드', '특근 설정', '단가 확인', '정산 처리']);
+    expect(
+      processSteps.map((step) => within(step).getByTestId('settlement-process-step-title').textContent),
+    ).toEqual(['배차 업로드', '특근 설정', '단가 확인', '정산 처리']);
     expect(screen.getByRole('link', { name: '배차 업로드' })).toHaveAttribute('href', '/settlement/dispatch');
     expect(screen.getByRole('link', { name: '정산 처리' })).toHaveAttribute('href', '/settlement/process');
 

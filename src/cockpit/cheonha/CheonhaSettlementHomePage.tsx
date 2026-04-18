@@ -133,8 +133,8 @@ export function CheonhaSettlementHomePage({
           {steps.map((step) => (
             <li className="cockpit-settlement-process-step" data-testid="settlement-process-step" key={step.label}>
               <div className="cockpit-settlement-process-step-copy">
-                <strong>{step.label}</strong>
-                <span>{step.kind === 'link' ? step.status : step.status}</span>
+                <strong data-testid="settlement-process-step-title">{step.label}</strong>
+                <span data-testid="settlement-process-step-status">{step.status}</span>
               </div>
               {step.kind === 'link' ? (
                 <Link className="button ghost small cockpit-settlement-process-link" to={step.to}>
