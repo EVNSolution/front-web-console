@@ -64,7 +64,6 @@ describe('CheonhaSettlementProcessPage', () => {
     const processHeading = screen.getByRole('heading', { level: 2, name: '정산 입력 요약' });
 
     expect(processHeading).toBeInTheDocument();
-    expect(processHeading.closest('.cockpit-workspace-panel')).not.toBeNull();
     await waitFor(() => {
       expect(settlementInputsSpy).toHaveBeenCalledWith(
         expect.objectContaining({

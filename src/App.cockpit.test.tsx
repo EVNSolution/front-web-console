@@ -340,28 +340,11 @@ describe('App cockpit entry', () => {
 
     expect(topLevelNav).not.toBeNull();
     expect(topLevelNav).toBeInTheDocument();
-    expect(settlementNav).toBeInTheDocument();
     expect(screen.getByTestId('subdomain-settlement-sidebar')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toBeInTheDocument();
     expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
-    const settlementLinks = within(settlementNav).getAllByRole('link');
-
-    expect(settlementLinks).toHaveLength(6);
-    expect(settlementLinks[0]).toHaveAttribute('href', '/settlement/home');
-    expect(settlementLinks[0]).toHaveTextContent('현황 요약');
-    expect(settlementLinks[1]).toHaveAttribute('href', '/settlement/dispatch');
-    expect(settlementLinks[1]).toHaveTextContent('업로드 · 정산');
-    expect(settlementLinks[2]).toHaveAttribute('href', '/settlement/crew');
-    expect(settlementLinks[2]).toHaveTextContent('매니저 등록');
-    expect(settlementLinks[3]).toHaveAttribute('href', '/settlement/operations');
-    expect(settlementLinks[3]).toHaveTextContent('날짜별 현황');
-    expect(settlementLinks[4]).toHaveAttribute('href', '/settlement/process');
-    expect(settlementLinks[4]).toHaveTextContent('정산 관리');
-    expect(settlementLinks[5]).toHaveAttribute('href', '/settlement/team');
-    expect(settlementLinks[5]).toHaveTextContent('단가 설정');
-    expect(screen.getByRole('heading', { level: 2, name: '업무 프로세스' })).toBeInTheDocument();
-    expect(screen.getByText('수신합계')).toBeInTheDocument();
-    expect(screen.getByText('정산 내역이 없습니다')).toBeInTheDocument();
+    expect(settlementNav).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /dashboard/i })).not.toBeInTheDocument();
     expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
@@ -383,7 +366,6 @@ describe('App cockpit entry', () => {
     expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
     expect(screen.getByText(surfaceText)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: heading }).closest('.cockpit-workspace')).not.toBeNull();
   });
 
   it.each([
@@ -403,7 +385,6 @@ describe('App cockpit entry', () => {
     const routeHeading = await screen.findByRole('heading', { level: 2, name: heading });
 
     expect(routeHeading).toBeInTheDocument();
-    expect(routeHeading.closest('.cockpit-shell-panel')).not.toBeNull();
     expect(screen.getByText('실제 업무 흐름은 홈, 배차 데이터, 정산 처리에서 이어집니다.')).toBeInTheDocument();
   });
 

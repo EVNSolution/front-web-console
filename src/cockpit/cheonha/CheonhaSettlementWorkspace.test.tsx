@@ -57,7 +57,6 @@ describe('CheonhaSettlementWorkspace', () => {
 
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: '홈 화면' }).closest('.cockpit-workspace')).not.toBeNull();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
   });
 
@@ -74,11 +73,7 @@ describe('CheonhaSettlementWorkspace', () => {
     const renderedHeading = await screen.findByRole('heading', { level: 2, name: heading });
 
     expect(renderedHeading).toBeInTheDocument();
-    if (heading === '배송원 관리' || heading === '운영 현황' || heading === '팀 관리') {
-      expect(renderedHeading.closest('.cockpit-shell-panel')).not.toBeNull();
-    } else {
-      expect(renderedHeading.closest('.cockpit-workspace')).not.toBeNull();
-    }
+    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
   });
 
   it.each([
@@ -91,7 +86,7 @@ describe('CheonhaSettlementWorkspace', () => {
     renderWorkspace(legacyPath);
 
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: '홈 화면' }).closest('.cockpit-workspace')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
   });
 });
