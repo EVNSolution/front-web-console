@@ -31,8 +31,6 @@
   --cockpit-trigger-width: 72px;
   --cockpit-popout-width: 216px;
   --cockpit-popout-gap: 18px;
-  --cockpit-popout-top: 1.5rem;
-  --cockpit-settlement-top: 9.25rem;
 }
 
 * {
@@ -4153,7 +4151,6 @@ textarea:focus {
 }
 
 .cockpit-rail {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -4162,6 +4159,10 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(14px);
   overflow: visible;
+}
+
+.cockpit-launcher-cluster {
+  position: relative;
 }
 
 .cockpit-brand-block {
@@ -4264,7 +4265,7 @@ textarea:focus {
   display: grid;
   gap: 0.45rem;
   position: absolute;
-  top: var(--cockpit-popout-top);
+  top: 0;
   left: calc(100% + var(--cockpit-popout-gap));
   width: var(--cockpit-popout-width);
   padding: 0.85rem;
@@ -4286,11 +4287,8 @@ textarea:focus {
 }
 
 .cockpit-detached-settlement-sidebar {
-  position: absolute;
-  top: var(--cockpit-settlement-top);
-  left: calc(100% + var(--cockpit-popout-gap));
   width: var(--cockpit-popout-width);
-  z-index: 1;
+  margin-left: calc(100% + var(--cockpit-popout-gap));
 }
 
 .cockpit-detached-sidebar {
@@ -4585,6 +4583,7 @@ textarea:focus {
   .cockpit-detached-settlement-sidebar {
     position: static;
     width: auto;
+    margin-left: 0;
     opacity: 1;
     transform: none;
     pointer-events: auto;

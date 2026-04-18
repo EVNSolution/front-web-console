@@ -78,21 +78,26 @@ describe('SubdomainAccordionNav', () => {
     await user.click(trigger);
 
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
 
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
-    expect(nav).toHaveClass('is-expanded');
+    expect(launcherCluster).toContainElement(nav);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('settlement route renders the detached settlement sidebar contract', () => {
     renderNav('/settlement/home');
 
+    const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
     const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
 
+    expect(launcherCluster).toContainElement(topLevelNav);
+    expect(launcherCluster).not.toContainElement(settlementSidebar);
+    expect(launcherCluster.nextElementSibling).toBe(settlementSidebar);
     expect(topLevelNav).toBeInTheDocument();
     expect(settlementSidebar).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
