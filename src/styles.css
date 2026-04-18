@@ -4349,15 +4349,20 @@ textarea:focus {
 }
 
 .cockpit-detached-settlement-sidebar {
-  width: var(--cockpit-surface-width);
+  width: 22rem;
 }
 
 .cockpit-shell-settlement .cockpit-detached-settlement-sidebar {
   grid-column: 1;
   grid-row: 2;
-  width: auto;
+  width: min(100%, 22rem);
   margin: 1rem 1rem 0;
   align-self: start;
+}
+
+.cockpit-detached-settlement-sidebar .cockpit-detached-sidebar {
+  gap: 0.65rem;
+  padding: 1.2rem 1.15rem 1.1rem;
 }
 
 .cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar {
@@ -4387,12 +4392,12 @@ textarea:focus {
 
 .cockpit-detached-settlement-sidebar .cockpit-child-nav::before {
   content: '정산';
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #7a87a3;
-  padding: 0 0.35rem 0.2rem;
+  padding: 0 0.35rem 0.15rem;
 }
 
 .cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar::before {
@@ -4403,6 +4408,33 @@ textarea:focus {
   text-transform: uppercase;
   color: #7a87a3;
   padding: 0 0.35rem 0.2rem;
+}
+
+.cockpit-detached-settlement-sidebar .cockpit-nav-child-link {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 4.65rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  gap: 0.24rem;
+}
+
+.cockpit-settlement-nav-title {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.cockpit-settlement-nav-description {
+  display: block;
+  font-size: 0.79rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: #6e7a8e;
 }
 
 .cockpit-nav-link,
@@ -4454,11 +4486,20 @@ textarea:focus {
   background: rgba(223, 238, 250, 0.95);
 }
 
+.cockpit-detached-settlement-sidebar .cockpit-nav-child-link.is-active {
+  background: linear-gradient(180deg, rgba(247, 250, 224, 0.98), rgba(232, 239, 180, 0.94));
+  box-shadow: inset 4px 0 0 rgba(205, 222, 0, 0.96), inset 0 0 0 1px rgba(154, 184, 0, 0.24);
+}
+
 .cockpit-nav-link:hover,
 .cockpit-nav-toggle:hover,
 .cockpit-nav-child-link:hover {
   background: rgba(18, 43, 71, 0.05);
   color: #20344f;
+}
+
+.cockpit-detached-settlement-sidebar .cockpit-nav-child-link.is-active .cockpit-settlement-nav-description {
+  color: #4e5a6a;
 }
 
 .cockpit-nav-link:focus-visible,
