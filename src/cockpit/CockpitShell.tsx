@@ -2,7 +2,14 @@ import { Outlet, useLocation } from 'react-router-dom';
 
 import type { SessionPayload } from '../api/http';
 import { CockpitGlobalHeader } from './CockpitGlobalHeader';
-import { SubdomainAccordionNav, resolveTopLevelMenu } from './SubdomainAccordionNav';
+import {
+  SubdomainAccordionNav,
+  resolveTopLevelMenu,
+  settlementChildNavItems,
+  vehicleChildNavItems,
+} from './SubdomainAccordionNav';
+import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
+import { SubdomainVehicleSidebar } from './SubdomainVehicleSidebar';
 
 type CockpitShellProps = {
   companyName: string;
@@ -23,6 +30,8 @@ export function CockpitShell({ companyName, onLogout, session }: CockpitShellPro
   return (
     <div className={shellClassName}>
       <SubdomainAccordionNav activeMenu={activeMenu} companyName={companyName} />
+      {activeMenu === 'vehicle' ? <SubdomainVehicleSidebar items={vehicleChildNavItems} /> : null}
+      {activeMenu === 'settlement' ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}
       <div className="cockpit-main-panel">
         <CockpitGlobalHeader onLogout={onLogout} session={session} />
         <main className="cockpit-content">

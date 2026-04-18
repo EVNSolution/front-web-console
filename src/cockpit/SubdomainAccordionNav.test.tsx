@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { CockpitShell } from './CockpitShell';
 import { SubdomainAccordionNav, resolveTopLevelMenu } from './SubdomainAccordionNav';
 
 function renderNav(initialEntry = '/') {
@@ -29,6 +30,45 @@ function RouteAwareNav() {
       activeMenu={resolveTopLevelMenu(location.pathname)}
       companyName="천하운수"
     />
+  );
+}
+
+const shellSession = {
+  accessToken: 'token',
+  sessionKind: 'normal',
+  email: 'manager@example.com',
+  identity: {
+    identityId: '10000000-0000-0000-0000-000000000001',
+    name: '관리자',
+    birthDate: '1990-01-01',
+    status: 'active',
+  },
+  activeAccount: {
+    accountType: 'manager' as const,
+    accountId: '20000000-0000-0000-0000-000000000001',
+    companyId: '30000000-0000-0000-0000-000000000001',
+    roleType: 'settlement_manager',
+    roleDisplayName: '정산 관리자',
+  },
+  availableAccountTypes: ['manager'],
+};
+
+function renderShell(initialEntry = '/') {
+  render(
+    <MemoryRouter
+      future={{
+        v7_relativeSplatPath: true,
+        v7_startTransition: true,
+      }}
+      initialEntries={[initialEntry]}
+    >
+      <Routes>
+        <Route
+          path="*"
+          element={<CockpitShell companyName="천하운수" onLogout={vi.fn()} session={shellSession as never} />}
+        />
+      </Routes>
+    </MemoryRouter>,
   );
 }
 
@@ -109,47 +149,30 @@ describe('SubdomainAccordionNav', () => {
     expect(primaryMenuSurface).toHaveAttribute('data-state', 'expanded');
   });
 
-  it('settlement route renders the detached settlement sidebar contract', () => {
+  it('settlement route keeps the accordion nav sidebar-free', () => {
     renderNav('/settlement/home');
 
     const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
     const topLevelNav = document.getElementById('subdomain-top-level-menu');
-    const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
-    const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
 
     expect(topLevelNav).not.toBeNull();
     expect(launcherCluster).toContainElement(topLevelNav);
-    expect(launcherCluster).not.toContainElement(settlementSidebar);
-    expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(topLevelNav).toBeInTheDocument();
-    expect(settlementSidebar).toBeInTheDocument();
-    expect(settlementNav).toBeInTheDocument();
     expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
-    expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
-    expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
-    expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('subdomain-settlement-sidebar')).not.toBeInTheDocument();
   });
 
-  it('vehicle route renders the detached vehicle sidebar contract', () => {
-    renderNav('/vehicles/home');
+  it('vehicle route renders the detached vehicle sidebar through CockpitShell', () => {
+    renderShell('/vehicles/home');
 
-    const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
-    const topLevelNav = document.getElementById('subdomain-top-level-menu');
     const vehicleSidebar = screen.getByTestId('subdomain-vehicle-sidebar');
     const vehicleNav = within(vehicleSidebar).getByRole('navigation', { name: '차량 메뉴' });
 
-    expect(topLevelNav).not.toBeNull();
-    expect(launcherCluster).toContainElement(topLevelNav);
-    expect(launcherCluster).not.toContainElement(vehicleSidebar);
     expect(vehicleSidebar.closest('.cockpit-rail')).toBeNull();
     expect(vehicleSidebar.tagName).toBe('ASIDE');
     expect(vehicleSidebar).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
     expect(vehicleSidebar).not.toHaveAttribute('data-nav-label');
-    expect(topLevelNav).toBeInTheDocument();
-    expect(vehicleSidebar).toBeInTheDocument();
-    expect(vehicleNav).toBeInTheDocument();
-    expect(vehicleNav).not.toHaveClass('cockpit-child-nav');
-    expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
     expect(within(vehicleNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/vehicles/home');
     expect(within(vehicleNav).getByRole('link', { name: '배송원' })).toHaveAttribute('href', '/drivers');
     expect(within(vehicleNav).getByRole('link', { name: '차량' })).toHaveAttribute('href', '/vehicles');
@@ -160,6 +183,19 @@ describe('SubdomainAccordionNav', () => {
       '차량',
       '차량 배정',
     ]);
+  });
+
+  it('settlement route renders the detached settlement sidebar through CockpitShell', () => {
+    renderShell('/settlement/home');
+
+    const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
+    const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
+
+    expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
+    expect(settlementSidebar).toBeInTheDocument();
+    expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
+    expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
   });
 
   it.each([
@@ -247,7 +283,7 @@ describe('SubdomainAccordionNav', () => {
             element={
               <>
                 <RouteSwitcher />
-                <RouteAwareNav />
+                <CockpitShell companyName="천하운수" onLogout={vi.fn()} session={shellSession as never} />
               </>
             }
           />

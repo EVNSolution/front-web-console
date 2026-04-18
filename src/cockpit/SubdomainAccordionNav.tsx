@@ -3,8 +3,6 @@ import { NavLink } from 'react-router-dom';
 
 import { SubdomainBrandCard } from './SubdomainBrandCard';
 import { SubdomainExpandTrigger } from './SubdomainExpandTrigger';
-import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
-import { SubdomainVehicleSidebar } from './SubdomainVehicleSidebar';
 
 export type TopLevelMenuKey = 'dashboard' | 'vehicle' | 'settlement';
 export type SettlementChildNavItem = {
@@ -111,9 +109,6 @@ export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAcco
           </nav>
         </div>
       </div>
-
-      {activeMenu === 'vehicle' ? <SubdomainVehicleSidebar items={vehicleChildNavItems} /> : null}
-      {isSettlementRoute ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}
     </>
   );
 }
