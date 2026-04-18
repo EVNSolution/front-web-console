@@ -4668,6 +4668,16 @@ textarea:focus {
   gap: 1.25rem;
 }
 
+.settlement-workspace-frame {
+  gap: 1rem;
+}
+
+.settlement-workspace-frame-body {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
 .cockpit-workspace-header,
 .cockpit-workspace-panel {
   padding: 1.35rem 1.5rem;
@@ -4995,6 +5005,62 @@ textarea:focus {
   font-size: 0.9rem;
 }
 
+.cockpit-shell-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.cockpit-shell-summary-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 247, 253, 0.94));
+}
+
+.cockpit-shell-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.cockpit-shell-summary-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #102743;
+}
+
+.cockpit-shell-summary-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.cockpit-shell-summary-list div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 16px;
+  background: rgba(247, 250, 253, 0.9);
+  border: 1px solid rgba(20, 40, 70, 0.08);
+}
+
+.cockpit-shell-summary-list dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7a87a3;
+}
+
+.cockpit-shell-summary-list dd {
+  margin: 0;
+  font-weight: 700;
+  color: #102743;
+}
+
 .cockpit-shell-preview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -5042,6 +5108,10 @@ textarea:focus {
 }
 
 @media (max-width: 760px) {
+  .cockpit-shell-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
   .cockpit-shell {
     grid-template-columns: 1fr;
   }

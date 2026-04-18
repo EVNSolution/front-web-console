@@ -320,6 +320,7 @@ describe('App cockpit entry', () => {
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
+    expect(screen.getByRole('heading', { name: '천하운수 정산' }).closest('.settlement-workspace-frame')).not.toBeNull();
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
     expect(screen.getByText('EV&Solution')).toBeInTheDocument();
     expect(screen.getByText('천하운수')).toBeInTheDocument();
@@ -339,17 +340,17 @@ describe('App cockpit entry', () => {
 
     expect(settlementLinks).toHaveLength(6);
     expect(settlementLinks[0]).toHaveAttribute('href', '/settlement/home');
-    expect(settlementLinks[0]).toHaveTextContent('현황 요약');
+    expect(settlementLinks[0]).toHaveTextContent('홈');
     expect(settlementLinks[1]).toHaveAttribute('href', '/settlement/dispatch');
-    expect(settlementLinks[1]).toHaveTextContent('업로드 · 정산');
+    expect(settlementLinks[1]).toHaveTextContent('배차 데이터');
     expect(settlementLinks[2]).toHaveAttribute('href', '/settlement/crew');
-    expect(settlementLinks[2]).toHaveTextContent('매니저 등록');
+    expect(settlementLinks[2]).toHaveTextContent('배송원 관리');
     expect(settlementLinks[3]).toHaveAttribute('href', '/settlement/operations');
-    expect(settlementLinks[3]).toHaveTextContent('날짜별 현황');
+    expect(settlementLinks[3]).toHaveTextContent('운영 현황');
     expect(settlementLinks[4]).toHaveAttribute('href', '/settlement/process');
-    expect(settlementLinks[4]).toHaveTextContent('정산 관리');
+    expect(settlementLinks[4]).toHaveTextContent('정산 처리');
     expect(settlementLinks[5]).toHaveAttribute('href', '/settlement/team');
-    expect(settlementLinks[5]).toHaveTextContent('단가 설정');
+    expect(settlementLinks[5]).toHaveTextContent('팀 관리');
     expect(screen.getByRole('heading', { level: 2, name: '업무 프로세스' })).toBeInTheDocument();
     expect(screen.getByText('수신합계')).toBeInTheDocument();
     expect(screen.getByText('정산 내역이 없습니다')).toBeInTheDocument();
@@ -446,7 +447,7 @@ describe('App cockpit entry', () => {
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '홈' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('link', { name: '대시보드' }));
