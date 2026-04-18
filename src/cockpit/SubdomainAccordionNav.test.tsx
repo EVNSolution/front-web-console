@@ -75,7 +75,7 @@ describe('SubdomainAccordionNav', () => {
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
 
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
-    expect(within(nav).getByRole('link', { name: '정산 메뉴' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
     expect(within(nav).getByText('정산')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
@@ -184,7 +184,7 @@ describe('SubdomainAccordionNav', () => {
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
 
-    await user.click(screen.getByRole('link', { name: '정산 메뉴' }));
+    await user.click(screen.getByRole('link', { name: '정산' }));
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
     expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();

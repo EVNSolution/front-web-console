@@ -165,7 +165,8 @@ describe('App cockpit entry', () => {
     expect(screen.getByText('천하운수')).toBeInTheDocument();
     expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
 
@@ -260,11 +261,13 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    await user.click(screen.getByRole('button', { name: '정산' }));
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    const settlementButton = await screen.findByRole('button', { name: '정산' });
+
+    await user.click(settlementButton);
+    expect(settlementButton).toHaveAttribute('aria-expanded', 'true');
     expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
 
-    await user.click(screen.getByRole('link', { name: '정산 메뉴' }));
+    await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
 

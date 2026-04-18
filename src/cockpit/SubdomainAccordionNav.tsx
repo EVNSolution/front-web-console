@@ -13,7 +13,6 @@ type TopLevelMenuItem = {
   key: TopLevelMenuKey;
   label: string;
   to: string;
-  accessibleLabel?: string;
 };
 
 type SettlementChildMenuItem = {
@@ -23,7 +22,7 @@ type SettlementChildMenuItem = {
 
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
-  { key: 'settlement', label: '정산', to: '/settlement/home', accessibleLabel: '정산 메뉴' },
+  { key: 'settlement', label: '정산', to: '/settlement/home' },
 ];
 
 const settlementChildMenuItems: SettlementChildMenuItem[] = [
@@ -74,13 +73,12 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
           ? topLevelMenuItems.map((item) => (
               <NavLink
                 aria-current={activeMenu === item.key ? 'page' : undefined}
-                aria-label={item.accessibleLabel}
                 className={activeMenu === item.key ? 'cockpit-nav-link is-active' : 'cockpit-nav-link'}
                 end={item.to === '/'}
                 key={item.key}
                 to={item.to}
               >
-                <span aria-hidden={item.accessibleLabel ? 'true' : undefined}>{item.label}</span>
+                <span>{item.label}</span>
               </NavLink>
             ))
           : null}
