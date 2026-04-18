@@ -109,15 +109,13 @@ export function CheonhaSettlementHomePage({
       </section>
 
       <div className="cockpit-settlement-chip-row" aria-label="정산 필터">
-        {chips.map((chip) => (
-          <button
-            aria-pressed={chip.active ?? false}
+        {chips.map((chip, index) => (
+          <span
             className={chip.active ? 'cockpit-settlement-chip is-active' : 'cockpit-settlement-chip'}
-            key={chip.label}
-            type="button"
+            key={`${chip.label}-${index}`}
           >
             {chip.label}
-          </button>
+          </span>
         ))}
       </div>
 
@@ -151,8 +149,8 @@ export function CheonhaSettlementHomePage({
       </section>
 
       <section aria-label="정산 KPI" className="cockpit-settlement-kpi-strip" data-testid="settlement-kpi-strip">
-        {KPI_LABELS.map((label) => (
-          <article className="cockpit-settlement-kpi-card" key={label}>
+        {KPI_LABELS.map((label, index) => (
+          <article className="cockpit-settlement-kpi-card" key={`${label}-${index}`}>
             <span className="cockpit-settlement-kpi-label" data-testid="settlement-kpi-label">
               {label}
             </span>
