@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { SubdomainAccordionNav } from './SubdomainAccordionNav';
+import { SubdomainAccordionNav, resolveTopLevelMenu } from './SubdomainAccordionNav';
 
 function renderNav(initialEntry = '/') {
-  const activeMenu = initialEntry === '/settlement' || initialEntry.startsWith('/settlement/') ? 'settlement' : 'dashboard';
+  const activeMenu = resolveTopLevelMenu(initialEntry);
 
   render(
     <MemoryRouter

@@ -21,6 +21,12 @@ const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'settlement', label: '정산', to: '/settlement/home', accessibleLabel: '정산 메뉴' },
 ];
 
+const cardTriggerMenuItem = topLevelMenuItems.find((item) => item.key !== 'dashboard') ?? topLevelMenuItems[0];
+
+export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
+  return pathname === '/settlement' || pathname.startsWith('/settlement/') ? 'settlement' : 'dashboard';
+}
+
 export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
 
@@ -34,11 +40,11 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
         <button
           aria-controls="subdomain-top-level-menu"
           aria-expanded={isTopLevelMenuExpanded}
-          className={activeMenu === 'settlement' ? 'cockpit-card-toggle is-active' : 'cockpit-card-toggle'}
+          className={activeMenu === cardTriggerMenuItem.key ? 'cockpit-card-toggle is-active' : 'cockpit-card-toggle'}
           onClick={() => setIsTopLevelMenuExpanded((current) => !current)}
           type="button"
         >
-          <span>정산</span>
+          <span>{cardTriggerMenuItem.label}</span>
           <span
             aria-hidden="true"
             className={isTopLevelMenuExpanded ? 'cockpit-nav-caret is-open' : 'cockpit-nav-caret'}
