@@ -7,6 +7,8 @@ import { loadStoredSession } from './sessionPersistence';
 import { resolvePublicCompanyTenant } from './api/companyTenant';
 import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
+import type { NavItemKey } from './authScopes';
+import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
 const session = {
@@ -49,6 +51,15 @@ const wrongCompanySession = {
   },
 };
 
+const vehicleSession = {
+  ...session,
+  activeAccount: {
+    ...session.activeAccount,
+    roleType: 'vehicle_manager' as const,
+    roleDisplayName: '차량 관리자',
+  },
+};
+
 const cockpitBootstrap = {
   companyId: '30000000-0000-0000-0000-000000000001',
   companyName: '천하운수',
@@ -65,12 +76,27 @@ function setupCompanyCockpit({
   bootstrap = cockpitBootstrap,
 }: {
   pathname?: string;
-  sessionValue?: typeof session | typeof systemAdminSession | typeof wrongCompanySession | null;
+  sessionValue?:
+    | typeof session
+    | typeof systemAdminSession
+    | typeof wrongCompanySession
+    | typeof vehicleSession
+    | null;
   bootstrap?: typeof cockpitBootstrap;
 } = {}) {
   vi.mocked(loadStoredSession).mockReturnValue(sessionValue);
   vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(bootstrap);
   vi.mocked(getWorkspaceBootstrap).mockResolvedValue(bootstrap);
+  const allowedNavKeys: NavItemKey[] =
+    sessionValue?.activeAccount?.roleType === 'vehicle_manager'
+      ? ['dashboard', 'account', 'vehicles', 'vehicle_assignments', 'drivers']
+      : ['dashboard', 'account'];
+  vi.mocked(useNavigationPolicyWithRefresh).mockReturnValue({
+    allowedNavKeys,
+    isLoading: false,
+    errorMessage: null,
+    source: 'test',
+  });
   window.history.replaceState({}, '', pathname);
 }
 
@@ -111,10 +137,7 @@ vi.mock('./tenant/resolveTenantEntry', () => ({
 }));
 
 vi.mock('./hooks/useNavigationPolicy', () => ({
-  useNavigationPolicyWithRefresh: vi.fn(() => ({
-    allowedNavKeys: ['dashboard'],
-    isLoading: false,
-  })),
+  useNavigationPolicyWithRefresh: vi.fn(),
 }));
 
 vi.mock('./pages/AccountPage', () => ({
@@ -324,6 +347,76 @@ describe('App cockpit entry', () => {
     expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
 
+  it('routes from the cockpit launcher to the vehicle workspace shell', async () => {
+    const user = userEvent.setup();
+
+    setupCompanyCockpit();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await user.click(screen.getByRole('button', { name: '상위 메뉴 열기' }));
+    await user.click(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getByRole('link', { name: '차량' }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/vehicles/home');
+    });
+
+    expect(screen.getByRole('navigation', { name: '차량 메뉴' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/drivers', '배송원'],
+    ['/vehicles', '차량'],
+    ['/vehicle-assignments', '차량 배정'],
+  ])('renders %s under the company cockpit vehicle shell', async (pathname, heading) => {
+    setupCompanyCockpit({ pathname, sessionValue: vehicleSession });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(pathname);
+    });
+
+    expect(await screen.findByRole('navigation', { name: '차량 메뉴' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-vehicle');
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it('redirects a restricted company-manager deep link away from blocked vehicle routes in the cockpit shell', async () => {
+    setupCompanyCockpit({ pathname: '/drivers' });
+    vi.mocked(useNavigationPolicyWithRefresh).mockReturnValue({
+      allowedNavKeys: ['dashboard'],
+      isLoading: false,
+      errorMessage: null,
+      source: 'test',
+    });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/');
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: '배송원' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: '차량 메뉴' })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-no-dashboard-sidebar');
+  });
+
   it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {
     const user = userEvent.setup();
 
@@ -339,7 +432,7 @@ describe('App cockpit entry', () => {
 
     await user.click(settlementButton);
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
+    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(3);
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
@@ -352,7 +445,7 @@ describe('App cockpit entry', () => {
     });
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
+    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(3);
   });
 
   it('fails closed on removed /settlements aliases in the cockpit shell', async () => {

@@ -96,6 +96,7 @@ import type { TenantCompanyContext, WorkspaceBootstrapPayload } from './types';
 import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { accountItem, dashboardItem, isNavigationItemActive, navigationGroups } from './navigation';
 import type { NavItemKey } from './authScopes';
+import { CheonhaVehicleHomePage } from './cockpit/cheonha/CheonhaVehicleHomePage';
 
 const ROUTER_FUTURE = {
   v7_relativeSplatPath: true,
@@ -783,6 +784,7 @@ function MainDomainShell({
                 </RequireRoleScope>
               }
             />
+            <Route path="/vehicles/home" element={<Navigate replace to="/vehicles" />} />
             <Route
               path="/vehicles/:vehicleRef"
               element={
@@ -921,6 +923,226 @@ function MainDomainShell({
           </Route>
         </Routes>
       </RequireAdmin>
+    </>
+  );
+}
+
+function CompanyCockpitShell({
+  client,
+  companyName,
+  handleLogout,
+  handleNavigationRedirect,
+  policyRedirectTick,
+  session,
+  sessionRef,
+  setSession,
+  topNotificationNode,
+}: {
+  client: HttpClient;
+  companyName: string;
+  handleLogout: () => Promise<void>;
+  handleNavigationRedirect: () => void;
+  policyRedirectTick: number;
+  session: SessionPayload;
+  sessionRef: MutableRefObject<SessionPayload | null>;
+  setSession: Dispatch<SetStateAction<SessionPayload | null>>;
+  topNotificationNode: ReactNode;
+}) {
+  const { allowedNavKeys, isLoading: isNavigationPolicyLoading } = useNavigationPolicyWithRefresh(
+    client,
+    session,
+    policyRedirectTick,
+  );
+
+  return (
+    <>
+      {topNotificationNode}
+      <NavigationPolicyRouteEffect
+        allowedNavKeys={allowedNavKeys}
+        isLoading={isNavigationPolicyLoading}
+        onRedirect={handleNavigationRedirect}
+        session={session}
+      />
+      <Routes>
+        <Route element={<CockpitShell companyName={companyName} onLogout={handleLogout} session={session} />}>
+          <Route path="/" element={<CheonhaDashboardPage companyName={companyName} />} />
+          <Route path="/vehicles/home" element={<CheonhaVehicleHomePage />} />
+          <Route path="/drivers" element={<DriversPage client={client} session={session} />} />
+          <Route
+            path="/drivers/new"
+            element={
+              <RequireRoleScope
+                message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="배송원 관리 권한 필요"
+                when={canManageDriverProfileScope}
+              >
+                <DriverFormPage client={client} mode="create" />
+              </RequireRoleScope>
+            }
+          />
+          <Route path="/drivers/:driverRef" element={<DriverDetailPage client={client} session={session} />} />
+          <Route
+            path="/drivers/:driverRef/edit"
+            element={
+              <RequireRoleScope
+                message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="배송원 관리 권한 필요"
+                when={canManageDriverProfileScope}
+              >
+                <DriverFormPage client={client} mode="edit" />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicles"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehiclesPage client={client} />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicles/new"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleFormPage client={client} mode="create" />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicles/:vehicleRef"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleDetailPage client={client} />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicles/:vehicleRef/edit"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleFormPage client={client} mode="edit" />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicles/:vehicleRef/accesses/new"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleOperatorAccessFormPage client={client} />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicle-assignments"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleAssignmentsPage client={client} />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicle-assignments/new"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleAssignmentFormPage client={client} mode="create" />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicle-assignments/:assignmentRef"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleAssignmentDetailPage client={client} />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/vehicle-assignments/:assignmentRef/edit"
+            element={
+              <RequireRoleScope
+                message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                onLogout={handleLogout}
+                session={session}
+                title="차량 관리 권한 필요"
+                when={canAccessVehicleScope}
+              >
+                <VehicleAssignmentFormPage client={client} mode="edit" />
+              </RequireRoleScope>
+            }
+          />
+          <Route
+            path="/me"
+            element={
+              <AccountPage
+                client={client}
+                onSessionChange={(nextSession) => {
+                  sessionRef.current = nextSession;
+                  setSession(nextSession);
+                }}
+                session={session}
+              />
+            }
+          />
+          <Route
+            path="/settlement/*"
+            element={<CheonhaSettlementWorkspace client={client} companyName={companyName} session={session} />}
+          />
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Route>
+      </Routes>
     </>
   );
 }
@@ -1424,34 +1646,17 @@ function AppContent() {
 
     if (workspaceBootstrap?.workflowProfile === 'cheonha_ops_v1') {
       return (
-        <>
-          {topNotificationNode}
-          <Routes>
-            <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} session={session} />}>
-              <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
-              <Route
-                path="/me"
-                element={
-                  <AccountPage
-                    client={client}
-                    onSessionChange={(nextSession) => {
-                      sessionRef.current = nextSession;
-                      setSession(nextSession);
-                    }}
-                    session={session}
-                  />
-                }
-              />
-              <Route
-                path="/settlement/*"
-                element={
-                  <CheonhaSettlementWorkspace client={client} companyName={cockpitCompanyName} session={session} />
-                }
-              />
-              <Route path="*" element={<Navigate replace to="/" />} />
-            </Route>
-          </Routes>
-        </>
+        <CompanyCockpitShell
+          client={client}
+          companyName={cockpitCompanyName}
+          handleLogout={handleLogout}
+          handleNavigationRedirect={handleNavigationRedirect}
+          policyRedirectTick={policyRedirectTick}
+          session={session}
+          sessionRef={sessionRef}
+          setSession={setSession}
+          topNotificationNode={topNotificationNode}
+        />
       );
     }
 

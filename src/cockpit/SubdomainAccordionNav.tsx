@@ -3,11 +3,16 @@ import { NavLink } from 'react-router-dom';
 
 import { SubdomainBrandCard } from './SubdomainBrandCard';
 import { SubdomainExpandTrigger } from './SubdomainExpandTrigger';
-import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
 
-export type TopLevelMenuKey = 'dashboard' | 'settlement';
+export type TopLevelMenuKey = 'dashboard' | 'vehicle' | 'settlement';
 export type SettlementChildNavItem = {
   slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
+  label: string;
+  to: string;
+};
+
+export type VehicleChildNavItem = {
+  slug: 'home' | 'drivers' | 'vehicles' | 'assignments';
   label: string;
   to: string;
 };
@@ -25,6 +30,7 @@ type TopLevelMenuItem = {
 
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
+  { key: 'vehicle', label: '차량', to: '/vehicles/home' },
   { key: 'settlement', label: '정산', to: '/settlement/home' },
 ];
 
@@ -37,13 +43,30 @@ export const settlementChildNavItems: SettlementChildNavItem[] = [
   { slug: 'team', label: '팀 관리', to: '/settlement/team' },
 ];
 
+export const vehicleChildNavItems: VehicleChildNavItem[] = [
+  { slug: 'home', label: '홈', to: '/vehicles/home' },
+  { slug: 'drivers', label: '배송원', to: '/drivers' },
+  { slug: 'vehicles', label: '차량', to: '/vehicles' },
+  { slug: 'assignments', label: '차량 배정', to: '/vehicle-assignments' },
+];
+
 export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
+  if (
+    pathname === '/vehicles/home' ||
+    pathname === '/vehicles' ||
+    pathname.startsWith('/vehicles/') ||
+    pathname.startsWith('/drivers') ||
+    pathname.startsWith('/vehicle-assignments')
+  ) {
+    return 'vehicle';
+  }
+
   return pathname === '/settlement' || pathname.startsWith('/settlement/') ? 'settlement' : 'dashboard';
 }
 
 export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
-  const isSettlementRoute = activeMenu === 'settlement';
+  const isDetachedWorkspaceRoute = activeMenu !== 'dashboard';
   const surfaceState = isTopLevelMenuExpanded ? 'expanded' : 'collapsed';
   const topLevelMenuSurfaceClassName = isTopLevelMenuExpanded
     ? 'cockpit-primary-menu-surface is-expanded'
@@ -59,7 +82,7 @@ export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAcco
 
         <div className={topLevelMenuSurfaceClassName} data-state={surfaceState} data-testid="subdomain-primary-menu-surface">
           <SubdomainExpandTrigger
-            isActive={isSettlementRoute}
+            isActive={isDetachedWorkspaceRoute}
             isExpanded={isTopLevelMenuExpanded}
             onToggle={() => setIsTopLevelMenuExpanded((current) => !current)}
           />
@@ -86,8 +109,6 @@ export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAcco
           </nav>
         </div>
       </div>
-
-      {isSettlementRoute ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}
     </>
   );
 }

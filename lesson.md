@@ -47,8 +47,11 @@ The company subdomain is a dedicated product surface, not a menu branch inside t
 - system-admin sessions are rejected from the subdomain shell
 - subdomain `/` opens the dashboard first
 - subdomain login keeps the company header visible
-- the subdomain top-level launcher stays ordered as `대시보드 / 정산`
+- the subdomain top-level launcher stays ordered as `대시보드 / 차량 / 정산`
 - the launcher sits beside the square brand card instead of behaving like a permanent sidebar
+- vehicle navigation appears as a detached block with `홈 / 배송원 / 차량 / 차량 배정`
+- company cockpit deep links still go through the shared navigation-policy redirect path
+- main domain `/vehicles/home` must never fall into `/vehicles/:vehicleRef`
 - settlement internal navigation stays ordered as `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
 - settlement navigation appears as a detached block below the launcher cluster, not as a dashboard sidebar
 - the rule shell stays structural only: no persisted editor, no save button, no submit action, and no write API path
@@ -98,8 +101,9 @@ Reset contract:
 
 The refined company shell works only when the launcher and settlement navigation keep their roles separate.
 
-- the launcher cluster owns the brand card and the top-level `대시보드 / 정산` launcher only
+- the launcher cluster owns the brand card and the top-level `대시보드 / 차량 / 정산` launcher only
 - settlement navigation is a detached block below that cluster, not a permanent dashboard rail
+- vehicle navigation follows the same detached workspace pattern as settlement
 - the brand card and detached settlement sidebar should read as the same surface family
 - the company shell now has a global top-right header for alerts and account actions across every subdomain page
 

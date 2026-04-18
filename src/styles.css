@@ -4148,6 +4148,11 @@ textarea:focus {
   grid-template-rows: auto auto 1fr auto;
 }
 
+.cockpit-shell-vehicle {
+  grid-template-columns: var(--cockpit-rail-width) minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto;
+}
+
 .cockpit-brand-link {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -4175,6 +4180,11 @@ textarea:focus {
 }
 
 .cockpit-shell-settlement .cockpit-launcher-cluster {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.cockpit-shell-vehicle .cockpit-launcher-cluster {
   grid-column: 1;
   grid-row: 1;
 }
@@ -4350,6 +4360,21 @@ textarea:focus {
   align-self: start;
 }
 
+.cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar {
+  width: var(--cockpit-surface-width);
+  grid-column: 1;
+  grid-row: 2;
+  width: auto;
+  margin: 1rem 1rem 0;
+  align-self: start;
+  display: block;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .cockpit-detached-sidebar {
   display: grid;
   gap: 0.45rem;
@@ -4360,8 +4385,18 @@ textarea:focus {
   box-shadow: 0 16px 34px rgba(15, 41, 66, 0.06);
 }
 
-.cockpit-child-nav::before {
+.cockpit-detached-settlement-sidebar .cockpit-child-nav::before {
   content: '정산';
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a87a3;
+  padding: 0 0.35rem 0.2rem;
+}
+
+.cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar::before {
+  content: '차량';
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -4450,6 +4485,11 @@ textarea:focus {
   grid-row: 4;
 }
 
+.cockpit-shell-vehicle .cockpit-rail-footer {
+  grid-column: 1;
+  grid-row: 4;
+}
+
 .cockpit-logout-button {
   width: 100%;
 }
@@ -4465,6 +4505,11 @@ textarea:focus {
 }
 
 .cockpit-shell-settlement .cockpit-content {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.cockpit-shell-vehicle .cockpit-content {
   grid-column: 1;
   grid-row: 2;
 }
@@ -4795,18 +4840,23 @@ textarea:focus {
   }
 
   .cockpit-shell-no-dashboard-sidebar,
-  .cockpit-shell-settlement {
+  .cockpit-shell-settlement,
+  .cockpit-shell-vehicle {
     grid-template-columns: 1fr;
     grid-template-rows: none;
   }
 
   .cockpit-shell-no-dashboard-sidebar .cockpit-launcher-cluster,
   .cockpit-shell-settlement .cockpit-launcher-cluster,
+  .cockpit-shell-vehicle .cockpit-launcher-cluster,
   .cockpit-shell-settlement .cockpit-detached-settlement-sidebar,
+  .cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar,
   .cockpit-shell-no-dashboard-sidebar .cockpit-rail-footer,
   .cockpit-shell-settlement .cockpit-rail-footer,
+  .cockpit-shell-vehicle .cockpit-rail-footer,
   .cockpit-shell-no-dashboard-sidebar .cockpit-content,
-  .cockpit-shell-settlement .cockpit-content {
+  .cockpit-shell-settlement .cockpit-content,
+  .cockpit-shell-vehicle .cockpit-content {
     grid-column: auto;
     grid-row: auto;
   }
@@ -4824,7 +4874,8 @@ textarea:focus {
   }
 
   .cockpit-primary-menu-surface,
-  .cockpit-detached-settlement-sidebar {
+  .cockpit-detached-settlement-sidebar,
+  .cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar {
     position: static;
     width: auto;
     margin: 1rem 1rem 0;

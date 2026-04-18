@@ -130,7 +130,7 @@ describe('RegionsPage', () => {
     );
 
     expect(await screen.findByRole('heading', { name: '권역' })).toBeInTheDocument();
-    expect(screen.getByText('서울 A 권역')).toBeInTheDocument();
+    expect(await screen.findByText('서울 A 권역')).toBeInTheDocument();
     expect(screen.getByText('140')).toBeInTheDocument();
     expect(screen.getByText('97.20%')).toBeInTheDocument();
     expect(screen.getByText('권역 정본과 최신 분석 요약을 같은 밀도로 확인합니다.')).toBeInTheDocument();
