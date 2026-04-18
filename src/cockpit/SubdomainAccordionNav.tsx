@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
+import { settlementChildNavItems } from './cheonha/CheonhaSettlementWorkspace';
+
 export type TopLevelMenuKey = 'dashboard' | 'settlement';
 
 type SubdomainAccordionNavProps = {
@@ -13,28 +15,15 @@ type TopLevelMenuItem = {
   key: TopLevelMenuKey;
   label: string;
   to: string;
-};
-
-type SettlementChildMenuItem = {
-  label: string;
-  to: string;
+  isCardTrigger?: boolean;
 };
 
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
-  { key: 'settlement', label: '정산', to: '/settlement/home' },
+  { key: 'settlement', label: '정산', to: '/settlement/home', isCardTrigger: true },
 ];
 
-const settlementChildMenuItems: SettlementChildMenuItem[] = [
-  { label: '홈', to: '/settlement/home' },
-  { label: '배차 데이터', to: '/settlement/dispatch' },
-  { label: '배송원 관리', to: '/settlement/crew' },
-  { label: '운영 현황', to: '/settlement/operations' },
-  { label: '정산 처리', to: '/settlement/process' },
-  { label: '팀 관리', to: '/settlement/team' },
-];
-
-const cardTriggerMenuItem = topLevelMenuItems.find((item) => item.key !== 'dashboard') ?? topLevelMenuItems[0];
+const cardTriggerMenuItem = topLevelMenuItems.find((item) => item.isCardTrigger);
 
 export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
   return pathname === '/settlement' || pathname.startsWith('/settlement/') ? 'settlement' : 'dashboard';
@@ -54,11 +43,11 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
         <button
           aria-controls="subdomain-top-level-menu"
           aria-expanded={isTopLevelMenuExpanded}
-          className={activeMenu === cardTriggerMenuItem.key ? 'cockpit-card-toggle is-active' : 'cockpit-card-toggle'}
+          className={activeMenu === cardTriggerMenuItem?.key ? 'cockpit-card-toggle is-active' : 'cockpit-card-toggle'}
           onClick={() => setIsTopLevelMenuExpanded((current) => !current)}
           type="button"
         >
-          <span>{cardTriggerMenuItem.label}</span>
+          <span>{cardTriggerMenuItem?.label ?? '메뉴'}</span>
           <span
             aria-hidden="true"
             className={isTopLevelMenuExpanded ? 'cockpit-nav-caret is-open' : 'cockpit-nav-caret'}
@@ -86,7 +75,7 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
 
       {isSettlementRoute ? (
         <nav aria-label="정산 메뉴" className="cockpit-child-nav cockpit-detached-sidebar">
-          {settlementChildMenuItems.map((item) => (
+          {settlementChildNavItems.map((item) => (
             <NavLink
               className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}
               end={item.to === '/settlement/home'}

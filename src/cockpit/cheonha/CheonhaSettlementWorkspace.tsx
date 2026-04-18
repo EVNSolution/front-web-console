@@ -12,6 +12,57 @@ type CheonhaSettlementWorkspaceProps = {
   session?: SessionPayload | null;
 };
 
+export type SettlementChildNavItem = {
+  slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
+  label: string;
+  to: string;
+};
+
+export const settlementChildNavItems: SettlementChildNavItem[] = [
+  { slug: 'home', label: '홈', to: '/settlement/home' },
+  { slug: 'dispatch', label: '배차 데이터', to: '/settlement/dispatch' },
+  { slug: 'crew', label: '배송원 관리', to: '/settlement/crew' },
+  { slug: 'operations', label: '운영 현황', to: '/settlement/operations' },
+  { slug: 'process', label: '정산 처리', to: '/settlement/process' },
+  { slug: 'team', label: '팀 관리', to: '/settlement/team' },
+];
+
+function renderSettlementChildRoute(
+  slug: SettlementChildNavItem['slug'],
+  client?: HttpClient,
+  session?: SessionPayload | null,
+) {
+  switch (slug) {
+    case 'home':
+      return <CheonhaSettlementHomePage />;
+    case 'dispatch':
+      return <CheonhaDispatchDataPage client={client} session={session} />;
+    case 'crew':
+      return (
+        <CheonhaRuleShellPanel
+          description="배송원 운영 규칙과 계정 연계 화면은 아직 cockpit shell만 제공합니다."
+          title="배송원 관리"
+        />
+      );
+    case 'operations':
+      return (
+        <CheonhaRuleShellPanel
+          description="운영 현황과 예외 규칙 화면은 아직 cockpit shell만 제공합니다. 근태는 홈에서 요약으로 계속 확인합니다."
+          title="운영 현황"
+        />
+      );
+    case 'process':
+      return <CheonhaSettlementProcessPage client={client} session={session} />;
+    case 'team':
+      return (
+        <CheonhaRuleShellPanel
+          description="팀 기준 정보와 운영 룰 편집 화면은 아직 cockpit shell만 제공합니다."
+          title="팀 관리"
+        />
+      );
+  }
+}
+
 export function CheonhaSettlementWorkspace({
   client,
   companyName = '천하운수',
@@ -27,36 +78,9 @@ export function CheonhaSettlementWorkspace({
       <div className="cockpit-workspace-stage">
         <Routes>
           <Route index element={<Navigate replace to="/settlement/home" />} />
-          <Route path="home" element={<CheonhaSettlementHomePage />} />
-          <Route path="dispatch" element={<CheonhaDispatchDataPage client={client} session={session} />} />
-          <Route
-            path="crew"
-            element={
-              <CheonhaRuleShellPanel
-                description="배송원 운영 규칙과 계정 연계 화면은 아직 cockpit shell만 제공합니다."
-                title="배송원 관리"
-              />
-            }
-          />
-          <Route
-            path="operations"
-            element={
-              <CheonhaRuleShellPanel
-                description="운영 현황과 예외 규칙 화면은 아직 cockpit shell만 제공합니다. 근태는 홈에서 요약으로 계속 확인합니다."
-                title="운영 현황"
-              />
-            }
-          />
-          <Route path="process" element={<CheonhaSettlementProcessPage client={client} session={session} />} />
-          <Route
-            path="team"
-            element={
-              <CheonhaRuleShellPanel
-                description="팀 기준 정보와 운영 룰 편집 화면은 아직 cockpit shell만 제공합니다."
-                title="팀 관리"
-              />
-            }
-          />
+          {settlementChildNavItems.map((item) => (
+            <Route key={item.slug} path={item.slug} element={renderSettlementChildRoute(item.slug, client, session)} />
+          ))}
           <Route path="*" element={<Navigate replace to="/settlement/home" />} />
         </Routes>
       </div>

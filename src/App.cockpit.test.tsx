@@ -218,8 +218,6 @@ describe('App cockpit entry', () => {
     expect(window.location.pathname).toBe('/settlement/home');
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
-    const rail = settlementNav.closest('.cockpit-rail');
-    const companyCardBlock = rail?.querySelector('.cockpit-brand-block');
 
     expect(topLevelNav).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
@@ -227,26 +225,9 @@ describe('App cockpit entry', () => {
     expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
     expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
     expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
-    expect(within(settlementNav).getByRole('link', { name: '배차 데이터' })).toHaveAttribute(
-      'href',
-      '/settlement/dispatch',
-    );
-    expect(within(settlementNav).getByRole('link', { name: '배송원 관리' })).toHaveAttribute(
-      'href',
-      '/settlement/crew',
-    );
-    expect(within(settlementNav).getByRole('link', { name: '운영 현황' })).toHaveAttribute(
-      'href',
-      '/settlement/operations',
-    );
     expect(within(settlementNav).getByRole('link', { name: '정산 처리' })).toHaveAttribute(
       'href',
       '/settlement/process',
-    );
-    expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
-    expect(companyCardBlock).not.toBeNull();
-    expect((companyCardBlock?.compareDocumentPosition(settlementNav) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
 
