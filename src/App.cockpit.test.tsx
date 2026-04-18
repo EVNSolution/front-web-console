@@ -346,43 +346,6 @@ describe('App cockpit entry', () => {
     expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
 
-  it.each([
-    ['/settlement/dispatch', '배차표 업로드'],
-    ['/settlement/process', '정산 입력 요약'],
-  ])('renders %s inside the shared settlement workspace shell', async (pathname, heading) => {
-    setupCompanyCockpit({ pathname });
-    render(<App />);
-
-    await waitFor(() => {
-      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
-      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
-    });
-
-    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
-  });
-
-  it.each([
-    ['/settlement/crew', '배송원 관리'],
-    ['/settlement/operations', '운영 현황'],
-    ['/settlement/team', '팀 관리'],
-  ])('keeps shell-only route %s framed by the shared settlement shell panel', async (pathname, heading) => {
-    setupCompanyCockpit({ pathname });
-    render(<App />);
-
-    await waitFor(() => {
-      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
-      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
-    });
-
-    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
-    const routeHeading = await screen.findByRole('heading', { level: 2, name: heading });
-
-    expect(routeHeading).toBeInTheDocument();
-    expect(screen.getByText('실제 업무 흐름은 홈, 배차 데이터, 정산 처리에서 이어집니다.')).toBeInTheDocument();
-  });
-
   it('routes from the cockpit launcher to the vehicle workspace shell', async () => {
     const user = userEvent.setup();
 

@@ -19,17 +19,16 @@ describe('CheonhaSettlementHomePage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: /천하운수.*정산/ })).toBeInTheDocument();
     expect(screen.getByText('정산 워크플로우')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: '업무 프로세스' })).toBeInTheDocument();
+
+    const processCard = screen.getByRole('article', { name: '업무 프로세스' });
+    expect(processCard).toHaveTextContent(/배차 업로드[\s\S]*특근 설정[\s\S]*단가 확인[\s\S]*정산 처리/);
     expect(screen.getByRole('link', { name: '배차 업로드' })).toHaveAttribute('href', '/settlement/dispatch');
     expect(screen.getByRole('link', { name: '정산 처리' })).toHaveAttribute('href', '/settlement/process');
-    expect(screen.getByText('배차 업로드')).toBeInTheDocument();
-    expect(screen.getByText('특근 설정')).toBeInTheDocument();
-    expect(screen.getByText('단가 확인')).toBeInTheDocument();
-    expect(screen.getByText('정산 처리')).toBeInTheDocument();
-    expect(screen.getByText('수신합계')).toBeInTheDocument();
-    expect(screen.getByText('지급합계')).toBeInTheDocument();
-    expect(screen.getByText('조정비용')).toBeInTheDocument();
-    expect(screen.getByText('수익')).toBeInTheDocument();
-    expect(screen.getByText('정산 내역이 없습니다')).toBeInTheDocument();
+
+    const kpiStrip = screen.getByRole('region', { name: '정산 KPI' });
+    expect(kpiStrip).toHaveTextContent(/수신합계[\s\S]*지급합계[\s\S]*조정비용[\s\S]*수익/);
+
+    const recentSettlement = screen.getByRole('region', { name: '최근 정산' });
+    expect(recentSettlement).toHaveTextContent('정산 내역이 없습니다');
   });
 });
