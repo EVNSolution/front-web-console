@@ -4134,12 +4134,13 @@ textarea:focus {
 }
 
 .cockpit-shell-no-dashboard-sidebar {
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 268px minmax(0, 1fr);
 }
 
 .cockpit-brand-link {
   display: grid;
   gap: 0.12rem;
+  aspect-ratio: 1 / 1;
   color: inherit;
   text-decoration: none;
 }
