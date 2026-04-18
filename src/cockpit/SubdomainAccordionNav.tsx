@@ -5,7 +5,7 @@ import { SubdomainBrandCard } from './SubdomainBrandCard';
 import { SubdomainExpandTrigger } from './SubdomainExpandTrigger';
 import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
 
-export type TopLevelMenuKey = 'dashboard' | 'settlement';
+export type TopLevelMenuKey = 'dashboard' | 'vehicle' | 'settlement';
 export type SettlementChildNavItem = {
   slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
   label: string;
@@ -25,6 +25,7 @@ type TopLevelMenuItem = {
 
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
+  { key: 'vehicle', label: '차량', to: '/vehicles/home' },
   { key: 'settlement', label: '정산', to: '/settlement/home' },
 ];
 
@@ -38,6 +39,16 @@ export const settlementChildNavItems: SettlementChildNavItem[] = [
 ];
 
 export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
+  if (
+    pathname === '/vehicles/home' ||
+    pathname === '/vehicles' ||
+    pathname.startsWith('/vehicles/') ||
+    pathname.startsWith('/drivers') ||
+    pathname.startsWith('/vehicle-assignments')
+  ) {
+    return 'vehicle';
+  }
+
   return pathname === '/settlement' || pathname.startsWith('/settlement/') ? 'settlement' : 'dashboard';
 }
 

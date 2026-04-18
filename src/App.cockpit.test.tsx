@@ -324,6 +324,28 @@ describe('App cockpit entry', () => {
     expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
 
+  it('routes from the cockpit launcher to the vehicle workspace shell', async () => {
+    const user = userEvent.setup();
+
+    setupCompanyCockpit();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await user.click(screen.getByRole('button', { name: '상위 메뉴 열기' }));
+    await user.click(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getByRole('link', { name: '차량' }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/vehicles/home');
+    });
+
+    expect(screen.getByRole('navigation', { name: '차량 메뉴' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+  });
+
   it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {
     const user = userEvent.setup();
 
@@ -339,7 +361,7 @@ describe('App cockpit entry', () => {
 
     await user.click(settlementButton);
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
+    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(3);
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
@@ -352,7 +374,7 @@ describe('App cockpit entry', () => {
     });
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
+    expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(3);
   });
 
   it('fails closed on removed /settlements aliases in the cockpit shell', async () => {

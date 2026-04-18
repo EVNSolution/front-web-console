@@ -75,7 +75,7 @@ describe('SubdomainAccordionNav', () => {
     expect(screen.queryByRole('button', { name: '정산' })).not.toBeInTheDocument();
   });
 
-  it('top-level expansion only reveals 대시보드 and 정산', async () => {
+  it('top-level expansion only reveals 대시보드, 차량, 정산', async () => {
     const user = userEvent.setup();
     renderNav();
 
@@ -90,8 +90,13 @@ describe('SubdomainAccordionNav', () => {
     const collapseTrigger = screen.getByRole('button', { name: '상위 메뉴 닫기' });
 
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
+    expect(within(nav).getByRole('link', { name: '차량' })).toHaveAttribute('href', '/vehicles/home');
     expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
-    expect(within(nav).getAllByRole('link')).toHaveLength(2);
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['대시보드', '차량', '정산']);
     expect(launcherCluster).toContainElement(nav);
     expect(brandBlock).not.toContainElement(collapseTrigger);
     expect(primaryMenuSurface).toContainElement(collapseTrigger);
@@ -152,11 +157,11 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('button', { name: '상위 메뉴 열기' }));
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
-    expect(within(nav).getAllByRole('link')).toHaveLength(2);
+    expect(within(nav).getAllByRole('link')).toHaveLength(3);
 
     await user.click(screen.getByRole('button', { name: 'route-switch' }));
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(nav).getAllByRole('link')).toHaveLength(2);
+    expect(within(nav).getAllByRole('link')).toHaveLength(3);
 
     await user.click(screen.getByRole('button', { name: '상위 메뉴 닫기' }));
     expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'false');
@@ -193,13 +198,13 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
-    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
+    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(3);
     expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'dashboard-route' }));
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
+    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(3);
   });
 
 });
