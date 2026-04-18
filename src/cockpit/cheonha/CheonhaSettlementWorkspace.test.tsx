@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -55,24 +55,44 @@ describe('CheonhaSettlementWorkspace', () => {
   it('redirects /settlement to /settlement/home', async () => {
     renderWorkspace('/settlement');
 
+    const frame = screen.getByTestId('settlement-workspace-frame');
+
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(frame).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
+    expect(within(frame).getByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
   });
 
   it.each([
     ['/settlement/home', '홈 화면'],
     ['/settlement/dispatch', '배차 데이터 화면'],
-    ['/settlement/crew', '배송원 관리'],
-    ['/settlement/operations', '운영 현황'],
     ['/settlement/process', '정산 처리 화면'],
-    ['/settlement/team', '팀 관리'],
-  ])('renders the route body for child page %s', async (initialEntry, heading) => {
+  ])('renders the route body for shared settlement child page %s', async (initialEntry, heading) => {
     renderWorkspace(initialEntry);
 
+    const frame = screen.getByTestId('settlement-workspace-frame');
     const renderedHeading = await screen.findByRole('heading', { level: 2, name: heading });
 
     expect(renderedHeading).toBeInTheDocument();
+    expect(frame).toBeInTheDocument();
+    expect(within(frame).getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['/settlement/crew', '배송원 관리'],
+    ['/settlement/operations', '운영 현황'],
+    ['/settlement/team', '팀 관리'],
+  ])('keeps shell-only route %s inside the shared settlement workspace frame', async (initialEntry, heading) => {
+    renderWorkspace(initialEntry);
+
+    const frame = screen.getByTestId('settlement-workspace-frame');
+    const renderedHeading = await screen.findByRole('heading', { level: 2, name: heading });
+
+    expect(renderedHeading).toBeInTheDocument();
+    expect(frame).toBeInTheDocument();
+    expect(within(frame).getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
   });
 
@@ -85,7 +105,10 @@ describe('CheonhaSettlementWorkspace', () => {
   ])('fails closed on removed legacy settlement child slug %s', async (legacyPath) => {
     renderWorkspace(legacyPath);
 
+    const frame = screen.getByTestId('settlement-workspace-frame');
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
+    expect(frame).toBeInTheDocument();
+    expect(within(frame).getByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
   });

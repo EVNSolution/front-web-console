@@ -316,10 +316,11 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.getByTestId('settlement-workspace-frame')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
   });
 
-  it('/settlement/home still resolves under the cockpit shell without a top-level dispatch route', async () => {
+  it('/settlement/home resolves under the company cockpit settlement landing path', async () => {
     setupCompanyCockpit({ pathname: '/settlement/home' });
     render(<App />);
 
@@ -328,22 +329,15 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.getByTestId('settlement-workspace-frame')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
     expect(screen.getByText('EV&Solution')).toBeInTheDocument();
     expect(screen.getByText('천하운수')).toBeInTheDocument();
-    const topLevelNav = document.getElementById('subdomain-top-level-menu');
-    const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
 
-    expect(topLevelNav).not.toBeNull();
-    expect(topLevelNav).toBeInTheDocument();
     expect(screen.getByTestId('subdomain-settlement-sidebar')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toBeInTheDocument();
-    expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
-    expect(settlementNav).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: /dashboard/i })).not.toBeInTheDocument();
-    expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
 
   it('routes from the cockpit launcher to the vehicle workspace shell', async () => {

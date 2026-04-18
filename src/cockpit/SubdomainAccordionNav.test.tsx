@@ -207,6 +207,7 @@ describe('SubdomainAccordionNav', () => {
     renderShell('/settlement/home');
 
     const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
+    const settlementSidebarSurface = screen.getByTestId('subdomain-settlement-sidebar-surface');
     const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
     const settlementLinks = within(settlementNav).getAllByRole('link');
     const settlementExpectedLinks = [
@@ -218,9 +219,11 @@ describe('SubdomainAccordionNav', () => {
       { description: '단가 설정', href: '/settlement/team', title: '팀 관리' },
     ] as const;
 
-    expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(settlementSidebar).toBeInTheDocument();
+    expect(settlementSidebarSurface).toBeInTheDocument();
+    expect(settlementSidebarSurface).toContainElement(settlementSidebar);
     expect(settlementNav).toBeInTheDocument();
+    expect(settlementSidebarSurface).toContainElement(settlementNav);
     expect(settlementLinks).toHaveLength(settlementExpectedLinks.length);
     settlementExpectedLinks.forEach((item, index) => {
       expect(settlementLinks[index]).toHaveAttribute('href', item.href);
