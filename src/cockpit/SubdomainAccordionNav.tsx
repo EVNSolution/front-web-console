@@ -45,9 +45,11 @@ export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
 export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
   const isSettlementRoute = activeMenu === 'settlement';
+  const railClassName = isSettlementRoute ? 'cockpit-rail is-settlement-route' : 'cockpit-rail';
+  const topLevelNavClassName = isTopLevelMenuExpanded ? 'cockpit-nav is-expanded' : 'cockpit-nav';
 
   return (
-    <aside className="cockpit-rail">
+    <aside className={railClassName}>
       <div className="cockpit-brand-block">
         <SubdomainBrandCard companyName={companyName} />
         <SubdomainExpandTrigger
@@ -57,7 +59,7 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
         />
       </div>
 
-      <nav aria-label="서브도메인 메뉴" className="cockpit-nav" id="subdomain-top-level-menu">
+      <nav aria-label="서브도메인 메뉴" className={topLevelNavClassName} id="subdomain-top-level-menu">
         {isTopLevelMenuExpanded
           ? topLevelMenuItems.map((item) => (
               <NavLink

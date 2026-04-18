@@ -82,6 +82,7 @@ describe('SubdomainAccordionNav', () => {
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
+    expect(nav).toHaveClass('is-expanded');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
   });
 
