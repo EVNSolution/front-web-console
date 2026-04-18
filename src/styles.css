@@ -4133,9 +4133,14 @@ textarea:focus {
     linear-gradient(180deg, #f7fafc 0%, #eef3f8 100%);
 }
 
+.cockpit-shell-no-dashboard-sidebar {
+  grid-template-columns: 268px minmax(0, 1fr);
+}
+
 .cockpit-brand-link {
   display: grid;
   gap: 0.12rem;
+  aspect-ratio: 1 / 1;
   color: inherit;
   text-decoration: none;
 }
@@ -4151,7 +4156,11 @@ textarea:focus {
 }
 
 .cockpit-brand-block {
-  padding: 0 0.5rem 0.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: stretch;
+  padding: 0;
 }
 
 .cockpit-brand-mark {
@@ -4165,9 +4174,61 @@ textarea:focus {
   color: #61708f;
 }
 
+.cockpit-brand-link,
+.cockpit-card-toggle {
+  min-height: 156px;
+  padding: 1.15rem 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
+}
+
+.cockpit-card-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 68px;
+  border: 0;
+  color: #20344f;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(223, 238, 250, 0.96), rgba(255, 255, 255, 0.98));
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.cockpit-card-toggle.is-active {
+  background: linear-gradient(180deg, rgba(211, 232, 248, 0.98), rgba(244, 250, 255, 0.98));
+}
+
+.cockpit-card-toggle:hover {
+  transform: translateY(-1px);
+}
+
 .cockpit-nav {
   display: grid;
   gap: 0.45rem;
+}
+
+.cockpit-detached-sidebar {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
+}
+
+.cockpit-child-nav::before {
+  content: '정산';
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a87a3;
+  padding: 0 0.35rem 0.2rem;
 }
 
 .cockpit-nav-link,
@@ -4193,11 +4254,6 @@ textarea:focus {
   font-weight: 600;
 }
 
-.cockpit-nav-group {
-  display: grid;
-  gap: 0.35rem;
-}
-
 .cockpit-nav-toggle {
   cursor: pointer;
 }
@@ -4210,19 +4266,6 @@ textarea:focus {
 
 .cockpit-nav-caret.is-open {
   transform: rotate(0deg);
-}
-
-.cockpit-nav-children {
-  display: grid;
-  gap: 0.2rem;
-  padding-left: 0.25rem;
-}
-
-.cockpit-nav-child-link {
-  min-height: 40px;
-  padding-left: 1.5rem;
-  font-weight: 500;
-  font-size: 0.92rem;
 }
 
 .cockpit-nav-link.is-active,
@@ -4242,6 +4285,7 @@ textarea:focus {
 .cockpit-nav-link:focus-visible,
 .cockpit-nav-toggle:focus-visible,
 .cockpit-nav-child-link:focus-visible,
+.cockpit-card-toggle:focus-visible,
 .cockpit-logout-button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(14, 95, 155, 0.18);
@@ -4261,13 +4305,11 @@ textarea:focus {
   padding: 1.5rem;
 }
 
-.cockpit-dashboard,
 .cockpit-workspace {
   display: grid;
   gap: 1.25rem;
 }
 
-.cockpit-hero,
 .cockpit-workspace-header,
 .cockpit-workspace-panel {
   padding: 1.35rem 1.5rem;
@@ -4289,139 +4331,6 @@ textarea:focus {
 .cockpit-copy {
   margin: 0;
   color: #5d6c87;
-}
-
-.cockpit-dashboard-hero-copy {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.cockpit-month-switch {
-  display: grid;
-  gap: 0.7rem;
-  justify-items: end;
-}
-
-.cockpit-dashboard-frame {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  background: rgba(15, 102, 153, 0.08);
-  color: #0f6699;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.cockpit-month-switch-controls {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  row-gap: 0.45rem;
-  padding: 0.35rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(20, 40, 70, 0.08);
-  max-width: 100%;
-}
-
-.cockpit-month-switch-controls strong {
-  min-width: 7.5rem;
-  max-width: 100%;
-  text-align: center;
-  font-size: 0.96rem;
-  color: #102743;
-}
-
-.cockpit-month-button {
-  border: 0;
-  border-radius: 999px;
-  padding: 0.65rem 0.95rem;
-  background: rgba(15, 102, 153, 0.08);
-  color: #0f6699;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.cockpit-month-button:disabled {
-  background: rgba(93, 108, 135, 0.08);
-  color: #7a87a3;
-  cursor: not-allowed;
-}
-
-.cockpit-dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-.cockpit-dashboard-panel {
-  display: grid;
-  gap: 1rem;
-  padding: 1.3rem 1.4rem;
-  border-radius: 24px;
-  border: 1px solid rgba(20, 40, 70, 0.08);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
-}
-
-.cockpit-dashboard-section-header {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.cockpit-dashboard-section-header h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #102743;
-}
-
-.cockpit-dashboard-section-header p {
-  margin: 0;
-  color: #5d6c87;
-}
-
-.cockpit-dashboard-summary-grid,
-.cockpit-dashboard-metric-list {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.cockpit-dashboard-summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-}
-
-.cockpit-dashboard-summary-card,
-.cockpit-dashboard-metric {
-  display: grid;
-  gap: 0.35rem;
-  padding: 1rem;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 247, 253, 0.94));
-  border: 1px solid rgba(20, 40, 70, 0.08);
-}
-
-.cockpit-dashboard-summary-card span,
-.cockpit-dashboard-metric span {
-  color: #5d6c87;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.cockpit-dashboard-summary-card strong,
-.cockpit-dashboard-metric strong {
-  font-size: 1.45rem;
-  color: #102743;
-}
-
-.cockpit-dashboard-summary-card p,
-.cockpit-dashboard-metric p {
-  margin: 0;
-  color: #7a87a3;
-  font-size: 0.8rem;
 }
 
 .cockpit-card-grid {
@@ -4568,22 +4477,6 @@ textarea:focus {
 }
 
 @media (max-width: 760px) {
-  .cockpit-month-switch {
-    justify-items: stretch;
-  }
-
-  .cockpit-month-switch-controls {
-    width: 100%;
-    justify-content: center;
-    border-radius: 24px;
-  }
-
-  .cockpit-month-switch-controls strong {
-    order: -1;
-    flex-basis: 100%;
-    min-width: 0;
-  }
-
   .cockpit-shell {
     grid-template-columns: 1fr;
   }
@@ -4591,6 +4484,15 @@ textarea:focus {
   .cockpit-rail {
     border-right: 0;
     border-bottom: 1px solid rgba(20, 40, 70, 0.08);
+  }
+
+  .cockpit-brand-block {
+    grid-template-columns: minmax(0, 1fr) 64px;
+  }
+
+  .cockpit-brand-link,
+  .cockpit-card-toggle {
+    min-height: 132px;
   }
 
   .cockpit-content {

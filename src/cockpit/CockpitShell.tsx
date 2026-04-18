@@ -1,6 +1,6 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
-import { SubdomainAccordionNav } from './SubdomainAccordionNav';
+import { SubdomainAccordionNav, resolveTopLevelMenu } from './SubdomainAccordionNav';
 
 type CockpitShellProps = {
   companyName: string;
@@ -8,9 +8,13 @@ type CockpitShellProps = {
 };
 
 export function CockpitShell({ companyName, onLogout }: CockpitShellProps) {
+  const location = useLocation();
+  const activeMenu = resolveTopLevelMenu(location.pathname);
+  const isSettlementRoute = activeMenu === 'settlement';
+
   return (
-    <div className="cockpit-shell">
-      <SubdomainAccordionNav companyName={companyName} onLogout={onLogout} />
+    <div className={isSettlementRoute ? 'cockpit-shell' : 'cockpit-shell cockpit-shell-no-dashboard-sidebar'}>
+      <SubdomainAccordionNav activeMenu={activeMenu} companyName={companyName} onLogout={onLogout} />
       <main className="cockpit-content">
         <Outlet />
       </main>

@@ -52,31 +52,25 @@ function renderWorkspace(initialEntry: string) {
 }
 
 describe('CheonhaSettlementWorkspace', () => {
-  it('redirects /settlement to /settlement/home and exposes the approved internal menu order', async () => {
+  it('redirects /settlement to /settlement/home', async () => {
     renderWorkspace('/settlement');
 
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
-
-    const tabs = screen.getAllByRole('link');
-    expect(tabs.map((tab) => [tab.textContent, tab.getAttribute('href')])).toEqual([
-      ['홈', '/settlement/home'],
-      ['배차 데이터', '/settlement/dispatch'],
-      ['배송원 관리', '/settlement/crew'],
-      ['운영 현황', '/settlement/operations'],
-      ['정산 처리', '/settlement/process'],
-      ['팀 관리', '/settlement/team'],
-    ]);
   });
 
-  it('marks the active route using the new process slug', async () => {
-    renderWorkspace('/settlement/process');
+  it.each([
+    ['/settlement/home', '홈 화면'],
+    ['/settlement/dispatch', '배차 데이터 화면'],
+    ['/settlement/crew', '배송원 관리'],
+    ['/settlement/operations', '운영 현황'],
+    ['/settlement/process', '정산 처리 화면'],
+    ['/settlement/team', '팀 관리'],
+  ])('renders the route body for child page %s', async (initialEntry, heading) => {
+    renderWorkspace(initialEntry);
 
-    expect(await screen.findByRole('heading', { level: 2, name: '정산 처리 화면' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveClass('is-active');
-    expect(screen.getByRole('link', { name: '배차 데이터' })).not.toHaveClass('is-active');
-    expect(screen.queryByRole('link', { name: '근태' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
   });
 
   it.each([
@@ -90,6 +84,5 @@ describe('CheonhaSettlementWorkspace', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
-    expect(screen.getByRole('link', { name: '홈' })).toHaveClass('is-active');
   });
 });

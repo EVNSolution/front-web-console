@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { SubdomainAccordionNav } from './SubdomainAccordionNav';
+import { SubdomainAccordionNav, resolveTopLevelMenu } from './SubdomainAccordionNav';
 
 function renderNav(initialEntry = '/') {
   render(
@@ -15,61 +15,164 @@ function renderNav(initialEntry = '/') {
       initialEntries={[initialEntry]}
     >
       <Routes>
-        <Route path="*" element={<SubdomainAccordionNav companyName="천하운수" onLogout={vi.fn()} />} />
+        <Route path="*" element={<RouteAwareNav />} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
+function RouteAwareNav() {
+  const location = useLocation();
+
+  return (
+    <SubdomainAccordionNav
+      activeMenu={resolveTopLevelMenu(location.pathname)}
+      companyName="천하운수"
+      onLogout={vi.fn()}
+    />
+  );
+}
+
+function RouteSwitcher() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/other')}>
+        route-switch
+      </button>
+      <button type="button" onClick={() => navigate('/')}>
+        dashboard-route
+      </button>
+    </>
+  );
+}
+
 describe('SubdomainAccordionNav', () => {
-  it('renders the company brand block', () => {
+  it('dashboard route renders the company card and top-level expansion trigger', () => {
     renderNav();
 
     expect(screen.getByText('천하운수')).toBeInTheDocument();
     expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
-  });
-
-  it('shows only 대시보드 and 정산 as top-level items', () => {
-    renderNav();
-
-    expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
   });
 
-  it('reveals internal items when 정산 is expanded', async () => {
+  it('dashboard route starts collapsed with no top-level menu items visible', () => {
+    renderNav();
+
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+
+    expect(within(nav).queryAllByRole('link')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('top-level expansion only reveals 대시보드 and 정산', async () => {
     const user = userEvent.setup();
     renderNav();
 
     await user.click(screen.getByRole('button', { name: '정산' }));
 
-    expect(screen.getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
-    expect(screen.getByRole('link', { name: '배차 데이터' })).toHaveAttribute('href', '/settlement/dispatch');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveAttribute('href', '/settlement/crew');
-    expect(screen.getByRole('link', { name: '운영 현황' })).toHaveAttribute('href', '/settlement/operations');
-    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveAttribute('href', '/settlement/process');
-    expect(screen.getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
-  });
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
 
-  it('marks the active child item for the current route', () => {
-    renderNav('/settlement/crew');
-
+    expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
+    expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(nav).getAllByRole('link')).toHaveLength(2);
+    expect(within(nav).getByText('정산')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
-    expect(screen.getByRole('link', { name: '배차 데이터' })).not.toHaveClass('is-active');
   });
 
-  it('keeps settlement expanded while a settlement child route is active', async () => {
+  it('settlement route renders a detached always-expanded child menu below the company card block', () => {
+    renderNav('/settlement/home');
+
+    const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
+    const rail = settlementNav.closest('.cockpit-rail') as HTMLElement | null;
+
+    expect(topLevelNav).toBeInTheDocument();
+    expect(settlementNav).toBeInTheDocument();
+    expect(rail).not.toBeNull();
+    expect(within(rail as HTMLElement).getByText('천하운수')).toBeInTheDocument();
+    expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
+    expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
+    expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
+  });
+
+  it('top-level expanded state stays open after route changes until the user collapses it', async () => {
     const user = userEvent.setup();
-    renderNav('/settlement/crew');
+
+    render(
+      <MemoryRouter
+        future={{
+          v7_relativeSplatPath: true,
+          v7_startTransition: true,
+        }}
+        initialEntries={['/']}
+      >
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <RouteSwitcher />
+                <RouteAwareNav />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await user.click(screen.getByRole('button', { name: '정산' }));
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(within(nav).getAllByRole('link')).toHaveLength(2);
 
+    await user.click(screen.getByRole('button', { name: 'route-switch' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
+    expect(within(nav).getAllByRole('link')).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: '정산' }));
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(nav).queryAllByRole('link')).toHaveLength(0);
   });
+
+  it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter
+        future={{
+          v7_relativeSplatPath: true,
+          v7_startTransition: true,
+        }}
+        initialEntries={['/']}
+      >
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <RouteSwitcher />
+                <RouteAwareNav />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '정산' }));
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(screen.getByRole('link', { name: '정산' }));
+    const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
+    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'dashboard-route' }));
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
+  });
+
 });
