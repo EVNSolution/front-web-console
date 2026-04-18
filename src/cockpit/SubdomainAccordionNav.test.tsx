@@ -144,7 +144,7 @@ describe('SubdomainAccordionNav', () => {
     expect(vehicleSidebar.closest('.cockpit-rail')).toBeNull();
     expect(vehicleSidebar.tagName).toBe('ASIDE');
     expect(vehicleSidebar).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
-    expect(vehicleSidebar).toHaveAttribute('data-nav-label', '차량');
+    expect(vehicleSidebar).not.toHaveAttribute('data-nav-label');
     expect(topLevelNav).toBeInTheDocument();
     expect(vehicleSidebar).toBeInTheDocument();
     expect(vehicleNav).toBeInTheDocument();

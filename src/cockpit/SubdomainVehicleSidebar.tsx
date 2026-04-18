@@ -12,11 +12,7 @@ type SubdomainVehicleSidebarProps = {
 
 export function SubdomainVehicleSidebar({ items }: SubdomainVehicleSidebarProps) {
   return (
-    <aside
-      className="cockpit-child-nav cockpit-detached-sidebar cockpit-detached-vehicle-sidebar"
-      data-nav-label="차량"
-      data-testid="subdomain-vehicle-sidebar"
-    >
+    <aside className="cockpit-child-nav cockpit-detached-sidebar" data-testid="subdomain-vehicle-sidebar">
       <nav aria-label="차량 메뉴">
         {items.map((item) => (
           <NavLink
