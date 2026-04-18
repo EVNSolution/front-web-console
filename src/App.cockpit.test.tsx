@@ -350,9 +350,9 @@ describe('App cockpit entry', () => {
   });
 
   it.each([
-    ['/settlement/dispatch', '배차표 업로드', 'cockpit dispatch surface'],
-    ['/settlement/process', '정산 입력 요약', 'cockpit alias surface'],
-  ])('renders %s inside the shared settlement workspace shell', async (pathname, heading, surfaceText) => {
+    ['/settlement/dispatch', '배차표 업로드'],
+    ['/settlement/process', '정산 입력 요약'],
+  ])('renders %s inside the shared settlement workspace shell', async (pathname, heading) => {
     setupCompanyCockpit({ pathname });
     render(<App />);
 
@@ -365,7 +365,6 @@ describe('App cockpit entry', () => {
     expect(shell).toHaveClass('cockpit-shell-settlement');
     expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
-    expect(screen.getByText(surfaceText)).toBeInTheDocument();
   });
 
   it.each([

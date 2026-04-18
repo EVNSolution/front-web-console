@@ -209,30 +209,25 @@ describe('SubdomainAccordionNav', () => {
     const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
     const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
     const settlementLinks = within(settlementNav).getAllByRole('link');
+    const settlementExpectedLinks = [
+      { description: '현황 요약', href: '/settlement/home', title: '홈' },
+      { description: '업로드 · 정산', href: '/settlement/dispatch', title: '배차 데이터' },
+      { description: '매니저 등록', href: '/settlement/crew', title: '배송원 관리' },
+      { description: '날짜별 현황', href: '/settlement/operations', title: '운영 현황' },
+      { description: '정산 관리', href: '/settlement/process', title: '정산 처리' },
+      { description: '단가 설정', href: '/settlement/team', title: '팀 관리' },
+    ] as const;
 
     expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(settlementSidebar).toBeInTheDocument();
     expect(settlementSidebar).toHaveClass('cockpit-detached-settlement-sidebar');
     expect(settlementNav).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
-    expect(settlementLinks).toHaveLength(6);
-    expect(settlementLinks[0]).toHaveAttribute('href', '/settlement/home');
-    expect(settlementLinks[0]).toHaveTextContent('홈');
-    expect(settlementLinks[0]).toHaveTextContent('현황 요약');
-    expect(settlementLinks[1]).toHaveAttribute('href', '/settlement/dispatch');
-    expect(settlementLinks[1]).toHaveTextContent('배차 데이터');
-    expect(settlementLinks[1]).toHaveTextContent('업로드 · 정산');
-    expect(settlementLinks[2]).toHaveAttribute('href', '/settlement/crew');
-    expect(settlementLinks[2]).toHaveTextContent('배송원 관리');
-    expect(settlementLinks[2]).toHaveTextContent('매니저 등록');
-    expect(settlementLinks[3]).toHaveAttribute('href', '/settlement/operations');
-    expect(settlementLinks[3]).toHaveTextContent('운영 현황');
-    expect(settlementLinks[3]).toHaveTextContent('날짜별 현황');
-    expect(settlementLinks[4]).toHaveAttribute('href', '/settlement/process');
-    expect(settlementLinks[4]).toHaveTextContent('정산 처리');
-    expect(settlementLinks[4]).toHaveTextContent('정산 관리');
-    expect(settlementLinks[5]).toHaveAttribute('href', '/settlement/team');
-    expect(settlementLinks[5]).toHaveTextContent('팀 관리');
-    expect(settlementLinks[5]).toHaveTextContent('단가 설정');
+    expect(settlementLinks).toHaveLength(settlementExpectedLinks.length);
+    settlementExpectedLinks.forEach((item, index) => {
+      expect(settlementLinks[index]).toHaveAttribute('href', item.href);
+      expect(settlementLinks[index]).toHaveTextContent(item.title);
+      expect(settlementLinks[index]).toHaveTextContent(item.description);
+    });
   });
 
   it.each([
