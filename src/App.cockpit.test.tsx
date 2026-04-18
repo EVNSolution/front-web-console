@@ -214,6 +214,13 @@ describe('App cockpit entry', () => {
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
     expect(document.querySelector('.console-topbar')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '최근 6개월 수입/지출' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '금월 배차표 기반 근태' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '금일 배차' })).not.toBeInTheDocument();
@@ -249,7 +256,6 @@ describe('App cockpit entry', () => {
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
-    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
   });
 
   it('/settlement/home still resolves under the cockpit shell without a top-level dispatch route', async () => {
@@ -282,18 +288,8 @@ describe('App cockpit entry', () => {
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
-    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
-    const subdomainNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
-    expect(within(subdomainNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
-    expect(within(subdomainNav).getByRole('link', { name: '배차 데이터' })).toHaveAttribute(
-      'href',
-      '/settlement/dispatch',
-    );
-    expect(within(subdomainNav).getByRole('link', { name: '배송원 관리' })).toHaveAttribute(
-      'href',
-      '/settlement/crew',
-    );
-    expect(screen.queryByRole('link', { name: '배차' })).not.toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
   });
 
   it('fails closed on removed /settlements aliases in the cockpit shell', async () => {

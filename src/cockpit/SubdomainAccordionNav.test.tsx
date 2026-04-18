@@ -50,30 +50,18 @@ describe('SubdomainAccordionNav', () => {
 
     expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
-    expect(screen.getByRole('link', { name: '배차 데이터' })).toHaveAttribute('href', '/settlement/dispatch');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveAttribute('href', '/settlement/crew');
-    expect(screen.getByRole('link', { name: '운영 현황' })).toHaveAttribute('href', '/settlement/operations');
-    expect(screen.getByRole('link', { name: '정산 처리' })).toHaveAttribute('href', '/settlement/process');
-    expect(screen.getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
   });
 
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
     const user = userEvent.setup();
-    renderNav();
+    renderNav('/settlement/crew');
 
-    await user.click(screen.getByRole('button', { name: '정산' }));
-    await user.click(screen.getByRole('link', { name: '홈' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
-
     await user.click(screen.getByRole('link', { name: '대시보드' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '홈' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
   });
 
   it('marks the active child item for the current route', () => {
