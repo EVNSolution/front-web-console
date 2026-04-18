@@ -107,7 +107,7 @@ describe('ManagerRolesPage', () => {
     await waitFor(() =>
       expect(listCompanyManagerRoles).toHaveBeenCalledWith(client, 'company-a'),
     );
-    expect(screen.getByText('회사 전체 관리자')).toBeInTheDocument();
+    expect(await screen.findByText('회사 전체 관리자')).toBeInTheDocument();
     expect(screen.getByText('차량 관리자')).toBeInTheDocument();
     expect(document.querySelectorAll('.role-scope-badge')).toHaveLength(3);
     expect(screen.getAllByText('회사 역할').length).toBeGreaterThan(0);

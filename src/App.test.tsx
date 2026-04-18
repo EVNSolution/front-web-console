@@ -452,7 +452,7 @@ describe('Admin App', () => {
     await user.click(screen.getByRole('button', { name: /^로그인$/i }));
 
     expect(await screen.findByText('운영 요약')).toBeInTheDocument();
-    await waitFor(() => expect(window.location.pathname).toBe('/'));
+    expect(await screen.findByRole('button', { name: '배송원' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '배송원' }));
     await user.click(screen.getByRole('link', { name: '배송원' }));

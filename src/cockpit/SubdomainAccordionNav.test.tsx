@@ -86,12 +86,12 @@ describe('SubdomainAccordionNav', () => {
 
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
-    const rail = settlementNav.closest('.cockpit-rail');
+    const rail = settlementNav.closest('.cockpit-rail') as HTMLElement | null;
 
     expect(topLevelNav).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
     expect(rail).not.toBeNull();
-    expect(within(rail ?? document.body).getByText('천하운수')).toBeInTheDocument();
+    expect(within(rail as HTMLElement).getByText('천하운수')).toBeInTheDocument();
     expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
     expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
     expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
