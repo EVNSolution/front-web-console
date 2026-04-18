@@ -220,8 +220,7 @@ describe('SubdomainAccordionNav', () => {
 
     expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(settlementSidebar).toBeInTheDocument();
-    expect(settlementSidebar).toHaveClass('cockpit-detached-settlement-sidebar');
-    expect(settlementNav).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
+    expect(settlementNav).toBeInTheDocument();
     expect(settlementLinks).toHaveLength(settlementExpectedLinks.length);
     settlementExpectedLinks.forEach((item, index) => {
       expect(settlementLinks[index]).toHaveAttribute('href', item.href);

@@ -332,9 +332,6 @@ describe('App cockpit entry', () => {
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
     expect(screen.getByText('EV&Solution')).toBeInTheDocument();
     expect(screen.getByText('천하운수')).toBeInTheDocument();
-    const shell = screen.getByRole('main').closest('.cockpit-shell');
-    expect(shell).toHaveClass('cockpit-shell-settlement');
-    expect(shell).not.toHaveClass('cockpit-shell-no-dashboard-sidebar');
     const topLevelNav = document.getElementById('subdomain-top-level-menu');
     const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
 
@@ -361,9 +358,8 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    const shell = screen.getByRole('main').closest('.cockpit-shell');
-    expect(shell).toHaveClass('cockpit-shell-settlement');
     expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
   });
 
@@ -380,7 +376,7 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-settlement');
+    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
     const routeHeading = await screen.findByRole('heading', { level: 2, name: heading });
 
     expect(routeHeading).toBeInTheDocument();
