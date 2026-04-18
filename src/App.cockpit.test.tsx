@@ -7,6 +7,7 @@ import { loadStoredSession } from './sessionPersistence';
 import { resolvePublicCompanyTenant } from './api/companyTenant';
 import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
+import type { NavItemKey } from './authScopes';
 import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
@@ -86,7 +87,7 @@ function setupCompanyCockpit({
   vi.mocked(loadStoredSession).mockReturnValue(sessionValue);
   vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(bootstrap);
   vi.mocked(getWorkspaceBootstrap).mockResolvedValue(bootstrap);
-  const allowedNavKeys =
+  const allowedNavKeys: NavItemKey[] =
     sessionValue?.activeAccount?.roleType === 'vehicle_manager'
       ? ['dashboard', 'account', 'vehicles', 'vehicle_assignments', 'drivers']
       : ['dashboard', 'account'];
