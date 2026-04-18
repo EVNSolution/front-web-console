@@ -1,34 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
+type TopLevelMenuKey = 'dashboard' | 'settlement';
+
 type SubdomainAccordionNavProps = {
+  activeMenu?: TopLevelMenuKey;
   companyName: string;
   onLogout: () => void | Promise<void>;
 };
-
-const settlementItems = [
-  { label: '홈', to: '/settlement/home' },
-  { label: '배차 데이터', to: '/settlement/dispatch' },
-  { label: '배송원 관리', to: '/settlement/crew' },
-  { label: '운영 현황', to: '/settlement/operations' },
-  { label: '정산 처리', to: '/settlement/process' },
-  { label: '팀 관리', to: '/settlement/team' },
-] as const;
 
 function isSettlementRoute(pathname: string) {
   return pathname === '/settlement' || pathname.startsWith('/settlement/');
 }
 
-export function SubdomainAccordionNav({ companyName, onLogout }: SubdomainAccordionNavProps) {
+export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
   const location = useLocation();
-  const settlementRouteActive = isSettlementRoute(location.pathname);
-  const [isSettlementExpanded, setIsSettlementExpanded] = useState(() => isSettlementRoute(location.pathname));
-
-  useEffect(() => {
-    if (settlementRouteActive) {
-      setIsSettlementExpanded(true);
-    }
-  }, [settlementRouteActive]);
+  const currentMenu = activeMenu ?? (isSettlementRoute(location.pathname) ? 'settlement' : 'dashboard');
+  const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
 
   return (
     <aside className="cockpit-rail">
@@ -37,47 +25,33 @@ export function SubdomainAccordionNav({ companyName, onLogout }: SubdomainAccord
           <span className="cockpit-brand-mark">{companyName}</span>
           <span className="cockpit-brand-subtitle">전용 업무 cockpit</span>
         </NavLink>
+        <button
+          aria-controls="subdomain-top-level-menu"
+          aria-expanded={isTopLevelMenuExpanded}
+          className={currentMenu === 'settlement' ? 'cockpit-card-toggle is-active' : 'cockpit-card-toggle'}
+          onClick={() => setIsTopLevelMenuExpanded((current) => !current)}
+          type="button"
+        >
+          <span>정산</span>
+          <span
+            aria-hidden="true"
+            className={isTopLevelMenuExpanded ? 'cockpit-nav-caret is-open' : 'cockpit-nav-caret'}
+          >
+            ⌄
+          </span>
+        </button>
       </div>
 
-      <nav aria-label="서브도메인 메뉴" className="cockpit-nav">
-        <NavLink className={({ isActive }) => (isActive ? 'cockpit-nav-link is-active' : 'cockpit-nav-link')} end to="/">
-          대시보드
-        </NavLink>
-
-        <section className="cockpit-nav-group">
-          <button
-            aria-expanded={isSettlementExpanded}
-            className={settlementRouteActive ? 'cockpit-nav-toggle is-active' : 'cockpit-nav-toggle'}
-            onClick={() => {
-              if (settlementRouteActive) {
-                setIsSettlementExpanded(true);
-                return;
-              }
-
-              setIsSettlementExpanded((current) => !current);
-            }}
-            type="button"
+      <nav aria-label="서브도메인 메뉴" className="cockpit-nav" id="subdomain-top-level-menu">
+        {isTopLevelMenuExpanded ? (
+          <NavLink
+            className={({ isActive }) => (isActive ? 'cockpit-nav-link is-active' : 'cockpit-nav-link')}
+            end
+            to="/"
           >
-            <span>정산</span>
-            <span aria-hidden="true" className={isSettlementExpanded ? 'cockpit-nav-caret is-open' : 'cockpit-nav-caret'}>
-              ⌄
-            </span>
-          </button>
-
-          {isSettlementExpanded ? (
-            <div className="cockpit-nav-children">
-              {settlementItems.map((item) => (
-                <NavLink
-                  className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}
-                  key={item.to}
-                  to={item.to}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          ) : null}
-        </section>
+            대시보드
+          </NavLink>
+        ) : null}
       </nav>
 
       <div className="cockpit-rail-footer">

@@ -4133,6 +4133,10 @@ textarea:focus {
     linear-gradient(180deg, #f7fafc 0%, #eef3f8 100%);
 }
 
+.cockpit-shell-no-dashboard-sidebar {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
 .cockpit-brand-link {
   display: grid;
   gap: 0.12rem;
@@ -4151,7 +4155,11 @@ textarea:focus {
 }
 
 .cockpit-brand-block {
-  padding: 0 0.5rem 0.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: stretch;
+  padding: 0;
 }
 
 .cockpit-brand-mark {
@@ -4163,6 +4171,38 @@ textarea:focus {
 .cockpit-brand-subtitle {
   font-size: 0.84rem;
   color: #61708f;
+}
+
+.cockpit-brand-link,
+.cockpit-card-toggle {
+  min-height: 156px;
+  padding: 1.15rem 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
+}
+
+.cockpit-card-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 68px;
+  border: 0;
+  color: #20344f;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(223, 238, 250, 0.96), rgba(255, 255, 255, 0.98));
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.cockpit-card-toggle.is-active {
+  background: linear-gradient(180deg, rgba(211, 232, 248, 0.98), rgba(244, 250, 255, 0.98));
+}
+
+.cockpit-card-toggle:hover {
+  transform: translateY(-1px);
 }
 
 .cockpit-nav {
@@ -4193,11 +4233,6 @@ textarea:focus {
   font-weight: 600;
 }
 
-.cockpit-nav-group {
-  display: grid;
-  gap: 0.35rem;
-}
-
 .cockpit-nav-toggle {
   cursor: pointer;
 }
@@ -4212,36 +4247,21 @@ textarea:focus {
   transform: rotate(0deg);
 }
 
-.cockpit-nav-children {
-  display: grid;
-  gap: 0.2rem;
-  padding-left: 0.25rem;
-}
-
-.cockpit-nav-child-link {
-  min-height: 40px;
-  padding-left: 1.5rem;
-  font-weight: 500;
-  font-size: 0.92rem;
-}
-
 .cockpit-nav-link.is-active,
-.cockpit-nav-toggle.is-active,
-.cockpit-nav-child-link.is-active {
+.cockpit-nav-toggle.is-active {
   color: #0b223a;
   background: rgba(223, 238, 250, 0.95);
 }
 
 .cockpit-nav-link:hover,
-.cockpit-nav-toggle:hover,
-.cockpit-nav-child-link:hover {
+.cockpit-nav-toggle:hover {
   background: rgba(18, 43, 71, 0.05);
   color: #20344f;
 }
 
 .cockpit-nav-link:focus-visible,
 .cockpit-nav-toggle:focus-visible,
-.cockpit-nav-child-link:focus-visible,
+.cockpit-card-toggle:focus-visible,
 .cockpit-logout-button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(14, 95, 155, 0.18);
@@ -4591,6 +4611,15 @@ textarea:focus {
   .cockpit-rail {
     border-right: 0;
     border-bottom: 1px solid rgba(20, 40, 70, 0.08);
+  }
+
+  .cockpit-brand-block {
+    grid-template-columns: minmax(0, 1fr) 64px;
+  }
+
+  .cockpit-brand-link,
+  .cockpit-card-toggle {
+    min-height: 132px;
   }
 
   .cockpit-content {
