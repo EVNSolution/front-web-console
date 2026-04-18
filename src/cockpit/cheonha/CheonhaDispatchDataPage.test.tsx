@@ -38,7 +38,10 @@ describe('CheonhaDispatchDataPage', () => {
 
     render(<CheonhaDispatchDataPage client={client} session={session} />);
 
-    expect(screen.getByRole('heading', { level: 2, name: '배차표 업로드' })).toBeInTheDocument();
+    const dispatchHeading = screen.getByRole('heading', { level: 2, name: '배차표 업로드' });
+
+    expect(dispatchHeading).toBeInTheDocument();
+    expect(dispatchHeading.closest('.cockpit-workspace-panel')).not.toBeNull();
     expect(screen.getByText('dispatch-upload workflow surface')).toBeInTheDocument();
     expect(dispatchUploadsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
