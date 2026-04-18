@@ -79,12 +79,13 @@ describe('SubdomainAccordionNav', () => {
 
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
+    const collapseTrigger = screen.getByRole('button', { name: '상위 메뉴 닫기' });
 
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
     expect(launcherCluster).toContainElement(nav);
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(collapseTrigger).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('settlement route renders the detached settlement sidebar contract', () => {
@@ -137,10 +138,10 @@ describe('SubdomainAccordionNav', () => {
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
 
     await user.click(screen.getByRole('button', { name: 'route-switch' }));
-    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
 
-    await user.click(screen.getByRole('button', { name: '상위 메뉴 열기' }));
+    await user.click(screen.getByRole('button', { name: '상위 메뉴 닫기' }));
     expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'false');
     expect(within(nav).queryAllByRole('link')).toHaveLength(0);
   });
@@ -171,7 +172,7 @@ describe('SubdomainAccordionNav', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '상위 메뉴 열기' }));
-    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
@@ -180,7 +181,7 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('button', { name: 'dashboard-route' }));
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
   });
 
