@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 type TopLevelMenuKey = 'dashboard' | 'settlement';
 
@@ -15,6 +15,7 @@ function isSettlementRoute(pathname: string) {
 
 export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentMenu = activeMenu ?? (isSettlementRoute(location.pathname) ? 'settlement' : 'dashboard');
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
 
@@ -44,13 +45,23 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
 
       <nav aria-label="서브도메인 메뉴" className="cockpit-nav" id="subdomain-top-level-menu">
         {isTopLevelMenuExpanded ? (
-          <NavLink
-            className={({ isActive }) => (isActive ? 'cockpit-nav-link is-active' : 'cockpit-nav-link')}
-            end
-            to="/"
-          >
-            대시보드
-          </NavLink>
+          <>
+            <NavLink
+              className={({ isActive }) => (isActive ? 'cockpit-nav-link is-active' : 'cockpit-nav-link')}
+              end
+              to="/"
+            >
+              대시보드
+            </NavLink>
+            <button
+              aria-label="정산 메뉴"
+              className={currentMenu === 'settlement' ? 'cockpit-nav-toggle is-active' : 'cockpit-nav-toggle'}
+              onClick={() => void navigate('/settlement/home')}
+              type="button"
+            >
+              <span aria-hidden="true">정산</span>
+            </button>
+          </>
         ) : null}
       </nav>
 
