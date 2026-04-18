@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
-import { settlementChildNavItems } from './cheonha/CheonhaSettlementWorkspace';
-
 export type TopLevelMenuKey = 'dashboard' | 'settlement';
+export type SettlementChildNavItem = {
+  slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
+  label: string;
+  to: string;
+};
 
 type SubdomainAccordionNavProps = {
   activeMenu: TopLevelMenuKey;
@@ -21,6 +24,15 @@ type TopLevelMenuItem = {
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
   { key: 'settlement', label: '정산', to: '/settlement/home', isCardTrigger: true },
+];
+
+export const settlementChildNavItems: SettlementChildNavItem[] = [
+  { slug: 'home', label: '홈', to: '/settlement/home' },
+  { slug: 'dispatch', label: '배차 데이터', to: '/settlement/dispatch' },
+  { slug: 'crew', label: '배송원 관리', to: '/settlement/crew' },
+  { slug: 'operations', label: '운영 현황', to: '/settlement/operations' },
+  { slug: 'process', label: '정산 처리', to: '/settlement/process' },
+  { slug: 'team', label: '팀 관리', to: '/settlement/team' },
 ];
 
 const cardTriggerMenuItem = topLevelMenuItems.find((item) => item.isCardTrigger);
