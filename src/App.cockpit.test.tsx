@@ -49,6 +49,15 @@ const wrongCompanySession = {
   },
 };
 
+const vehicleSession = {
+  ...session,
+  activeAccount: {
+    ...session.activeAccount,
+    roleType: 'vehicle_manager' as const,
+    roleDisplayName: '차량 관리자',
+  },
+};
+
 const cockpitBootstrap = {
   companyId: '30000000-0000-0000-0000-000000000001',
   companyName: '천하운수',
@@ -65,7 +74,12 @@ function setupCompanyCockpit({
   bootstrap = cockpitBootstrap,
 }: {
   pathname?: string;
-  sessionValue?: typeof session | typeof systemAdminSession | typeof wrongCompanySession | null;
+  sessionValue?:
+    | typeof session
+    | typeof systemAdminSession
+    | typeof wrongCompanySession
+    | typeof vehicleSession
+    | null;
   bootstrap?: typeof cockpitBootstrap;
 } = {}) {
   vi.mocked(loadStoredSession).mockReturnValue(sessionValue);
@@ -344,6 +358,29 @@ describe('App cockpit entry', () => {
 
     expect(screen.getByRole('navigation', { name: '차량 메뉴' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/drivers', '배송원'],
+    ['/vehicles', '차량'],
+    ['/vehicle-assignments', '차량 배정'],
+  ])('renders %s under the company cockpit vehicle shell', async (pathname, heading) => {
+    setupCompanyCockpit({ pathname, sessionValue: vehicleSession });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(pathname);
+    });
+
+    expect(await screen.findByRole('navigation', { name: '차량 메뉴' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-vehicle');
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
   });
 
   it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {

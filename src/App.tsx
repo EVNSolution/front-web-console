@@ -1431,6 +1431,162 @@ function AppContent() {
             <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} session={session} />}>
               <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
               <Route path="/vehicles/home" element={<CheonhaVehicleHomePage />} />
+              <Route path="/drivers" element={<DriversPage client={client} session={session} />} />
+              <Route
+                path="/drivers/new"
+                element={
+                  <RequireRoleScope
+                    message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배송원 관리 권한 필요"
+                    when={canManageDriverProfileScope}
+                  >
+                    <DriverFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route path="/drivers/:driverRef" element={<DriverDetailPage client={client} session={session} />} />
+              <Route
+                path="/drivers/:driverRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="배송원 정본 생성과 수정은 시스템 관리자, 회사 전체 관리자, 정산 관리자, 플릿 관리자만 할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="배송원 관리 권한 필요"
+                    when={canManageDriverProfileScope}
+                  >
+                    <DriverFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehiclesPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/new"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/:vehicleRef"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/:vehicleRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicles/:vehicleRef/accesses/new"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleOperatorAccessFormPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentsPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments/new"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentFormPage client={client} mode="create" />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments/:assignmentRef"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentDetailPage client={client} />
+                  </RequireRoleScope>
+                }
+              />
+              <Route
+                path="/vehicle-assignments/:assignmentRef/edit"
+                element={
+                  <RequireRoleScope
+                    message="차량과 차량 배정은 시스템 관리자, 회사 전체 관리자, 차량 관리자만 관리할 수 있습니다."
+                    onLogout={handleLogout}
+                    session={session}
+                    title="차량 관리 권한 필요"
+                    when={canAccessVehicleScope}
+                  >
+                    <VehicleAssignmentFormPage client={client} mode="edit" />
+                  </RequireRoleScope>
+                }
+              />
               <Route
                 path="/me"
                 element={
