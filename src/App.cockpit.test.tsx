@@ -410,9 +410,10 @@ describe('App cockpit entry', () => {
     await waitFor(() => {
       expect(window.location.pathname).toBe('/');
     });
-
-    expect(screen.queryByRole('heading', { name: '배송원' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '차량 메뉴' })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: '배송원' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: '차량 메뉴' })).not.toBeInTheDocument();
+    });
     expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-no-dashboard-sidebar');
   });
 

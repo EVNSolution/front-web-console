@@ -7,7 +7,7 @@ describe('CheonhaVehicleHomePage', () => {
   it('renders a blank vehicle home surface', () => {
     render(<CheonhaVehicleHomePage />);
 
-    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '차량 홈' })).toBeInTheDocument();
     expect(screen.queryByText(/최근/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
   });

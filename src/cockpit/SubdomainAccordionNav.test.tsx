@@ -190,6 +190,19 @@ describe('SubdomainAccordionNav', () => {
     expect(within(vehicleNav).getByRole('link', { name: '차량' })).not.toHaveClass('is-active');
   });
 
+  it.each(['/vehicles/123', '/vehicles/123/edit', '/vehicles/123/accesses/new'])(
+    'vehicle sidebar keeps 차량 active on nested route %s',
+    (pathname) => {
+      renderShell(pathname);
+
+      const vehicleSidebar = screen.getByTestId('subdomain-vehicle-sidebar');
+      const vehicleNav = within(vehicleSidebar).getByRole('navigation', { name: '차량 메뉴' });
+
+      expect(within(vehicleNav).getByRole('link', { name: '홈' })).not.toHaveClass('is-active');
+      expect(within(vehicleNav).getByRole('link', { name: '차량' })).toHaveClass('is-active');
+    },
+  );
+
   it('settlement route renders the detached settlement sidebar through CockpitShell', () => {
     renderShell('/settlement/home');
 
