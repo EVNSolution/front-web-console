@@ -1,9 +1,12 @@
 import { NavLink } from 'react-router-dom';
 
-import type { SettlementChildNavItem } from './SubdomainAccordionNav';
+type SubdomainSettlementSidebarItem = {
+  label: string;
+  to: string;
+};
 
 type SubdomainSettlementSidebarProps = {
-  items: SettlementChildNavItem[];
+  items: SubdomainSettlementSidebarItem[];
 };
 
 export function SubdomainSettlementSidebar({ items }: SubdomainSettlementSidebarProps) {
