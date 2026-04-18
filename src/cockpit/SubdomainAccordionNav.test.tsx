@@ -221,6 +221,7 @@ describe('SubdomainAccordionNav', () => {
 
     expect(settlementSidebar).toBeInTheDocument();
     expect(settlementSidebarSurface).toBeInTheDocument();
+    expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(settlementSidebarSurface).toContainElement(settlementSidebar);
     expect(settlementNav).toBeInTheDocument();
     expect(settlementSidebarSurface).toContainElement(settlementNav);

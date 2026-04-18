@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, SessionPayload } from '../../api/http';
@@ -61,9 +61,12 @@ describe('CheonhaSettlementProcessPage', () => {
 
     render(<CheonhaSettlementProcessPage client={client} session={session} />);
 
+    const workspaceFrame = screen.getByTestId('settlement-workspace-frame');
     const processHeading = screen.getByRole('heading', { level: 2, name: '정산 입력 요약' });
 
     expect(processHeading).toBeInTheDocument();
+    expect(workspaceFrame).toBeInTheDocument();
+    expect(within(workspaceFrame).getByRole('heading', { level: 2, name: '정산 입력 요약' })).toBeInTheDocument();
     await waitFor(() => {
       expect(settlementInputsSpy).toHaveBeenCalledWith(
         expect.objectContaining({
