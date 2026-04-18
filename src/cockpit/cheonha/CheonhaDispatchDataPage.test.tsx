@@ -38,13 +38,13 @@ describe('CheonhaDispatchDataPage', () => {
 
     render(<CheonhaDispatchDataPage client={client} session={session} />);
 
-    const workspaceFrame = screen.getByTestId('settlement-workspace-frame');
+    const workspacePanel = screen.getByTestId('settlement-workspace-panel');
     const dispatchHeading = screen.getByRole('heading', { level: 2, name: '배차표 업로드' });
 
     expect(dispatchHeading).toBeInTheDocument();
-    expect(workspaceFrame).toBeInTheDocument();
-    expect(within(workspaceFrame).getByRole('heading', { level: 2, name: '배차표 업로드' })).toBeInTheDocument();
-    expect(within(workspaceFrame).getByText('dispatch-upload workflow surface')).toBeInTheDocument();
+    expect(workspacePanel).toBeInTheDocument();
+    expect(within(workspacePanel).getByRole('heading', { level: 2, name: '배차표 업로드' })).toBeInTheDocument();
+    expect(within(workspacePanel).getByText('dispatch-upload workflow surface')).toBeInTheDocument();
     expect(dispatchUploadsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         client,

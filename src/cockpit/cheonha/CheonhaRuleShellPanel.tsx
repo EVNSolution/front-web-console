@@ -34,7 +34,10 @@ export function CheonhaRuleShellPanel({
   title,
 }: CheonhaRuleShellPanelProps) {
   return (
-    <section className="cockpit-workspace-panel cockpit-shell-panel">
+    <section
+      className="cockpit-workspace-panel cockpit-shell-panel"
+      data-testid="settlement-workspace-panel"
+    >
       <p className="cockpit-kicker">Route Shell</p>
       <div className="cockpit-shell-panel-header">
         <h2>{title}</h2>

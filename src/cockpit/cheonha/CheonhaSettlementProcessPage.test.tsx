@@ -61,12 +61,12 @@ describe('CheonhaSettlementProcessPage', () => {
 
     render(<CheonhaSettlementProcessPage client={client} session={session} />);
 
-    const workspaceFrame = screen.getByTestId('settlement-workspace-frame');
+    const workspacePanel = screen.getByTestId('settlement-workspace-panel');
     const processHeading = screen.getByRole('heading', { level: 2, name: '정산 입력 요약' });
 
     expect(processHeading).toBeInTheDocument();
-    expect(workspaceFrame).toBeInTheDocument();
-    expect(within(workspaceFrame).getByRole('heading', { level: 2, name: '정산 입력 요약' })).toBeInTheDocument();
+    expect(workspacePanel).toBeInTheDocument();
+    expect(within(workspacePanel).getByRole('heading', { level: 2, name: '정산 입력 요약' })).toBeInTheDocument();
     await waitFor(() => {
       expect(settlementInputsSpy).toHaveBeenCalledWith(
         expect.objectContaining({
