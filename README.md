@@ -48,7 +48,7 @@
 - system-admin sessions are rejected from the subdomain shell
 - subdomain `/` opens the dashboard first
 - subdomain login shows the company header
-- subdomain accordion order is `대시보드 / 정산`
+- subdomain launcher order is `대시보드 / 정산`
 - settlement internal menu order is `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
 - rule-shell behavior is structural only: no persisted editor, no save action, no submit action, and no write API
 
@@ -104,6 +104,8 @@ Use this checklist for the subdomain shell regression pass:
 - company manager session is rejected from main-domain shell
 - system-admin session is rejected from subdomain shell
 - subdomain `/` opens dashboard
+- subdomain brand card shows `CLEVER / EV&Solution / 천하운수`
+- subdomain top-level launcher opens to the right of the card
 - subdomain settlement menu order matches spec
 - subdomain login shows company header
 - `dev:local-test` still routes through the safer remote target and does not enable `/__dev__/session`
