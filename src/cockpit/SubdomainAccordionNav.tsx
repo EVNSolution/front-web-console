@@ -15,7 +15,6 @@ export type SettlementChildNavItem = {
 type SubdomainAccordionNavProps = {
   activeMenu: TopLevelMenuKey;
   companyName: string;
-  onLogout: () => void | Promise<void>;
 };
 
 type TopLevelMenuItem = {
@@ -42,9 +41,10 @@ export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
   return pathname === '/settlement' || pathname.startsWith('/settlement/') ? 'settlement' : 'dashboard';
 }
 
-export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
+export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
   const isSettlementRoute = activeMenu === 'settlement';
+  const surfaceState = isTopLevelMenuExpanded ? 'expanded' : 'collapsed';
   const topLevelMenuSurfaceClassName = isTopLevelMenuExpanded
     ? 'cockpit-primary-menu-surface is-expanded'
     : 'cockpit-primary-menu-surface';
@@ -57,14 +57,19 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
           <SubdomainBrandCard companyName={companyName} />
         </div>
 
-        <div className={topLevelMenuSurfaceClassName} data-testid="subdomain-primary-menu-surface">
+        <div className={topLevelMenuSurfaceClassName} data-state={surfaceState} data-testid="subdomain-primary-menu-surface">
           <SubdomainExpandTrigger
             isActive={isSettlementRoute}
             isExpanded={isTopLevelMenuExpanded}
             onToggle={() => setIsTopLevelMenuExpanded((current) => !current)}
           />
 
-          <nav aria-label="서브도메인 메뉴" className={topLevelNavClassName} id="subdomain-top-level-menu">
+          <nav
+            aria-hidden={isTopLevelMenuExpanded ? 'false' : 'true'}
+            aria-label="서브도메인 메뉴"
+            className={topLevelNavClassName}
+            id="subdomain-top-level-menu"
+          >
             {isTopLevelMenuExpanded
               ? topLevelMenuItems.map((item) => (
                   <NavLink
@@ -83,12 +88,6 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
       </div>
 
       {isSettlementRoute ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}
-
-      <div className="cockpit-rail-footer">
-        <button className="button ghost small cockpit-logout-button" onClick={() => void onLogout()} type="button">
-          로그아웃
-        </button>
-      </div>
     </>
   );
 }

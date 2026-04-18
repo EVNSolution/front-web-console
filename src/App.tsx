@@ -1427,8 +1427,21 @@ function AppContent() {
         <>
           {topNotificationNode}
           <Routes>
-            <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} />}>
+            <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} session={session} />}>
               <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
+              <Route
+                path="/me"
+                element={
+                  <AccountPage
+                    client={client}
+                    onSessionChange={(nextSession) => {
+                      sessionRef.current = nextSession;
+                      setSession(nextSession);
+                    }}
+                    session={session}
+                  />
+                }
+              />
               <Route
                 path="/settlement/*"
                 element={

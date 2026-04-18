@@ -28,7 +28,6 @@ function RouteAwareNav() {
     <SubdomainAccordionNav
       activeMenu={resolveTopLevelMenu(location.pathname)}
       companyName="천하운수"
-      onLogout={vi.fn()}
     />
   );
 }
@@ -61,11 +60,18 @@ describe('SubdomainAccordionNav', () => {
   it('dashboard route starts collapsed with no top-level menu items visible', () => {
     renderNav();
 
-    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const trigger = screen.getByRole('button', { name: '상위 메뉴 열기' });
+    const primaryMenuSurface = screen.getByTestId('subdomain-primary-menu-surface');
+    const nav = document.getElementById('subdomain-top-level-menu');
 
-    expect(within(nav).queryAllByRole('link')).toHaveLength(0);
+    expect(nav).not.toBeNull();
+    expect(within(nav!).queryAllByRole('link')).toHaveLength(0);
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(within(trigger).getByTestId('subdomain-trigger-icon')).toBeInTheDocument();
+    expect(trigger).not.toHaveTextContent('펼치기');
+    expect(trigger).not.toHaveTextContent('닫힘');
+    expect(nav).toHaveAttribute('aria-hidden', 'true');
+    expect(primaryMenuSurface).toHaveAttribute('data-state', 'collapsed');
     expect(screen.queryByRole('button', { name: '정산' })).not.toBeInTheDocument();
   });
 
@@ -91,23 +97,29 @@ describe('SubdomainAccordionNav', () => {
     expect(primaryMenuSurface).toContainElement(collapseTrigger);
     expect(primaryMenuSurface).toContainElement(nav);
     expect(collapseTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(within(collapseTrigger).getByTestId('subdomain-trigger-icon')).toBeInTheDocument();
+    expect(collapseTrigger).not.toHaveTextContent('펼치기');
+    expect(collapseTrigger).not.toHaveTextContent('닫힘');
+    expect(nav).toHaveAttribute('aria-hidden', 'false');
+    expect(primaryMenuSurface).toHaveAttribute('data-state', 'expanded');
   });
 
   it('settlement route renders the detached settlement sidebar contract', () => {
     renderNav('/settlement/home');
 
     const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
-    const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    const topLevelNav = document.getElementById('subdomain-top-level-menu');
     const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
     const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
 
+    expect(topLevelNav).not.toBeNull();
     expect(launcherCluster).toContainElement(topLevelNav);
     expect(launcherCluster).not.toContainElement(settlementSidebar);
     expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(topLevelNav).toBeInTheDocument();
     expect(settlementSidebar).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
-    expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
+    expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
     expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
     expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
     expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);

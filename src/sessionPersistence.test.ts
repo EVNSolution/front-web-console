@@ -20,6 +20,8 @@ describe('sessionPersistence', () => {
         },
       },
     });
+
+    clearStoredSession();
   });
 
   it('stores and restores a valid admin session payload', () => {
@@ -70,6 +72,69 @@ describe('sessionPersistence', () => {
 
   it('clears the stored session', () => {
     persistSession({
+      accessToken: 'token-value',
+      sessionKind: 'normal',
+      email: 'admin@example.com',
+      identity: {
+        identityId: '10000000-0000-0000-0000-000000000001',
+        name: '관리자',
+        birthDate: '1970-01-01',
+        status: 'active',
+      },
+      activeAccount: {
+        accountType: 'manager',
+        accountId: '20000000-0000-0000-0000-000000000001',
+        companyId: '30000000-0000-0000-0000-000000000001',
+        roleType: 'company_super_admin',
+      },
+      availableAccountTypes: ['manager'],
+    });
+
+    clearStoredSession();
+
+    expect(loadStoredSession()).toBeNull();
+  });
+
+  it('falls back to in-memory storage when localStorage writes fail', () => {
+    const storage = new Map<string, string>();
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => null,
+        setItem: () => {
+          throw new DOMException('Access denied', 'SecurityError');
+        },
+        removeItem: () => {
+          storage.clear();
+        },
+        clear: () => {
+          storage.clear();
+        },
+      },
+    });
+
+    expect(() =>
+      persistSession({
+        accessToken: 'token-value',
+        sessionKind: 'normal',
+        email: 'admin@example.com',
+        identity: {
+          identityId: '10000000-0000-0000-0000-000000000001',
+          name: '관리자',
+          birthDate: '1970-01-01',
+          status: 'active',
+        },
+        activeAccount: {
+          accountType: 'manager',
+          accountId: '20000000-0000-0000-0000-000000000001',
+          companyId: '30000000-0000-0000-0000-000000000001',
+          roleType: 'company_super_admin',
+        },
+        availableAccountTypes: ['manager'],
+      }),
+    ).not.toThrow();
+
+    expect(loadStoredSession()).toEqual({
       accessToken: 'token-value',
       sessionKind: 'normal',
       email: 'admin@example.com',

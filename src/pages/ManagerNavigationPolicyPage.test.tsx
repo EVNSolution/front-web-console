@@ -131,6 +131,9 @@ describe('ManagerNavigationPolicyPage', () => {
     );
 
     await screen.findByRole('heading', { name: '메뉴 정책' });
+    await waitFor(() =>
+      expect(listCompanyManagerRoles).toHaveBeenCalledWith(expect.anything(), 'company-a'),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '역할' }));
     fireEvent.click(screen.getByRole('option', { name: '차량 관리자' }));
@@ -148,6 +151,9 @@ describe('ManagerNavigationPolicyPage', () => {
     );
 
     await screen.findByRole('heading', { name: '메뉴 정책' });
+    await waitFor(() =>
+      expect(listCompanyManagerRoles).toHaveBeenCalledWith(expect.anything(), 'company-a'),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '역할' }));
     fireEvent.click(screen.getByRole('option', { name: '차량 관리자' }));
