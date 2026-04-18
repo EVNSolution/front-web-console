@@ -13,7 +13,7 @@ type SubdomainVehicleSidebarProps = {
 export function SubdomainVehicleSidebar({ items }: SubdomainVehicleSidebarProps) {
   return (
     <aside className="cockpit-child-nav cockpit-detached-sidebar" data-testid="subdomain-vehicle-sidebar">
-      <nav aria-label="차량 메뉴">
+      <nav aria-label="차량 메뉴" className="cockpit-child-nav cockpit-detached-sidebar">
         {items.map((item) => (
           <NavLink
             className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}

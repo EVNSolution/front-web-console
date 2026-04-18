@@ -66,7 +66,7 @@ export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
 
 export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
-  const isSettlementRoute = activeMenu === 'settlement';
+  const isDetachedWorkspaceRoute = activeMenu !== 'dashboard';
   const surfaceState = isTopLevelMenuExpanded ? 'expanded' : 'collapsed';
   const topLevelMenuSurfaceClassName = isTopLevelMenuExpanded
     ? 'cockpit-primary-menu-surface is-expanded'
@@ -82,7 +82,7 @@ export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAcco
 
         <div className={topLevelMenuSurfaceClassName} data-state={surfaceState} data-testid="subdomain-primary-menu-surface">
           <SubdomainExpandTrigger
-            isActive={isSettlementRoute}
+            isActive={isDetachedWorkspaceRoute}
             isExpanded={isTopLevelMenuExpanded}
             onToggle={() => setIsTopLevelMenuExpanded((current) => !current)}
           />

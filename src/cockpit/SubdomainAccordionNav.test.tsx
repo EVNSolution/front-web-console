@@ -166,13 +166,16 @@ describe('SubdomainAccordionNav', () => {
   it('vehicle route renders the detached vehicle sidebar through CockpitShell', () => {
     renderShell('/vehicles/home');
 
+    const trigger = screen.getByRole('button', { name: '상위 메뉴 열기' });
     const vehicleSidebar = screen.getByTestId('subdomain-vehicle-sidebar');
     const vehicleNav = within(vehicleSidebar).getByRole('navigation', { name: '차량 메뉴' });
 
+    expect(trigger).toHaveClass('is-active');
     expect(vehicleSidebar.closest('.cockpit-rail')).toBeNull();
     expect(vehicleSidebar.tagName).toBe('ASIDE');
     expect(vehicleSidebar).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
     expect(vehicleSidebar).not.toHaveAttribute('data-nav-label');
+    expect(vehicleNav).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
     expect(within(vehicleNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/vehicles/home');
     expect(within(vehicleNav).getByRole('link', { name: '배송원' })).toHaveAttribute('href', '/drivers');
     expect(within(vehicleNav).getByRole('link', { name: '차량' })).toHaveAttribute('href', '/vehicles');
