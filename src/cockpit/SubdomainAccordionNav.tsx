@@ -4,10 +4,17 @@ import { NavLink } from 'react-router-dom';
 import { SubdomainBrandCard } from './SubdomainBrandCard';
 import { SubdomainExpandTrigger } from './SubdomainExpandTrigger';
 import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
+import { SubdomainVehicleSidebar } from './SubdomainVehicleSidebar';
 
 export type TopLevelMenuKey = 'dashboard' | 'vehicle' | 'settlement';
 export type SettlementChildNavItem = {
   slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
+  label: string;
+  to: string;
+};
+
+export type VehicleChildNavItem = {
+  slug: 'home' | 'drivers' | 'vehicles' | 'assignments';
   label: string;
   to: string;
 };
@@ -36,6 +43,13 @@ export const settlementChildNavItems: SettlementChildNavItem[] = [
   { slug: 'operations', label: '운영 현황', to: '/settlement/operations' },
   { slug: 'process', label: '정산 처리', to: '/settlement/process' },
   { slug: 'team', label: '팀 관리', to: '/settlement/team' },
+];
+
+export const vehicleChildNavItems: VehicleChildNavItem[] = [
+  { slug: 'home', label: '홈', to: '/vehicles/home' },
+  { slug: 'drivers', label: '배송원', to: '/drivers' },
+  { slug: 'vehicles', label: '차량', to: '/vehicles' },
+  { slug: 'assignments', label: '차량 배정', to: '/vehicle-assignments' },
 ];
 
 export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
@@ -98,6 +112,7 @@ export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAcco
         </div>
       </div>
 
+      {activeMenu === 'vehicle' ? <SubdomainVehicleSidebar items={vehicleChildNavItems} /> : null}
       {isSettlementRoute ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}
     </>
   );

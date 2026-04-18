@@ -13,10 +13,12 @@ type CockpitShellProps = {
 export function CockpitShell({ companyName, onLogout, session }: CockpitShellProps) {
   const location = useLocation();
   const activeMenu = resolveTopLevelMenu(location.pathname);
-  const isSettlementRoute = activeMenu === 'settlement';
-  const shellClassName = isSettlementRoute
-    ? 'cockpit-shell cockpit-shell-settlement'
-    : 'cockpit-shell cockpit-shell-no-dashboard-sidebar';
+  const shellClassName =
+    activeMenu === 'vehicle'
+      ? 'cockpit-shell cockpit-shell-vehicle'
+      : activeMenu === 'settlement'
+        ? 'cockpit-shell cockpit-shell-settlement'
+        : 'cockpit-shell cockpit-shell-no-dashboard-sidebar';
 
   return (
     <div className={shellClassName}>

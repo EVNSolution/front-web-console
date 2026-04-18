@@ -130,6 +130,34 @@ describe('SubdomainAccordionNav', () => {
     expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
   });
 
+  it('vehicle route renders the detached vehicle sidebar contract', () => {
+    renderNav('/vehicles/home');
+
+    const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
+    const topLevelNav = document.getElementById('subdomain-top-level-menu');
+    const vehicleSidebar = screen.getByTestId('subdomain-vehicle-sidebar');
+    const vehicleNav = within(vehicleSidebar).getByRole('navigation', { name: '차량 메뉴' });
+
+    expect(topLevelNav).not.toBeNull();
+    expect(launcherCluster).toContainElement(topLevelNav);
+    expect(launcherCluster).not.toContainElement(vehicleSidebar);
+    expect(vehicleSidebar.closest('.cockpit-rail')).toBeNull();
+    expect(topLevelNav).toBeInTheDocument();
+    expect(vehicleSidebar).toBeInTheDocument();
+    expect(vehicleNav).toBeInTheDocument();
+    expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
+    expect(within(vehicleNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/vehicles/home');
+    expect(within(vehicleNav).getByRole('link', { name: '배송원' })).toHaveAttribute('href', '/drivers');
+    expect(within(vehicleNav).getByRole('link', { name: '차량' })).toHaveAttribute('href', '/vehicles');
+    expect(within(vehicleNav).getByRole('link', { name: '차량 배정' })).toHaveAttribute('href', '/vehicle-assignments');
+    expect(within(vehicleNav).getAllByRole('link').map((link) => link.textContent)).toEqual([
+      '홈',
+      '배송원',
+      '차량',
+      '차량 배정',
+    ]);
+  });
+
   it.each([
     ['/vehicles/home', true],
     ['/vehicles', false],
@@ -158,7 +186,6 @@ describe('SubdomainAccordionNav', () => {
       expect(within(nav).getByRole('link', { name: '차량' })).not.toHaveAttribute('aria-current');
     }
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '차량 메뉴' })).not.toBeInTheDocument();
   });
 
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
