@@ -45,13 +45,8 @@ describe('SubdomainAccordionNav', () => {
 
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
 
-    expect(within(nav).queryByRole('link', { name: '대시보드' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
+    expect(within(nav).queryAllByRole('link')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('top-level expansion only reveals 대시보드 and 정산', async () => {
@@ -65,12 +60,6 @@ describe('SubdomainAccordionNav', () => {
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(within(nav).getAllByRole('link')).toHaveLength(1);
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(nav).queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
   });
 
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
@@ -100,7 +89,7 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
-    expect(within(nav).queryByRole('link', { name: '대시보드' })).not.toBeInTheDocument();
+    expect(within(nav).queryAllByRole('link')).toHaveLength(0);
   });
 
 });

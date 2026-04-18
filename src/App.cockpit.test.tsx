@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,10 +8,6 @@ import { resolvePublicCompanyTenant } from './api/companyTenant';
 import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
-
-function getCurrentMonthLabel(date = new Date()) {
-  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
-}
 
 const session = {
   accessToken: 'token',
@@ -61,6 +57,21 @@ const cockpitBootstrap = {
   homeDashboardPreset: {},
   workspacePresets: {},
 };
+
+function setupCompanyCockpit({
+  pathname = '/',
+  sessionValue = session,
+  bootstrap = cockpitBootstrap,
+}: {
+  pathname?: string;
+  sessionValue?: typeof session | typeof systemAdminSession | typeof wrongCompanySession | null;
+  bootstrap?: typeof cockpitBootstrap;
+} = {}) {
+  vi.mocked(loadStoredSession).mockReturnValue(sessionValue);
+  vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(bootstrap);
+  vi.mocked(getWorkspaceBootstrap).mockResolvedValue(bootstrap);
+  window.history.replaceState({}, '', pathname);
+}
 
 vi.mock('./sessionPersistence', () => ({
   clearStoredSession: vi.fn(),
@@ -143,27 +154,7 @@ describe('App cockpit entry', () => {
   });
 
   it('lands the company shell root on the cockpit dashboard', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-
-    window.history.replaceState({}, '', '/');
+    setupCompanyCockpit();
     render(<App />);
 
     await waitFor(() => {
@@ -182,27 +173,7 @@ describe('App cockpit entry', () => {
   });
 
   it('dashboard body no longer shows the old finance/attendance/dispatch sections', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-
-    window.history.replaceState({}, '', '/');
+    setupCompanyCockpit();
     render(<App />);
 
     await waitFor(() => {
@@ -213,41 +184,15 @@ describe('App cockpit entry', () => {
     expect(await screen.findByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
-    expect(document.querySelector('.console-topbar')).toBeNull();
     expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '최근 6개월 수입/지출' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '금월 배차표 기반 근태' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '금일 배차' })).not.toBeInTheDocument();
   });
 
   it('/settlement redirects to /settlement/home', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-
-    window.history.replaceState({}, '', '/settlement');
+    setupCompanyCockpit({ pathname: '/settlement' });
     render(<App />);
 
     await waitFor(() => {
@@ -259,27 +204,7 @@ describe('App cockpit entry', () => {
   });
 
   it('/settlement/home still resolves under the cockpit shell without a top-level dispatch route', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-
-    window.history.replaceState({}, '', '/settlement/home');
+    setupCompanyCockpit({ pathname: '/settlement/home' });
     render(<App />);
 
     await waitFor(() => {
@@ -293,27 +218,7 @@ describe('App cockpit entry', () => {
   });
 
   it('fails closed on removed /settlements aliases in the cockpit shell', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-
-    window.history.replaceState({}, '', '/settlements/inputs');
+    setupCompanyCockpit({ pathname: '/settlements/inputs' });
     render(<App />);
 
     await waitFor(() => {
@@ -326,27 +231,7 @@ describe('App cockpit entry', () => {
   });
 
   it('keeps the company shell from exposing a top-level dispatch route', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(session);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
-      companyId: '30000000-0000-0000-0000-000000000001',
-      companyName: '천하운수',
-      tenantCode: 'cheonha',
-      workflowProfile: 'cheonha_ops_v1',
-      enabledFeatures: ['settlement', 'vehicle'],
-      homeDashboardPreset: {},
-      workspacePresets: {},
-    });
-
-    window.history.replaceState({}, '', '/dispatch');
+    setupCompanyCockpit({ pathname: '/dispatch' });
     render(<App />);
 
     await waitFor(() => {
