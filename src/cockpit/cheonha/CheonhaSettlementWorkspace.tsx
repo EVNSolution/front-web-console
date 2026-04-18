@@ -129,8 +129,14 @@ export function CheonhaSettlementWorkspace({
   session,
 }: CheonhaSettlementWorkspaceProps) {
   return (
-    <div className="cockpit-workspace settlement-workspace-frame">
-      <header className="cockpit-workspace-header settlement-workspace-frame-header">
+    <div
+      className="cockpit-workspace settlement-workspace-frame"
+      data-testid="settlement-workspace-frame"
+    >
+      <header
+        className="cockpit-workspace-header settlement-workspace-frame-header"
+        data-testid="settlement-workspace-header"
+      >
         <p className="cockpit-kicker">정산 Workspace</p>
         <h1>{companyName} 정산</h1>
         <p className="cockpit-copy">배차 업로드부터 snapshot 검토까지 실제 워크플로우를 같은 정산 문맥 안에서 이어갑니다.</p>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, SessionPayload } from '../../api/http';
@@ -38,11 +38,13 @@ describe('CheonhaDispatchDataPage', () => {
 
     render(<CheonhaDispatchDataPage client={client} session={session} />);
 
+    const workspacePanel = screen.getByTestId('settlement-workspace-panel');
     const dispatchHeading = screen.getByRole('heading', { level: 2, name: '배차표 업로드' });
 
     expect(dispatchHeading).toBeInTheDocument();
-    expect(dispatchHeading.closest('.cockpit-workspace-panel')).not.toBeNull();
-    expect(screen.getByText('dispatch-upload workflow surface')).toBeInTheDocument();
+    expect(workspacePanel).toBeInTheDocument();
+    expect(within(workspacePanel).getByRole('heading', { level: 2, name: '배차표 업로드' })).toBeInTheDocument();
+    expect(within(workspacePanel).getByText('dispatch-upload workflow surface')).toBeInTheDocument();
     expect(dispatchUploadsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         client,

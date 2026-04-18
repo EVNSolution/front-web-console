@@ -95,10 +95,13 @@ export function CheonhaSettlementHomePage({
 }: CheonhaSettlementHomePageProps) {
   return (
     <div className="cockpit-home-page cockpit-cheonha-settlement-home">
-      <section className="cockpit-workspace-panel cockpit-settlement-home-banner">
-        <p className="cockpit-kicker">Settlement Home</p>
+      <section
+        className="cockpit-workspace-panel cockpit-settlement-home-banner"
+        data-testid="settlement-greeting-banner"
+      >
+        <p className="cockpit-kicker">정산 워크플로우</p>
         <div className="cockpit-settlement-home-banner-copy">
-          <h1>{companyName} 정산 홈</h1>
+          <h1>{companyName} 정산</h1>
           <p className="cockpit-copy">
             연결된 값이 있으면 그대로 보여주고, 아직 없으면 0원과 없음 같은 명시적 상태로 시작합니다.
           </p>
@@ -106,29 +109,30 @@ export function CheonhaSettlementHomePage({
       </section>
 
       <div className="cockpit-settlement-chip-row" aria-label="정산 필터">
-        {chips.map((chip) => (
-          <button
-            aria-pressed={chip.active ?? false}
+        {chips.map((chip, index) => (
+          <span
             className={chip.active ? 'cockpit-settlement-chip is-active' : 'cockpit-settlement-chip'}
-            key={chip.label}
-            type="button"
+            key={`${chip.label}-${index}`}
           >
             {chip.label}
-          </button>
+          </span>
         ))}
       </div>
 
-      <section className="cockpit-workspace-panel cockpit-settlement-process-card">
+      <section
+        className="cockpit-workspace-panel cockpit-settlement-process-card"
+        data-testid="settlement-process-card"
+      >
         <div className="cockpit-shell-panel-header">
           <h2>업무 프로세스</h2>
           <span className="cockpit-shell-status">정산 흐름</span>
         </div>
         <ol className="cockpit-settlement-process-list">
           {steps.map((step) => (
-            <li className="cockpit-settlement-process-step" key={step.label}>
+            <li className="cockpit-settlement-process-step" data-testid="settlement-process-step" key={step.label}>
               <div className="cockpit-settlement-process-step-copy">
-                <strong>{step.label}</strong>
-                <span>{step.kind === 'link' ? step.status : step.status}</span>
+                <strong data-testid="settlement-process-step-title">{step.label}</strong>
+                <span data-testid="settlement-process-step-status">{step.status}</span>
               </div>
               {step.kind === 'link' ? (
                 <Link className="button ghost small cockpit-settlement-process-link" to={step.to}>
@@ -144,16 +148,21 @@ export function CheonhaSettlementHomePage({
         </ol>
       </section>
 
-      <section aria-label="정산 KPI" className="cockpit-settlement-kpi-strip">
-        {KPI_LABELS.map((label) => (
-          <article className="cockpit-settlement-kpi-card" key={label}>
-            <span className="cockpit-settlement-kpi-label">{label}</span>
+      <section aria-label="정산 KPI" className="cockpit-settlement-kpi-strip" data-testid="settlement-kpi-strip">
+        {KPI_LABELS.map((label, index) => (
+          <article className="cockpit-settlement-kpi-card" key={`${label}-${index}`}>
+            <span className="cockpit-settlement-kpi-label" data-testid="settlement-kpi-label">
+              {label}
+            </span>
             <strong className="cockpit-settlement-kpi-value">{formatCurrency(kpis?.[label])}</strong>
           </article>
         ))}
       </section>
 
-      <section className="cockpit-workspace-panel cockpit-settlement-recent-box">
+      <section
+        className="cockpit-workspace-panel cockpit-settlement-recent-box"
+        data-testid="settlement-recent-section"
+      >
         <div className="cockpit-shell-panel-header">
           <h2>최근 정산</h2>
           <span className="cockpit-shell-status">{formatText(recentSettlement?.status)}</span>

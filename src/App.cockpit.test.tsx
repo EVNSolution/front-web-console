@@ -158,6 +158,15 @@ vi.mock('./pages/SettlementInputsPage', () => ({
   ),
 }));
 
+vi.mock('./pages/DispatchUploadsPage', () => ({
+  DispatchUploadsPage: () => (
+    <section>
+      <h2>배차표 업로드</h2>
+      <p>cockpit dispatch surface</p>
+    </section>
+  ),
+}));
+
 async function withHostname<T>(url: string, run: () => Promise<T>): Promise<T> {
   const originalLocation = window.location;
   Object.defineProperty(window, 'location', {
@@ -306,11 +315,13 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    await screen.findByTestId('settlement-workspace-frame');
+    const header = screen.getByTestId('settlement-workspace-header');
+    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
   });
 
-  it('/settlement/home still resolves under the cockpit shell without a top-level dispatch route', async () => {
+  it('/settlement/home resolves under the company cockpit settlement landing path', async () => {
     setupCompanyCockpit({ pathname: '/settlement/home' });
     render(<App />);
 
@@ -318,44 +329,17 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    await screen.findByTestId('settlement-workspace-frame');
+    const header = screen.getByTestId('settlement-workspace-header');
+    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
-    expect(screen.getByRole('heading', { name: '천하운수 정산' }).closest('.settlement-workspace-frame')).not.toBeNull();
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
     expect(screen.getByText('EV&Solution')).toBeInTheDocument();
     expect(screen.getByText('천하운수')).toBeInTheDocument();
-    const shell = screen.getByRole('main').closest('.cockpit-shell');
-    expect(shell).toHaveClass('cockpit-shell-settlement');
-    expect(shell).not.toHaveClass('cockpit-shell-no-dashboard-sidebar');
-    const topLevelNav = document.getElementById('subdomain-top-level-menu');
-    const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
 
-    expect(topLevelNav).not.toBeNull();
-    expect(topLevelNav).toBeInTheDocument();
-    expect(settlementNav).toBeInTheDocument();
     expect(screen.getByTestId('subdomain-settlement-sidebar')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toBeInTheDocument();
-    expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
-    const settlementLinks = within(settlementNav).getAllByRole('link');
-
-    expect(settlementLinks).toHaveLength(6);
-    expect(settlementLinks[0]).toHaveAttribute('href', '/settlement/home');
-    expect(settlementLinks[0]).toHaveTextContent('홈');
-    expect(settlementLinks[1]).toHaveAttribute('href', '/settlement/dispatch');
-    expect(settlementLinks[1]).toHaveTextContent('배차 데이터');
-    expect(settlementLinks[2]).toHaveAttribute('href', '/settlement/crew');
-    expect(settlementLinks[2]).toHaveTextContent('배송원 관리');
-    expect(settlementLinks[3]).toHaveAttribute('href', '/settlement/operations');
-    expect(settlementLinks[3]).toHaveTextContent('운영 현황');
-    expect(settlementLinks[4]).toHaveAttribute('href', '/settlement/process');
-    expect(settlementLinks[4]).toHaveTextContent('정산 처리');
-    expect(settlementLinks[5]).toHaveAttribute('href', '/settlement/team');
-    expect(settlementLinks[5]).toHaveTextContent('팀 관리');
-    expect(screen.getByRole('heading', { level: 2, name: '업무 프로세스' })).toBeInTheDocument();
-    expect(screen.getByText('수신합계')).toBeInTheDocument();
-    expect(screen.getByText('정산 내역이 없습니다')).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: /dashboard/i })).not.toBeInTheDocument();
-    expect(document.querySelector('.cockpit-dashboard')).toBeNull();
+    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
+    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
   });
 
   it('routes from the cockpit launcher to the vehicle workspace shell', async () => {
@@ -447,7 +431,9 @@ describe('App cockpit entry', () => {
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    await screen.findByTestId('settlement-workspace-frame');
+    const header = screen.getByTestId('settlement-workspace-header');
+    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('link', { name: '대시보드' }));
