@@ -5,20 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { settlementChildNavItems } from './SubdomainAccordionNav';
 import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
 
-const settlementDescriptions: Record<string, string> = {
-  '/settlement/home': '현황 요약',
-  '/settlement/dispatch': '업로드 · 정산',
-  '/settlement/crew': '매니저 등록',
-  '/settlement/operations': '날짜별 현황',
-  '/settlement/process': '정산 관리',
-  '/settlement/team': '단가 설정',
-};
-
-const settlementSidebarItems = settlementChildNavItems.map((item) => ({
-  ...item,
-  description: settlementDescriptions[item.to],
-}));
-
 function renderSidebar(initialEntry = '/settlement/home') {
   render(
     <MemoryRouter
@@ -28,7 +14,7 @@ function renderSidebar(initialEntry = '/settlement/home') {
       }}
       initialEntries={[initialEntry]}
     >
-      <SubdomainSettlementSidebar items={settlementSidebarItems} />
+      <SubdomainSettlementSidebar items={settlementChildNavItems} />
     </MemoryRouter>,
   );
 }

@@ -9,6 +9,7 @@ export type SettlementChildNavItem = {
   slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
   label: string;
   to: string;
+  description: string;
 };
 
 export type VehicleChildNavItem = {
@@ -35,12 +36,12 @@ const topLevelMenuItems: TopLevelMenuItem[] = [
 ];
 
 export const settlementChildNavItems: SettlementChildNavItem[] = [
-  { slug: 'home', label: '홈', to: '/settlement/home' },
-  { slug: 'dispatch', label: '배차 데이터', to: '/settlement/dispatch' },
-  { slug: 'crew', label: '배송원 관리', to: '/settlement/crew' },
-  { slug: 'operations', label: '운영 현황', to: '/settlement/operations' },
-  { slug: 'process', label: '정산 처리', to: '/settlement/process' },
-  { slug: 'team', label: '팀 관리', to: '/settlement/team' },
+  { slug: 'home', label: '홈', to: '/settlement/home', description: '현황 요약' },
+  { slug: 'dispatch', label: '배차 데이터', to: '/settlement/dispatch', description: '업로드 · 정산' },
+  { slug: 'crew', label: '배송원 관리', to: '/settlement/crew', description: '매니저 등록' },
+  { slug: 'operations', label: '운영 현황', to: '/settlement/operations', description: '날짜별 현황' },
+  { slug: 'process', label: '정산 처리', to: '/settlement/process', description: '정산 관리' },
+  { slug: 'team', label: '팀 관리', to: '/settlement/team', description: '단가 설정' },
 ];
 
 export const vehicleChildNavItems: VehicleChildNavItem[] = [

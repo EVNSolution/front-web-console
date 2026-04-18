@@ -3,20 +3,11 @@ import { NavLink } from 'react-router-dom';
 type SubdomainSettlementSidebarItem = {
   label: string;
   to: string;
-  description?: string;
+  description: string;
 };
 
 type SubdomainSettlementSidebarProps = {
   items: SubdomainSettlementSidebarItem[];
-};
-
-const settlementSidebarDescriptions: Record<string, string> = {
-  '/settlement/home': '현황 요약',
-  '/settlement/dispatch': '업로드 · 정산',
-  '/settlement/crew': '매니저 등록',
-  '/settlement/operations': '날짜별 현황',
-  '/settlement/process': '정산 관리',
-  '/settlement/team': '단가 설정',
 };
 
 function getSettlementSidebarLinkId(to: string, suffix: 'title' | 'description') {
@@ -40,7 +31,7 @@ export function SubdomainSettlementSidebar({ items }: SubdomainSettlementSidebar
               {item.label}
             </span>
             <span className="cockpit-settlement-nav-description" id={getSettlementSidebarLinkId(item.to, 'description')}>
-              {item.description ?? settlementSidebarDescriptions[item.to] ?? ''}
+              {item.description}
             </span>
           </NavLink>
         ))}
