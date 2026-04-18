@@ -49,7 +49,7 @@ function RouteSwitcher() {
 }
 
 describe('SubdomainAccordionNav', () => {
-  it('dashboard route renders the company card and top-level expansion trigger', () => {
+  it('dashboard route renders the refined company card copy', () => {
     renderNav();
 
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
@@ -79,23 +79,22 @@ describe('SubdomainAccordionNav', () => {
 
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
 
-    expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
+    expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('settlement route renders a detached always-expanded child menu below the company card block', () => {
+  it('settlement route renders the detached settlement sidebar contract', () => {
     renderNav('/settlement/home');
 
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
-    const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
-    const rail = settlementNav.closest('.cockpit-rail') as HTMLElement | null;
+    const settlementSidebar = screen.getByTestId('subdomain-settlement-sidebar');
+    const settlementNav = within(settlementSidebar).getByRole('navigation', { name: '정산 메뉴' });
 
     expect(topLevelNav).toBeInTheDocument();
+    expect(settlementSidebar).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
-    expect(rail).not.toBeNull();
-    expect(within(rail as HTMLElement).getByText('천하운수')).toBeInTheDocument();
     expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
     expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
     expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
@@ -175,7 +174,7 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('button', { name: 'dashboard-route' }));
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
   });
 
