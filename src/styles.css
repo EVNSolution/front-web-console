@@ -4210,6 +4210,26 @@ textarea:focus {
   gap: 0.45rem;
 }
 
+.cockpit-detached-sidebar {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
+}
+
+.cockpit-child-nav::before {
+  content: '정산';
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a87a3;
+  padding: 0 0.35rem 0.2rem;
+}
+
 .cockpit-nav-link,
 .cockpit-nav-toggle,
 .cockpit-nav-child-link {
@@ -4248,19 +4268,22 @@ textarea:focus {
 }
 
 .cockpit-nav-link.is-active,
-.cockpit-nav-toggle.is-active {
+.cockpit-nav-toggle.is-active,
+.cockpit-nav-child-link.is-active {
   color: #0b223a;
   background: rgba(223, 238, 250, 0.95);
 }
 
 .cockpit-nav-link:hover,
-.cockpit-nav-toggle:hover {
+.cockpit-nav-toggle:hover,
+.cockpit-nav-child-link:hover {
   background: rgba(18, 43, 71, 0.05);
   color: #20344f;
 }
 
 .cockpit-nav-link:focus-visible,
 .cockpit-nav-toggle:focus-visible,
+.cockpit-nav-child-link:focus-visible,
 .cockpit-card-toggle:focus-visible,
 .cockpit-logout-button:focus-visible {
   outline: none;

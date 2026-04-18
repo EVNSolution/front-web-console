@@ -58,6 +58,7 @@ describe('CheonhaSettlementWorkspace', () => {
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
+    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
   });
 
   it.each([
@@ -71,6 +72,7 @@ describe('CheonhaSettlementWorkspace', () => {
     renderWorkspace(initialEntry);
 
     expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
   });
 
   it.each([

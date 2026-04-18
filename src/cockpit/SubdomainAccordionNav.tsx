@@ -16,9 +16,23 @@ type TopLevelMenuItem = {
   accessibleLabel?: string;
 };
 
+type SettlementChildMenuItem = {
+  label: string;
+  to: string;
+};
+
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
   { key: 'settlement', label: '정산', to: '/settlement/home', accessibleLabel: '정산 메뉴' },
+];
+
+const settlementChildMenuItems: SettlementChildMenuItem[] = [
+  { label: '홈', to: '/settlement/home' },
+  { label: '배차 데이터', to: '/settlement/dispatch' },
+  { label: '배송원 관리', to: '/settlement/crew' },
+  { label: '운영 현황', to: '/settlement/operations' },
+  { label: '정산 처리', to: '/settlement/process' },
+  { label: '팀 관리', to: '/settlement/team' },
 ];
 
 const cardTriggerMenuItem = topLevelMenuItems.find((item) => item.key !== 'dashboard') ?? topLevelMenuItems[0];
@@ -29,6 +43,7 @@ export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
 
 export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
+  const isSettlementRoute = activeMenu === 'settlement';
 
   return (
     <aside className="cockpit-rail">
@@ -70,6 +85,21 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
             ))
           : null}
       </nav>
+
+      {isSettlementRoute ? (
+        <nav aria-label="정산 메뉴" className="cockpit-child-nav cockpit-detached-sidebar">
+          {settlementChildMenuItems.map((item) => (
+            <NavLink
+              className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}
+              end={item.to === '/settlement/home'}
+              key={item.to}
+              to={item.to}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      ) : null}
 
       <div className="cockpit-rail-footer">
         <button className="button ghost small cockpit-logout-button" onClick={() => void onLogout()} type="button">

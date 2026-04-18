@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import type { HttpClient, SessionPayload } from '../../api/http';
 import { CheonhaDispatchDataPage } from './CheonhaDispatchDataPage';
@@ -12,15 +12,6 @@ type CheonhaSettlementWorkspaceProps = {
   session?: SessionPayload | null;
 };
 
-const settlementTabs = [
-  { slug: 'home', label: '홈' },
-  { slug: 'dispatch', label: '배차 데이터' },
-  { slug: 'crew', label: '배송원 관리' },
-  { slug: 'operations', label: '운영 현황' },
-  { slug: 'process', label: '정산 처리' },
-  { slug: 'team', label: '팀 관리' },
-] as const;
-
 export function CheonhaSettlementWorkspace({
   client,
   companyName = '천하운수',
@@ -33,17 +24,6 @@ export function CheonhaSettlementWorkspace({
         <h1>{companyName} 정산</h1>
         <p className="cockpit-copy">배차 업로드부터 snapshot 검토까지 실제 워크플로우를 같은 정산 문맥 안에서 이어갑니다.</p>
       </header>
-      <nav aria-label="정산 탭" className="cockpit-tab-strip">
-        {settlementTabs.map((tab) => (
-          <NavLink
-            className={({ isActive }) => (isActive ? 'cockpit-tab is-active' : 'cockpit-tab')}
-            key={tab.slug}
-            to={`/settlement/${tab.slug}`}
-          >
-            {tab.label}
-          </NavLink>
-        ))}
-      </nav>
       <div className="cockpit-workspace-stage">
         <Routes>
           <Route index element={<Navigate replace to="/settlement/home" />} />

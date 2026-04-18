@@ -1,13 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SubdomainAccordionNav, resolveTopLevelMenu } from './SubdomainAccordionNav';
 
 function renderNav(initialEntry = '/') {
-  const activeMenu = resolveTopLevelMenu(initialEntry);
-
   render(
     <MemoryRouter
       future={{
@@ -17,12 +15,21 @@ function renderNav(initialEntry = '/') {
       initialEntries={[initialEntry]}
     >
       <Routes>
-        <Route
-          path="*"
-          element={<SubdomainAccordionNav activeMenu={activeMenu} companyName="천하운수" onLogout={vi.fn()} />}
-        />
+        <Route path="*" element={<RouteAwareNav />} />
       </Routes>
     </MemoryRouter>,
+  );
+}
+
+function RouteAwareNav() {
+  const location = useLocation();
+
+  return (
+    <SubdomainAccordionNav
+      activeMenu={resolveTopLevelMenu(location.pathname)}
+      companyName="천하운수"
+      onLogout={vi.fn()}
+    />
   );
 }
 
@@ -30,9 +37,14 @@ function RouteSwitcher() {
   const navigate = useNavigate();
 
   return (
-    <button type="button" onClick={() => navigate('/other')}>
-      route-switch
-    </button>
+    <>
+      <button type="button" onClick={() => navigate('/other')}>
+        route-switch
+      </button>
+      <button type="button" onClick={() => navigate('/')}>
+        dashboard-route
+      </button>
+    </>
   );
 }
 
@@ -69,6 +81,43 @@ describe('SubdomainAccordionNav', () => {
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
   });
 
+  it('settlement route renders a detached always-expanded child menu below the company card block', () => {
+    renderNav('/settlement/home');
+
+    const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
+    const rail = settlementNav.closest('.cockpit-rail');
+    const companyCardBlock = rail?.querySelector('.cockpit-brand-block');
+
+    expect(topLevelNav).toBeInTheDocument();
+    expect(settlementNav).toBeInTheDocument();
+    expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
+    expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(settlementNav).getByRole('link', { name: '배차 데이터' })).toHaveAttribute(
+      'href',
+      '/settlement/dispatch',
+    );
+    expect(within(settlementNav).getByRole('link', { name: '배송원 관리' })).toHaveAttribute(
+      'href',
+      '/settlement/crew',
+    );
+    expect(within(settlementNav).getByRole('link', { name: '운영 현황' })).toHaveAttribute(
+      'href',
+      '/settlement/operations',
+    );
+    expect(within(settlementNav).getByRole('link', { name: '정산 처리' })).toHaveAttribute(
+      'href',
+      '/settlement/process',
+    );
+    expect(within(settlementNav).getByRole('link', { name: '팀 관리' })).toHaveAttribute('href', '/settlement/team');
+    expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
+    expect(companyCardBlock).not.toBeNull();
+    expect(companyCardBlock?.compareDocumentPosition(settlementNav) ?? 0).toBeGreaterThan(0);
+    expect((companyCardBlock?.compareDocumentPosition(settlementNav) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
     const user = userEvent.setup();
 
@@ -86,7 +135,7 @@ describe('SubdomainAccordionNav', () => {
             element={
               <>
                 <RouteSwitcher />
-                <SubdomainAccordionNav activeMenu="dashboard" companyName="천하운수" onLogout={vi.fn()} />
+                <RouteAwareNav />
               </>
             }
           />
@@ -105,6 +154,45 @@ describe('SubdomainAccordionNav', () => {
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
     expect(within(nav).queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter
+        future={{
+          v7_relativeSplatPath: true,
+          v7_startTransition: true,
+        }}
+        initialEntries={['/']}
+      >
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <RouteSwitcher />
+                <RouteAwareNav />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '정산' }));
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(screen.getByRole('link', { name: '정산 메뉴' }));
+    const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
+    expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'dashboard-route' }));
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(topLevelNav).getAllByRole('link')).toHaveLength(2);
   });
 
 });
