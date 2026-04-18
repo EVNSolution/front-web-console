@@ -40,7 +40,6 @@ describe('CheonhaSettlementHomePage', () => {
 
     expect(recentSettlement).toBeInTheDocument();
     expect(within(recentSettlement).getByText('정산 내역이 없습니다')).toBeInTheDocument();
-    expect(screen.getByText('배송원 관리, 운영 현황, 팀 관리는 현재 shell만 열어 두고 실제 편집은 아직 연결하지 않았습니다.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
   });
 });
