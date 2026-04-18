@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -37,19 +37,21 @@ describe('SubdomainAccordionNav', () => {
 
     expect(screen.getByText('천하운수')).toBeInTheDocument();
     expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
   });
 
-  it('dashboard route does not render settlement child links by default', () => {
+  it('dashboard route starts collapsed with no top-level menu items visible', () => {
     renderNav();
 
-    expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+
+    expect(within(nav).queryByRole('link', { name: '대시보드' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
   });
 
   it('top-level expansion only reveals 대시보드 and 정산', async () => {
@@ -58,8 +60,17 @@ describe('SubdomainAccordionNav', () => {
 
     await user.click(screen.getByRole('button', { name: '정산' }));
 
-    expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+
+    expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
+    expect(within(nav).getAllByRole('link')).toHaveLength(1);
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(nav).queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '배차 데이터' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '배송원 관리' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '운영 현황' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '정산 처리' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: '팀 관리' })).not.toBeInTheDocument();
   });
 
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
@@ -80,11 +91,16 @@ describe('SubdomainAccordionNav', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '정산' }));
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(within(nav).getAllByRole('link')).toHaveLength(1);
+
     await user.click(screen.getByRole('button', { name: 'route-switch' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(nav).getAllByRole('link')).toHaveLength(1);
 
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(nav).queryByRole('link', { name: '대시보드' })).not.toBeInTheDocument();
   });
 
 });
