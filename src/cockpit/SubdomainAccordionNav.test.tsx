@@ -79,12 +79,17 @@ describe('SubdomainAccordionNav', () => {
 
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const launcherCluster = screen.getByTestId('subdomain-launcher-cluster');
+    const brandBlock = screen.getByTestId('subdomain-brand-block');
+    const primaryMenuSurface = screen.getByTestId('subdomain-primary-menu-surface');
     const collapseTrigger = screen.getByRole('button', { name: '상위 메뉴 닫기' });
 
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: '정산' })).toHaveAttribute('href', '/settlement/home');
     expect(within(nav).getAllByRole('link')).toHaveLength(2);
     expect(launcherCluster).toContainElement(nav);
+    expect(brandBlock).not.toContainElement(collapseTrigger);
+    expect(primaryMenuSurface).toContainElement(collapseTrigger);
+    expect(primaryMenuSurface).toContainElement(nav);
     expect(collapseTrigger).toHaveAttribute('aria-expanded', 'true');
   });
 

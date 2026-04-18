@@ -45,35 +45,41 @@ export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
 export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
   const isSettlementRoute = activeMenu === 'settlement';
+  const topLevelMenuSurfaceClassName = isTopLevelMenuExpanded
+    ? 'cockpit-primary-menu-surface is-expanded'
+    : 'cockpit-primary-menu-surface';
   const topLevelNavClassName = isTopLevelMenuExpanded ? 'cockpit-nav is-expanded' : 'cockpit-nav';
 
   return (
     <>
       <div className="cockpit-launcher-cluster" data-testid="subdomain-launcher-cluster">
-        <div className="cockpit-brand-block">
+        <div className="cockpit-brand-block" data-testid="subdomain-brand-block">
           <SubdomainBrandCard companyName={companyName} />
+        </div>
+
+        <div className={topLevelMenuSurfaceClassName} data-testid="subdomain-primary-menu-surface">
           <SubdomainExpandTrigger
             isActive={isSettlementRoute}
             isExpanded={isTopLevelMenuExpanded}
             onToggle={() => setIsTopLevelMenuExpanded((current) => !current)}
           />
-        </div>
 
-        <nav aria-label="서브도메인 메뉴" className={topLevelNavClassName} id="subdomain-top-level-menu">
-          {isTopLevelMenuExpanded
-            ? topLevelMenuItems.map((item) => (
-                <NavLink
-                  aria-current={activeMenu === item.key ? 'page' : undefined}
-                  className={activeMenu === item.key ? 'cockpit-nav-link is-active' : 'cockpit-nav-link'}
-                  end={item.to === '/'}
-                  key={item.key}
-                  to={item.to}
-                >
-                  <span>{item.label}</span>
-                </NavLink>
-              ))
-            : null}
-        </nav>
+          <nav aria-label="서브도메인 메뉴" className={topLevelNavClassName} id="subdomain-top-level-menu">
+            {isTopLevelMenuExpanded
+              ? topLevelMenuItems.map((item) => (
+                  <NavLink
+                    aria-current={activeMenu === item.key ? 'page' : undefined}
+                    className={activeMenu === item.key ? 'cockpit-nav-link is-active' : 'cockpit-nav-link'}
+                    end={item.to === '/'}
+                    key={item.key}
+                    to={item.to}
+                  >
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))
+              : null}
+          </nav>
+        </div>
       </div>
 
       {isSettlementRoute ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}

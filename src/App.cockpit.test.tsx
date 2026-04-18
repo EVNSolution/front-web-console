@@ -239,6 +239,10 @@ describe('App cockpit entry', () => {
       'href',
       '/settlement/process',
     );
+    expect(screen.getByRole('heading', { name: '홈' })).toBeInTheDocument();
+    expect(screen.getByText('천하운수 정산 워크플로우는 홈에서 시작하고, 근태 요약은 별도 route 없이 여기서 함께 확인합니다.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /dashboard/i })).not.toBeInTheDocument();
+    expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
 
   it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {
@@ -260,6 +264,7 @@ describe('App cockpit entry', () => {
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '홈' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('link', { name: '대시보드' }));
