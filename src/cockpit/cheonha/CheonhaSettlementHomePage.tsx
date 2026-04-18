@@ -1,57 +1,181 @@
 import { Link } from 'react-router-dom';
 
-const quickActions = [
+type SettlementChip = {
+  active?: boolean;
+  label: string;
+};
+
+type SettlementKpiLabel = '수신합계' | '지급합계' | '조정비용' | '수익';
+
+type SettlementProcessStep =
+  | {
+      kind: 'link';
+      label: string;
+      to: string;
+      status: string;
+    }
+  | {
+      kind: 'status';
+      label: string;
+      status: string;
+    };
+
+type CheonhaSettlementHomePageProps = {
+  companyName?: string;
+  chips?: ReadonlyArray<SettlementChip>;
+  kpis?: Partial<Record<SettlementKpiLabel, number | string | null | undefined>>;
+  recentSettlement?: {
+    period?: number | string | null;
+    status?: string | null;
+    note?: string | null;
+  } | null;
+  steps?: ReadonlyArray<SettlementProcessStep>;
+};
+
+const DEFAULT_CHIPS: ReadonlyArray<SettlementChip> = [
+  { active: true, label: '이번 달' },
+  { label: '미처리' },
+  { label: '확정' },
+  { label: '전체' },
+] as const;
+
+const KPI_LABELS: ReadonlyArray<SettlementKpiLabel> = ['수신합계', '지급합계', '조정비용', '수익'] as const;
+
+const DEFAULT_STEPS: ReadonlyArray<SettlementProcessStep> = [
   {
-    title: '배차 데이터',
-    description: '배차표 업로드와 배송원 자동 보정, snapshot 준비를 실제 업무 순서대로 이어갑니다.',
-    cta: '배차 데이터 열기',
+    kind: 'link',
+    label: '배차 업로드',
+    status: '바로 이동',
     to: '/settlement/dispatch',
   },
   {
-    title: '정산 처리',
-    description: '업로드 결과로 만든 정산 대상 record와 snapshot을 검토한 뒤 실행 단계로 넘깁니다.',
-    cta: '정산 처리 열기',
+    kind: 'status',
+    label: '특근 설정',
+    status: '준비 중',
+  },
+  {
+    kind: 'status',
+    label: '단가 확인',
+    status: '준비 중',
+  },
+  {
+    kind: 'link',
+    label: '정산 처리',
+    status: '검토 화면',
     to: '/settlement/process',
   },
 ] as const;
 
-const embeddedSummaries = [
-  {
-    title: '금월 배차표 기반 근태',
-    description: '근태는 별도 탭으로 분리하지 않고 홈에서 월 기준 요약으로 유지합니다.',
-  },
-  {
-    title: '비활성 규칙 탭',
-    description: '배송원 관리, 운영 현황, 팀 관리는 현재 shell만 열어 두고 실제 편집은 아직 연결하지 않았습니다.',
-  },
-] as const;
+function formatCurrency(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === '') {
+    return '0원';
+  }
 
-export function CheonhaSettlementHomePage() {
+  if (typeof value === 'number') {
+    return `${value.toLocaleString('ko-KR')}원`;
+  }
+
+  return value;
+}
+
+function formatText(value: number | string | null | undefined, fallback = '없음') {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  return typeof value === 'number' ? String(value) : value;
+}
+
+export function CheonhaSettlementHomePage({
+  chips = DEFAULT_CHIPS,
+  companyName = '천하운수',
+  kpis,
+  recentSettlement,
+  steps = DEFAULT_STEPS,
+}: CheonhaSettlementHomePageProps) {
   return (
-    <div className="cockpit-home-page">
-      <section className="cockpit-workspace-panel">
+    <div className="cockpit-home-page cockpit-cheonha-settlement-home">
+      <section className="cockpit-workspace-panel cockpit-settlement-home-banner">
         <p className="cockpit-kicker">Settlement Home</p>
-        <h2>홈</h2>
-        <p>천하운수 정산 워크플로우는 홈에서 시작하고, 근태 요약은 별도 route 없이 여기서 함께 확인합니다.</p>
+        <div className="cockpit-settlement-home-banner-copy">
+          <h1>{companyName} 정산 홈</h1>
+          <p className="cockpit-copy">
+            연결된 값이 있으면 그대로 보여주고, 아직 없으면 0원과 없음 같은 명시적 상태로 시작합니다.
+          </p>
+        </div>
       </section>
 
-      <div className="cockpit-card-grid">
-        {quickActions.map((item) => (
-          <article className="cockpit-card" key={item.title}>
-            <strong>{item.title}</strong>
-            <p>{item.description}</p>
-            <Link className="button ghost small" to={item.to}>
-              {item.cta}
-            </Link>
-          </article>
-        ))}
-        {embeddedSummaries.map((item) => (
-          <article className="cockpit-card" key={item.title}>
-            <strong>{item.title}</strong>
-            <p>{item.description}</p>
-          </article>
+      <div className="cockpit-settlement-chip-row" aria-label="정산 필터">
+        {chips.map((chip) => (
+          <button
+            aria-pressed={chip.active ?? false}
+            className={chip.active ? 'cockpit-settlement-chip is-active' : 'cockpit-settlement-chip'}
+            key={chip.label}
+            type="button"
+          >
+            {chip.label}
+          </button>
         ))}
       </div>
+
+      <section className="cockpit-workspace-panel cockpit-settlement-process-card">
+        <div className="cockpit-shell-panel-header">
+          <h2>업무 프로세스</h2>
+          <span className="cockpit-shell-status">정산 흐름</span>
+        </div>
+        <ol className="cockpit-settlement-process-list">
+          {steps.map((step) => (
+            <li className="cockpit-settlement-process-step" key={step.label}>
+              <div className="cockpit-settlement-process-step-copy">
+                <strong>{step.label}</strong>
+                <span>{step.kind === 'link' ? step.status : step.status}</span>
+              </div>
+              {step.kind === 'link' ? (
+                <Link className="button ghost small cockpit-settlement-process-link" to={step.to}>
+                  {step.label}
+                </Link>
+              ) : (
+                <span className="cockpit-settlement-process-status" aria-label={`${step.label} 상태`}>
+                  {step.status}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section aria-label="정산 KPI" className="cockpit-settlement-kpi-strip">
+        {KPI_LABELS.map((label) => (
+          <article className="cockpit-settlement-kpi-card" key={label}>
+            <span className="cockpit-settlement-kpi-label">{label}</span>
+            <strong className="cockpit-settlement-kpi-value">{formatCurrency(kpis?.[label])}</strong>
+          </article>
+        ))}
+      </section>
+
+      <section className="cockpit-workspace-panel cockpit-settlement-recent-box">
+        <div className="cockpit-shell-panel-header">
+          <h2>최근 정산</h2>
+          <span className="cockpit-shell-status">{formatText(recentSettlement?.status)}</span>
+        </div>
+        <p className="cockpit-copy">
+          {recentSettlement ? formatText(recentSettlement.note, '정산 내역이 없습니다') : '정산 내역이 없습니다'}
+        </p>
+        <dl className="cockpit-settlement-recent-grid">
+          <div>
+            <dt>정산 주기</dt>
+            <dd>{formatText(recentSettlement?.period)}</dd>
+          </div>
+          <div>
+            <dt>상태</dt>
+            <dd>{formatText(recentSettlement?.status)}</dd>
+          </div>
+          <div>
+            <dt>비고</dt>
+            <dd>{formatText(recentSettlement?.note)}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   );
 }

@@ -4757,6 +4757,213 @@ textarea:focus {
   min-width: 0;
 }
 
+.cockpit-cheonha-settlement-home {
+  position: relative;
+}
+
+.cockpit-cheonha-settlement-home::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(205, 222, 0, 0.15), transparent 32%),
+    radial-gradient(circle at left center, rgba(14, 95, 155, 0.1), transparent 30%);
+  opacity: 0.8;
+}
+
+.cockpit-cheonha-settlement-home > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cockpit-settlement-home-banner {
+  display: grid;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.cockpit-settlement-home-banner-copy {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.cockpit-settlement-home-banner h1 {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.65rem, 2vw + 1.15rem, 2.5rem);
+  letter-spacing: -0.04em;
+  color: #102743;
+}
+
+.cockpit-settlement-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cockpit-settlement-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.75);
+  color: #4f5f79;
+  font-weight: 700;
+  cursor: default;
+}
+
+.cockpit-settlement-chip.is-active {
+  color: #0b223a;
+  background: rgba(223, 238, 250, 0.96);
+  border-color: rgba(14, 95, 155, 0.22);
+}
+
+.cockpit-settlement-process-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.cockpit-settlement-process-list {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cockpit-settlement-process-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(247, 250, 253, 0.98), rgba(241, 246, 252, 0.92));
+  border: 1px solid rgba(20, 40, 70, 0.08);
+}
+
+.cockpit-settlement-process-step-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.cockpit-settlement-process-step-copy strong {
+  font-size: 1rem;
+  color: #102743;
+}
+
+.cockpit-settlement-process-step-copy span {
+  color: #5d6c87;
+  font-size: 0.84rem;
+}
+
+.cockpit-settlement-process-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.cockpit-settlement-process-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.2rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(20, 40, 70, 0.06);
+  border: 1px solid rgba(20, 40, 70, 0.09);
+  color: #61708f;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cockpit-settlement-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.cockpit-settlement-kpi-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem 1.05rem;
+  border-radius: 18px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(15, 41, 66, 0.04);
+}
+
+.cockpit-settlement-kpi-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #61708f;
+}
+
+.cockpit-settlement-kpi-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.1rem, 1.1vw + 0.9rem, 1.45rem);
+  letter-spacing: -0.04em;
+  color: #102743;
+}
+
+.cockpit-settlement-recent-box {
+  display: grid;
+  gap: 1rem;
+}
+
+.cockpit-settlement-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.cockpit-settlement-recent-grid div {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  background: rgba(247, 250, 253, 0.88);
+  border: 1px solid rgba(20, 40, 70, 0.08);
+}
+
+.cockpit-settlement-recent-grid dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7a87a3;
+}
+
+.cockpit-settlement-recent-grid dd {
+  margin: 0;
+  font-weight: 600;
+  color: #102743;
+}
+
+@media (max-width: 960px) {
+  .cockpit-settlement-kpi-strip,
+  .cockpit-settlement-recent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .cockpit-settlement-process-step {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cockpit-settlement-kpi-strip,
+  .cockpit-settlement-recent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cockpit-shell-panel {
   gap: 0.85rem;
 }
