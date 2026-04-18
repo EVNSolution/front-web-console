@@ -12,8 +12,12 @@ type SubdomainVehicleSidebarProps = {
 
 export function SubdomainVehicleSidebar({ items }: SubdomainVehicleSidebarProps) {
   return (
-    <div className="cockpit-detached-vehicle-sidebar" data-testid="subdomain-vehicle-sidebar">
-      <nav aria-label="차량 메뉴" className="cockpit-child-nav cockpit-detached-sidebar">
+    <aside
+      className="cockpit-child-nav cockpit-detached-sidebar cockpit-detached-vehicle-sidebar"
+      data-nav-label="차량"
+      data-testid="subdomain-vehicle-sidebar"
+    >
+      <nav aria-label="차량 메뉴">
         {items.map((item) => (
           <NavLink
             className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}
@@ -25,6 +29,6 @@ export function SubdomainVehicleSidebar({ items }: SubdomainVehicleSidebarProps)
           </NavLink>
         ))}
       </nav>
-    </div>
+    </aside>
   );
 }

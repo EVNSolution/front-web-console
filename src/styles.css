@@ -4382,8 +4382,18 @@ textarea:focus {
   box-shadow: 0 16px 34px rgba(15, 41, 66, 0.06);
 }
 
-.cockpit-child-nav::before {
+.cockpit-detached-settlement-sidebar .cockpit-child-nav::before {
   content: '정산';
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a87a3;
+  padding: 0 0.35rem 0.2rem;
+}
+
+.cockpit-detached-vehicle-sidebar::before {
+  content: attr(data-nav-label);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -4827,18 +4837,23 @@ textarea:focus {
   }
 
   .cockpit-shell-no-dashboard-sidebar,
-  .cockpit-shell-settlement {
+  .cockpit-shell-settlement,
+  .cockpit-shell-vehicle {
     grid-template-columns: 1fr;
     grid-template-rows: none;
   }
 
   .cockpit-shell-no-dashboard-sidebar .cockpit-launcher-cluster,
   .cockpit-shell-settlement .cockpit-launcher-cluster,
+  .cockpit-shell-vehicle .cockpit-launcher-cluster,
   .cockpit-shell-settlement .cockpit-detached-settlement-sidebar,
+  .cockpit-shell-vehicle .cockpit-detached-vehicle-sidebar,
   .cockpit-shell-no-dashboard-sidebar .cockpit-rail-footer,
   .cockpit-shell-settlement .cockpit-rail-footer,
+  .cockpit-shell-vehicle .cockpit-rail-footer,
   .cockpit-shell-no-dashboard-sidebar .cockpit-content,
-  .cockpit-shell-settlement .cockpit-content {
+  .cockpit-shell-settlement .cockpit-content,
+  .cockpit-shell-vehicle .cockpit-content {
     grid-column: auto;
     grid-row: auto;
   }
@@ -4856,7 +4871,8 @@ textarea:focus {
   }
 
   .cockpit-primary-menu-surface,
-  .cockpit-detached-settlement-sidebar {
+  .cockpit-detached-settlement-sidebar,
+  .cockpit-detached-vehicle-sidebar {
     position: static;
     width: auto;
     margin: 1rem 1rem 0;

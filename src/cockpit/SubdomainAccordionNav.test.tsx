@@ -142,9 +142,13 @@ describe('SubdomainAccordionNav', () => {
     expect(launcherCluster).toContainElement(topLevelNav);
     expect(launcherCluster).not.toContainElement(vehicleSidebar);
     expect(vehicleSidebar.closest('.cockpit-rail')).toBeNull();
+    expect(vehicleSidebar.tagName).toBe('ASIDE');
+    expect(vehicleSidebar).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
+    expect(vehicleSidebar).toHaveAttribute('data-nav-label', '차량');
     expect(topLevelNav).toBeInTheDocument();
     expect(vehicleSidebar).toBeInTheDocument();
     expect(vehicleNav).toBeInTheDocument();
+    expect(vehicleNav).not.toHaveClass('cockpit-child-nav');
     expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
     expect(within(vehicleNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/vehicles/home');
     expect(within(vehicleNav).getByRole('link', { name: '배송원' })).toHaveAttribute('href', '/drivers');
