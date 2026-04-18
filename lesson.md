@@ -47,8 +47,10 @@ The company subdomain is a dedicated product surface, not a menu branch inside t
 - system-admin sessions are rejected from the subdomain shell
 - subdomain `/` opens the dashboard first
 - subdomain login keeps the company header visible
-- the subdomain left accordion stays ordered as `대시보드 / 정산`
+- the subdomain top-level launcher stays ordered as `대시보드 / 정산`
+- the launcher sits beside the square brand card instead of behaving like a permanent sidebar
 - settlement internal navigation stays ordered as `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
+- settlement navigation appears as a detached block below the launcher cluster, not as a dashboard sidebar
 - the rule shell stays structural only: no persisted editor, no save button, no submit action, and no write API path
 
 ## Local Dev Mode Split

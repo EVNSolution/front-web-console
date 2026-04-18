@@ -1,6 +1,7 @@
 import type { SessionPayload } from './api/http';
 
 const STORAGE_KEY = 'clever.admin.session';
+let inMemorySession: SessionPayload | null = null;
 
 function isSessionPayload(value: unknown): value is SessionPayload {
   if (typeof value !== 'object' || value === null) {
@@ -49,13 +50,18 @@ export function loadStoredSession(): SessionPayload | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return null;
+      return inMemorySession;
     }
 
     const parsed = JSON.parse(raw) as unknown;
-    return isSessionPayload(parsed) ? parsed : null;
+    if (!isSessionPayload(parsed)) {
+      return inMemorySession;
+    }
+
+    inMemorySession = parsed;
+    return parsed;
   } catch {
-    return null;
+    return inMemorySession;
   }
 }
 
@@ -64,7 +70,14 @@ export function persistSession(session: SessionPayload): void {
     return;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  inMemorySession = session;
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Safari private browsing and stricter site-data policies can reject storage writes.
+    // Keep the session alive in-memory so local navigation still works.
+  }
 }
 
 export function clearStoredSession(): void {
@@ -72,5 +85,11 @@ export function clearStoredSession(): void {
     return;
   }
 
-  window.localStorage.removeItem(STORAGE_KEY);
+  inMemorySession = null;
+
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Best effort only; the in-memory fallback is already cleared.
+  }
 }

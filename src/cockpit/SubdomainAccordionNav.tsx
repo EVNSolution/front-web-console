@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
+import { SubdomainBrandCard } from './SubdomainBrandCard';
+import { SubdomainExpandTrigger } from './SubdomainExpandTrigger';
+import { SubdomainSettlementSidebar } from './SubdomainSettlementSidebar';
+
 export type TopLevelMenuKey = 'dashboard' | 'settlement';
 export type SettlementChildNavItem = {
   slug: 'home' | 'dispatch' | 'crew' | 'operations' | 'process' | 'team';
@@ -11,19 +15,17 @@ export type SettlementChildNavItem = {
 type SubdomainAccordionNavProps = {
   activeMenu: TopLevelMenuKey;
   companyName: string;
-  onLogout: () => void | Promise<void>;
 };
 
 type TopLevelMenuItem = {
   key: TopLevelMenuKey;
   label: string;
   to: string;
-  isCardTrigger?: boolean;
 };
 
 const topLevelMenuItems: TopLevelMenuItem[] = [
   { key: 'dashboard', label: '대시보드', to: '/' },
-  { key: 'settlement', label: '정산', to: '/settlement/home', isCardTrigger: true },
+  { key: 'settlement', label: '정산', to: '/settlement/home' },
 ];
 
 export const settlementChildNavItems: SettlementChildNavItem[] = [
@@ -35,76 +37,57 @@ export const settlementChildNavItems: SettlementChildNavItem[] = [
   { slug: 'team', label: '팀 관리', to: '/settlement/team' },
 ];
 
-const cardTriggerMenuItem = topLevelMenuItems.find((item) => item.isCardTrigger);
-
 export function resolveTopLevelMenu(pathname: string): TopLevelMenuKey {
   return pathname === '/settlement' || pathname.startsWith('/settlement/') ? 'settlement' : 'dashboard';
 }
 
-export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: SubdomainAccordionNavProps) {
+export function SubdomainAccordionNav({ activeMenu, companyName }: SubdomainAccordionNavProps) {
   const [isTopLevelMenuExpanded, setIsTopLevelMenuExpanded] = useState(false);
   const isSettlementRoute = activeMenu === 'settlement';
+  const surfaceState = isTopLevelMenuExpanded ? 'expanded' : 'collapsed';
+  const topLevelMenuSurfaceClassName = isTopLevelMenuExpanded
+    ? 'cockpit-primary-menu-surface is-expanded'
+    : 'cockpit-primary-menu-surface';
+  const topLevelNavClassName = isTopLevelMenuExpanded ? 'cockpit-nav is-expanded' : 'cockpit-nav';
 
   return (
-    <aside className="cockpit-rail">
-      <div className="cockpit-brand-block">
-        <NavLink className="cockpit-brand-link" to="/">
-          <span className="cockpit-brand-mark">{companyName}</span>
-          <span className="cockpit-brand-subtitle">전용 업무 cockpit</span>
-        </NavLink>
-        <button
-          aria-controls="subdomain-top-level-menu"
-          aria-expanded={isTopLevelMenuExpanded}
-          className={activeMenu === cardTriggerMenuItem?.key ? 'cockpit-card-toggle is-active' : 'cockpit-card-toggle'}
-          onClick={() => setIsTopLevelMenuExpanded((current) => !current)}
-          type="button"
-        >
-          <span>{cardTriggerMenuItem?.label ?? '메뉴'}</span>
-          <span
-            aria-hidden="true"
-            className={isTopLevelMenuExpanded ? 'cockpit-nav-caret is-open' : 'cockpit-nav-caret'}
+    <>
+      <div className="cockpit-launcher-cluster" data-testid="subdomain-launcher-cluster">
+        <div className="cockpit-brand-block" data-testid="subdomain-brand-block">
+          <SubdomainBrandCard companyName={companyName} />
+        </div>
+
+        <div className={topLevelMenuSurfaceClassName} data-state={surfaceState} data-testid="subdomain-primary-menu-surface">
+          <SubdomainExpandTrigger
+            isActive={isSettlementRoute}
+            isExpanded={isTopLevelMenuExpanded}
+            onToggle={() => setIsTopLevelMenuExpanded((current) => !current)}
+          />
+
+          <nav
+            aria-hidden={isTopLevelMenuExpanded ? 'false' : 'true'}
+            aria-label="서브도메인 메뉴"
+            className={topLevelNavClassName}
+            id="subdomain-top-level-menu"
           >
-            ⌄
-          </span>
-        </button>
+            {isTopLevelMenuExpanded
+              ? topLevelMenuItems.map((item) => (
+                  <NavLink
+                    aria-current={activeMenu === item.key ? 'page' : undefined}
+                    className={activeMenu === item.key ? 'cockpit-nav-link is-active' : 'cockpit-nav-link'}
+                    end={item.to === '/'}
+                    key={item.key}
+                    to={item.to}
+                  >
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))
+              : null}
+          </nav>
+        </div>
       </div>
 
-      <nav aria-label="서브도메인 메뉴" className="cockpit-nav" id="subdomain-top-level-menu">
-        {isTopLevelMenuExpanded
-          ? topLevelMenuItems.map((item) => (
-              <NavLink
-                aria-current={activeMenu === item.key ? 'page' : undefined}
-                className={activeMenu === item.key ? 'cockpit-nav-link is-active' : 'cockpit-nav-link'}
-                end={item.to === '/'}
-                key={item.key}
-                to={item.to}
-              >
-                <span>{item.label}</span>
-              </NavLink>
-            ))
-          : null}
-      </nav>
-
-      {isSettlementRoute ? (
-        <nav aria-label="정산 메뉴" className="cockpit-child-nav cockpit-detached-sidebar">
-          {settlementChildNavItems.map((item) => (
-            <NavLink
-              className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}
-              end={item.to === '/settlement/home'}
-              key={item.to}
-              to={item.to}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      ) : null}
-
-      <div className="cockpit-rail-footer">
-        <button className="button ghost small cockpit-logout-button" onClick={() => void onLogout()} type="button">
-          로그아웃
-        </button>
-      </div>
-    </aside>
+      {isSettlementRoute ? <SubdomainSettlementSidebar items={settlementChildNavItems} /> : null}
+    </>
   );
 }

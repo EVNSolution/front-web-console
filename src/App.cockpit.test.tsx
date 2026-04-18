@@ -24,6 +24,7 @@ const session = {
     accountId: '20000000-0000-0000-0000-000000000001',
     companyId: '30000000-0000-0000-0000-000000000001',
     roleType: 'settlement_manager',
+    roleDisplayName: '정산 관리자',
   },
   availableAccountTypes: ['manager'],
 };
@@ -116,6 +117,15 @@ vi.mock('./hooks/useNavigationPolicy', () => ({
   })),
 }));
 
+vi.mock('./pages/AccountPage', () => ({
+  AccountPage: () => (
+    <section>
+      <h2>내 계정</h2>
+      <p>cockpit account surface</p>
+    </section>
+  ),
+}));
+
 vi.mock('./pages/SettlementInputsPage', () => ({
   SettlementInputsPage: () => (
     <section>
@@ -162,11 +172,15 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
+    expect(await screen.findByText('CLEVER')).toBeInTheDocument();
+    expect(await screen.findByText('EV&Solution')).toBeInTheDocument();
     expect(await screen.findByText('천하운수')).toBeInTheDocument();
-    expect(await screen.findByText('전용 업무 cockpit')).toBeInTheDocument();
-    expect(await screen.findByRole('main')).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
+    const main = await screen.findByRole('main');
+    const shell = main.closest('.cockpit-shell');
+    expect(main).toBeInTheDocument();
+    expect(shell).toHaveClass('cockpit-shell-no-dashboard-sidebar');
+    expect(shell).not.toHaveClass('cockpit-shell-settlement');
     expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
 
@@ -179,9 +193,12 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    expect(await screen.findByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
+    expect(screen.getByTestId('subdomain-primary-menu-surface')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '알림' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '계정 메뉴' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '정산' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '최근 6개월 수입/지출' })).not.toBeInTheDocument();
@@ -192,6 +209,70 @@ describe('App cockpit entry', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('기준: 오늘')).not.toBeInTheDocument();
     expect(screen.queryByText('데이터 미연동')).not.toBeInTheDocument();
+  });
+
+  it('opens the cockpit alerts panel from the shared header', async () => {
+    const user = userEvent.setup();
+
+    setupCompanyCockpit();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await user.click(await screen.findByRole('button', { name: '알림' }));
+
+    const panel = await screen.findByRole('dialog', { name: '알림 패널' });
+    expect(within(panel).getByText('알림이 없습니다')).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: '모두 읽음' })).toBeInTheDocument();
+  });
+
+  it('opens the cockpit account menu and routes to 내 정보 inside the company shell', async () => {
+    const user = userEvent.setup();
+
+    setupCompanyCockpit();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await user.click(await screen.findByRole('button', { name: '계정 메뉴' }));
+
+    const menu = await screen.findByRole('menu', { name: '계정 메뉴 패널' });
+    expect(within(menu).getByText('manager@example.com')).toBeInTheDocument();
+    expect(within(menu).getByText('관리자')).toBeInTheDocument();
+    expect(within(menu).getByText('정산 관리자')).toBeInTheDocument();
+
+    await user.click(within(menu).getByRole('link', { name: '내 정보' }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/me');
+    });
+    expect(await screen.findByRole('heading', { name: '내 계정' })).toBeInTheDocument();
+    expect(screen.getByText('cockpit account surface')).toBeInTheDocument();
+  });
+
+  it('logs out from the cockpit account menu instead of the left rail footer', async () => {
+    const user = userEvent.setup();
+
+    setupCompanyCockpit();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await user.click(await screen.findByRole('button', { name: '계정 메뉴' }));
+    await user.click(await screen.findByRole('button', { name: '로그아웃' }));
+
+    expect(await screen.findByText('회사 전용 로그인')).toBeInTheDocument();
+    expect(screen.getByText('천하운수 전용 콘솔')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument();
   });
 
   it('/settlement redirects to /settlement/home', async () => {
@@ -216,19 +297,31 @@ describe('App cockpit entry', () => {
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
-    const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(screen.getByText('CLEVER')).toBeInTheDocument();
+    expect(screen.getByText('EV&Solution')).toBeInTheDocument();
+    expect(screen.getByText('천하운수')).toBeInTheDocument();
+    const shell = screen.getByRole('main').closest('.cockpit-shell');
+    expect(shell).toHaveClass('cockpit-shell-settlement');
+    expect(shell).not.toHaveClass('cockpit-shell-no-dashboard-sidebar');
+    const topLevelNav = document.getElementById('subdomain-top-level-menu');
     const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
 
+    expect(topLevelNav).not.toBeNull();
     expect(topLevelNav).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
-    expect(within(topLevelNav).queryAllByRole('link')).toHaveLength(0);
+    expect(screen.getByTestId('subdomain-settlement-sidebar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toBeInTheDocument();
+    expect(within(topLevelNav!).queryAllByRole('link')).toHaveLength(0);
     expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
     expect(within(settlementNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
     expect(within(settlementNav).getByRole('link', { name: '정산 처리' })).toHaveAttribute(
       'href',
       '/settlement/process',
     );
+    expect(screen.getByRole('heading', { name: '홈' })).toBeInTheDocument();
+    expect(screen.getByText('천하운수 정산 워크플로우는 홈에서 시작하고, 근태 요약은 별도 route 없이 여기서 함께 확인합니다.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /dashboard/i })).not.toBeInTheDocument();
+    expect(document.querySelector('.cockpit-dashboard')).toBeNull();
   });
 
   it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {
@@ -242,22 +335,23 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    const settlementButton = await screen.findByRole('button', { name: '정산' });
+    const settlementButton = await screen.findByRole('button', { name: '상위 메뉴 열기' });
 
     await user.click(settlementButton);
-    expect(settlementButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
 
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByRole('heading', { name: '홈' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('link', { name: '대시보드' }));
     await waitFor(() => {
       expect(window.location.pathname).toBe('/');
     });
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(screen.getByRole('navigation', { name: '서브도메인 메뉴' })).getAllByRole('link')).toHaveLength(2);
   });
 
