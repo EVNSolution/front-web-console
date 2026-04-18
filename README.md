@@ -59,12 +59,21 @@
 - host entries:
   - `127.0.0.1 ev-dashboard.com`
   - `127.0.0.1 cheonha.ev-dashboard.com`
+  - 이 매핑이 없으면 브라우저는 public DNS로 해석하고, local-sandbox shell은 열리지 않는다.
 - allowed presets:
   - `ev-dashboard.com` -> `system_admin`
   - `cheonha.ev-dashboard.com` -> `cheonha_manager`
 - safety rule:
   - local-sandbox는 절대 real `/api`로 fall through 하지 않는다.
   - 이 모드의 `/api` 요청은 브라우저 내부 mock layer가 전부 처리한다.
+- browser notes:
+  - local-sandbox는 `http://...:5174` plain HTTP 기준이다.
+  - 브라우저가 `ev-dashboard.com` 계열을 HSTS로 기억하고 있으면 HTTPS로 강제 승격되어 local-sandbox가 열리지 않을 수 있다.
+  - 이런 경우 fresh browser profile을 쓰거나, 해당 도메인의 HSTS state를 지운다.
+- storage notes:
+  - Safari나 stricter site-data policy 환경에서는 `localStorage` 쓰기가 막힐 수 있다.
+  - local-sandbox session injection은 이 경우 메모리 fallback으로 계속 진행된다.
+  - 이 fallback은 새로고침 전까지의 local test continuity만 보장한다.
 - reset expectations:
   - `세션 초기화`는 저장된 session payload를 지운다.
   - `세션 초기화`는 dev preset bookkeeping을 지운다.
@@ -106,6 +115,7 @@ Use this checklist for the subdomain shell regression pass:
 - subdomain `/` opens dashboard
 - subdomain brand card shows `CLEVER / EV&Solution / 천하운수`
 - subdomain top-level launcher opens to the right of the card
+- subdomain global header shows `알림 / 계정` actions on every page
 - subdomain settlement menu order matches spec
 - subdomain login shows company header
 - `dev:local-test` still routes through the safer remote target and does not enable `/__dev__/session`

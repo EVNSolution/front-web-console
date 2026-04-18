@@ -212,7 +212,7 @@ describe('DispatchUploadsPage', () => {
 
     expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText('배차일'), '2026-03-24');
+    await user.type(await screen.findByLabelText('배차일'), '2026-03-24');
     const uploadFileHeading = await screen.findByRole('heading', { name: '업로드 파일', level: 2 });
     const uploadFileHeader = uploadFileHeading.closest('.panel-header-inline');
     expect(uploadFileHeader).not.toBeNull();

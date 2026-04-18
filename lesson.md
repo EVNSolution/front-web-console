@@ -77,9 +77,28 @@ Host entries to keep in sync with that mode:
 - `127.0.0.1 ev-dashboard.com`
 - `127.0.0.1 cheonha.ev-dashboard.com`
 
+If those host entries are missing, the browser will resolve public DNS and the local sandbox will silently miss the local `5174` server.
+
+`ev-dashboard.com` family hosts are also easy to break with HSTS memory:
+
+- local-sandbox is plain `http://...:5174`
+- if a browser upgrades the host to HTTPS, the page will fail even though the Vite server is healthy
+- use a fresh browser profile or clear HSTS state for the domain before blaming the app
+
+Safari and stricter site-data policies can reject `localStorage` writes during `세션 주입`. The sandbox flow should degrade to an in-memory session so local manual verification still works without forcing the user into browser settings first.
+
 Reset contract:
 
 - `세션 초기화` clears the stored session payload
 - `세션 초기화` clears local sandbox preset bookkeeping
 - `세션 초기화` clears mock API memory state
 - after reset, the page should behave like a fresh signed-out local-sandbox session
+
+## Subdomain Shell Visual Hierarchy
+
+The refined company shell works only when the launcher and settlement navigation keep their roles separate.
+
+- the launcher cluster owns the brand card and the top-level `대시보드 / 정산` launcher only
+- settlement navigation is a detached block below that cluster, not a permanent dashboard rail
+- the brand card and detached settlement sidebar should read as the same surface family
+- the company shell now has a global top-right header for alerts and account actions across every subdomain page
