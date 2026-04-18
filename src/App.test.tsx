@@ -330,6 +330,16 @@ describe('Admin App', () => {
     expect(await screen.findByText('운영 요약')).toBeInTheDocument();
   });
 
+  it('redirects main-domain /vehicles/home to the vehicle list instead of treating home as a vehicleRef', async () => {
+    window.history.replaceState({}, '', '/vehicles/home');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/vehicles'));
+    expect(await screen.findByRole('heading', { name: '차량' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '차량 상세' })).not.toBeInTheDocument();
+  });
+
   it('renders personnel documents route inside the unified console', async () => {
     window.history.replaceState({}, '', '/personnel-documents');
 

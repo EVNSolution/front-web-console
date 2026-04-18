@@ -51,6 +51,8 @@
 - subdomain launcher order is `대시보드 / 차량 / 정산`
 - vehicle workspace is detached like settlement
 - vehicle sidebar order is `홈 / 배송원 / 차량 / 차량 배정`
+- company cockpit deep links still obey the shared navigation policy redirect rules
+- main domain `/vehicles/home` redirects safely to `/vehicles`
 - settlement internal menu order is `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
 - rule-shell behavior is structural only: no persisted editor, no save action, no submit action, and no write API
 
@@ -118,6 +120,9 @@ Use this checklist for the subdomain shell regression pass:
 - subdomain brand card shows `CLEVER / EV&Solution / 천하운수`
 - subdomain top-level launcher opens to the right of the card
 - subdomain global header shows `알림 / 계정` actions on every page
+- restricted company-manager deep links under `/drivers`, `/vehicles`, `/vehicle-assignments` redirect to the first allowed cockpit route
+- main domain `/vehicles/home` does not open vehicle detail as `vehicleRef='home'`
+- vehicle sidebar marks only `홈` active on `/vehicles/home`
 - subdomain settlement menu order matches spec
 - subdomain login shows company header
 - `dev:local-test` still routes through the safer remote target and does not enable `/__dev__/session`

@@ -17,7 +17,7 @@ export function SubdomainVehicleSidebar({ items }: SubdomainVehicleSidebarProps)
         {items.map((item) => (
           <NavLink
             className={({ isActive }) => (isActive ? 'cockpit-nav-child-link is-active' : 'cockpit-nav-child-link')}
-            end={item.to === '/vehicles/home'}
+            end={item.to === '/vehicles/home' || item.to === '/vehicles'}
             key={item.to}
             to={item.to}
           >

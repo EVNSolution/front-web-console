@@ -7,6 +7,7 @@ import { loadStoredSession } from './sessionPersistence';
 import { resolvePublicCompanyTenant } from './api/companyTenant';
 import { ApiError } from './api/http';
 import { getWorkspaceBootstrap } from './api/workspaceBootstrap';
+import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { resolveTenantEntry } from './tenant/resolveTenantEntry';
 
 const session = {
@@ -85,6 +86,16 @@ function setupCompanyCockpit({
   vi.mocked(loadStoredSession).mockReturnValue(sessionValue);
   vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(bootstrap);
   vi.mocked(getWorkspaceBootstrap).mockResolvedValue(bootstrap);
+  const allowedNavKeys =
+    sessionValue?.activeAccount?.roleType === 'vehicle_manager'
+      ? ['dashboard', 'account', 'vehicles', 'vehicle_assignments', 'drivers']
+      : ['dashboard', 'account'];
+  vi.mocked(useNavigationPolicyWithRefresh).mockReturnValue({
+    allowedNavKeys,
+    isLoading: false,
+    errorMessage: null,
+    source: 'test',
+  });
   window.history.replaceState({}, '', pathname);
 }
 
@@ -125,10 +136,7 @@ vi.mock('./tenant/resolveTenantEntry', () => ({
 }));
 
 vi.mock('./hooks/useNavigationPolicy', () => ({
-  useNavigationPolicyWithRefresh: vi.fn(() => ({
-    allowedNavKeys: ['dashboard'],
-    isLoading: false,
-  })),
+  useNavigationPolicyWithRefresh: vi.fn(),
 }));
 
 vi.mock('./pages/AccountPage', () => ({
@@ -381,6 +389,30 @@ describe('App cockpit entry', () => {
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-vehicle');
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it('redirects a restricted company-manager deep link away from blocked vehicle routes in the cockpit shell', async () => {
+    setupCompanyCockpit({ pathname: '/drivers' });
+    vi.mocked(useNavigationPolicyWithRefresh).mockReturnValue({
+      allowedNavKeys: ['dashboard'],
+      isLoading: false,
+      errorMessage: null,
+      source: 'test',
+    });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/');
+    });
+
+    expect(screen.queryByRole('heading', { name: '배송원' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '차량 메뉴' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main').closest('.cockpit-shell')).toHaveClass('cockpit-shell-no-dashboard-sidebar');
   });
 
   it('returning to / removes the settlement sidebar but preserves the top-level menu state', async () => {

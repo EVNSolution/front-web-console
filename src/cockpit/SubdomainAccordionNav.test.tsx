@@ -186,6 +186,8 @@ describe('SubdomainAccordionNav', () => {
       '차량',
       '차량 배정',
     ]);
+    expect(within(vehicleNav).getByRole('link', { name: '홈' })).toHaveClass('is-active');
+    expect(within(vehicleNav).getByRole('link', { name: '차량' })).not.toHaveClass('is-active');
   });
 
   it('settlement route renders the detached settlement sidebar through CockpitShell', () => {
