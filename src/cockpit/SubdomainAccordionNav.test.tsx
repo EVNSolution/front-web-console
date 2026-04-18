@@ -130,6 +130,37 @@ describe('SubdomainAccordionNav', () => {
     expect(within(settlementNav).getAllByRole('link')).toHaveLength(6);
   });
 
+  it.each([
+    ['/vehicles/home', true],
+    ['/vehicles', false],
+    ['/vehicles/123', false],
+    ['/drivers', false],
+    ['/drivers/123', false],
+    ['/vehicle-assignments', false],
+    ['/vehicle-assignments/123', false],
+  ])('resolves %s to the vehicle launcher contract', async (pathname, isExactVehicleHome) => {
+    const user = userEvent.setup();
+    renderNav(pathname);
+
+    expect(resolveTopLevelMenu(pathname)).toBe('vehicle');
+
+    const trigger = screen.getByRole('button', { name: '상위 메뉴 열기' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(trigger);
+
+    const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
+    expect(nav).not.toBeNull();
+    expect(within(nav).getByRole('link', { name: '차량' })).toHaveClass('is-active');
+    if (isExactVehicleHome) {
+      expect(within(nav).getByRole('link', { name: '차량' })).toHaveAttribute('aria-current', 'page');
+    } else {
+      expect(within(nav).getByRole('link', { name: '차량' })).not.toHaveAttribute('aria-current');
+    }
+    expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '차량 메뉴' })).not.toBeInTheDocument();
+  });
+
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
     const user = userEvent.setup();
 
