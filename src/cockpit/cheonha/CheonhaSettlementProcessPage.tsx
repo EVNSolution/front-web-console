@@ -13,11 +13,13 @@ export function CheonhaSettlementProcessPage(props: CheonhaSettlementProcessPage
 
   return (
     <SettlementFlowProvider client={client} session={session ?? undefined}>
-      <SettlementInputsPage
-        client={client}
-        dispatchBoardsPath="/settlement/dispatch"
-        settlementRunsPath="/settlement/process"
-      />
+      <section className="cockpit-workspace-panel settlement-workspace-frame-panel">
+        <SettlementInputsPage
+          client={client}
+          dispatchBoardsPath="/settlement/dispatch"
+          settlementRunsPath="/settlement/process"
+        />
+      </section>
     </SettlementFlowProvider>
   );
 }

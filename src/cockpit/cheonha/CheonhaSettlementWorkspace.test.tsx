@@ -1,11 +1,21 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CheonhaSettlementWorkspace } from './CheonhaSettlementWorkspace';
 
+const settlementHomeSpy = vi.fn();
+
 vi.mock('./CheonhaSettlementHomePage', () => ({
-  CheonhaSettlementHomePage: () => <section><h2>홈 화면</h2></section>,
+  CheonhaSettlementHomePage: (props: { companyName?: string }) => {
+    settlementHomeSpy(props);
+    return (
+      <section>
+        <h2>홈 화면</h2>
+        <p>{props.companyName}</p>
+      </section>
+    );
+  },
 }));
 
 vi.mock('./CheonhaDispatchDataPage', () => ({
@@ -52,6 +62,10 @@ function renderWorkspace(initialEntry: string) {
 }
 
 describe('CheonhaSettlementWorkspace', () => {
+  beforeEach(() => {
+    settlementHomeSpy.mockClear();
+  });
+
   it('redirects /settlement to /settlement/home', async () => {
     renderWorkspace('/settlement');
 
@@ -62,6 +76,7 @@ describe('CheonhaSettlementWorkspace', () => {
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(within(frame).getByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
+    expect(settlementHomeSpy).toHaveBeenCalledWith(expect.objectContaining({ companyName: '천하운수' }));
   });
 
   it.each([

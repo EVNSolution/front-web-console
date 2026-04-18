@@ -62,11 +62,13 @@ export function CheonhaDispatchDataPage(props: CheonhaWorkspaceDependenciesProps
   }
 
   return (
-    <DispatchUploadsPage
-      client={client}
-      dispatchBoardsPath="/settlement/dispatch"
-      session={session}
-      settlementInputsPath="/settlement/process"
-    />
+    <section className="cockpit-workspace-panel settlement-workspace-frame-panel">
+      <DispatchUploadsPage
+        client={client}
+        dispatchBoardsPath="/settlement/dispatch"
+        session={session}
+        settlementInputsPath="/settlement/process"
+      />
+    </section>
   );
 }
