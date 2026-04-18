@@ -153,7 +153,7 @@ describe('App cockpit entry', () => {
     });
   });
 
-  it('lands the company shell root on the cockpit dashboard', async () => {
+  it('lands the company shell root on the empty cockpit dashboard shell', async () => {
     setupCompanyCockpit();
     render(<App />);
 
@@ -162,14 +162,11 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    expect(
-      await screen.findByRole('heading', {
-        name: '천하운수 운영 대시보드',
-      }),
-    ).toBeInTheDocument();
+    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     expect(screen.getByText('천하운수')).toBeInTheDocument();
     expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
+    expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
 
   it('dashboard body no longer shows the old finance/attendance/dispatch sections', async () => {
@@ -189,6 +186,12 @@ describe('App cockpit entry', () => {
     expect(screen.queryByRole('heading', { name: '최근 6개월 수입/지출' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '금월 배차표 기반 근태' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '금일 배차' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('오늘 운영 현황을 우선으로 보고, 월 기준 전환으로 최근 흐름을 함께 확인합니다.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('기준: 오늘')).not.toBeInTheDocument();
+    expect(screen.queryByText('데이터 미연동')).not.toBeInTheDocument();
+    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
   });
 
   it('/settlement redirects to /settlement/home', async () => {
@@ -226,8 +229,9 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
       expect(window.location.pathname).toBe('/');
     });
-    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     expect(screen.queryByText('cockpit alias surface')).not.toBeInTheDocument();
+    expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
 
   it('keeps the company shell from exposing a top-level dispatch route', async () => {
@@ -238,9 +242,10 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     expect(window.location.pathname).toBe('/');
     expect(screen.queryByText('배차 관리 권한 필요')).not.toBeInTheDocument();
+    expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
 
   it('keeps the company shell from exposing other legacy top-level workspace routes', async () => {
@@ -271,10 +276,11 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(await screen.findByRole('heading', { name: '천하운수 운영 대시보드' })).toBeInTheDocument();
+    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     await waitFor(() => {
       expect(window.location.pathname).toBe('/');
     });
+    expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
 
   it('blocks unknown company hosts after public resolve instead of opening the generic shell', async () => {
