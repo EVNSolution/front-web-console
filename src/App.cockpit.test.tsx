@@ -180,7 +180,8 @@ describe('App cockpit entry', () => {
     });
 
     expect(await screen.findByRole('navigation', { name: '서브도메인 메뉴' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상위 메뉴 열기' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: '정산' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '홈' })).not.toBeInTheDocument();
@@ -218,6 +219,7 @@ describe('App cockpit entry', () => {
     expect(window.location.pathname).toBe('/settlement/home');
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
     expect(screen.getByText('EV&Solution')).toBeInTheDocument();
+    expect(screen.getByText('천하운수')).toBeInTheDocument();
     const topLevelNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     const settlementNav = screen.getByRole('navigation', { name: '정산 메뉴' });
 
