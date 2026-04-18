@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { SubdomainAccordionNav } from './SubdomainAccordionNav';
 
 function renderNav(initialEntry = '/') {
+  const activeMenu = initialEntry === '/settlement' || initialEntry.startsWith('/settlement/') ? 'settlement' : 'dashboard';
+
   render(
     <MemoryRouter
       future={{
@@ -15,7 +17,10 @@ function renderNav(initialEntry = '/') {
       initialEntries={[initialEntry]}
     >
       <Routes>
-        <Route path="*" element={<SubdomainAccordionNav companyName="천하운수" onLogout={vi.fn()} />} />
+        <Route
+          path="*"
+          element={<SubdomainAccordionNav activeMenu={activeMenu} companyName="천하운수" onLogout={vi.fn()} />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -58,7 +63,9 @@ describe('SubdomainAccordionNav', () => {
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
 
     expect(within(nav).getByRole('link', { name: '대시보드' })).toHaveAttribute('href', '/');
-    expect(within(nav).getAllByRole('link')).toHaveLength(1);
+    expect(within(nav).getByRole('link', { name: '정산 메뉴' })).toHaveAttribute('href', '/settlement/home');
+    expect(within(nav).getAllByRole('link')).toHaveLength(2);
+    expect(within(nav).getByText('정산')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
   });
 
@@ -74,18 +81,26 @@ describe('SubdomainAccordionNav', () => {
         initialEntries={['/']}
       >
         <Routes>
-          <Route path="*" element={<><RouteSwitcher /><SubdomainAccordionNav companyName="천하운수" onLogout={vi.fn()} /></>} />
+          <Route
+            path="*"
+            element={
+              <>
+                <RouteSwitcher />
+                <SubdomainAccordionNav activeMenu="dashboard" companyName="천하운수" onLogout={vi.fn()} />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>,
     );
 
     await user.click(screen.getByRole('button', { name: '정산' }));
     const nav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
-    expect(within(nav).getAllByRole('link')).toHaveLength(1);
+    expect(within(nav).getAllByRole('link')).toHaveLength(2);
 
     await user.click(screen.getByRole('button', { name: 'route-switch' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(within(nav).getAllByRole('link')).toHaveLength(1);
+    expect(within(nav).getAllByRole('link')).toHaveLength(2);
 
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
