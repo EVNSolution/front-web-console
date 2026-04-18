@@ -11,9 +11,10 @@ export function CockpitShell({ companyName, onLogout }: CockpitShellProps) {
   const location = useLocation();
   const activeMenu = resolveTopLevelMenu(location.pathname);
   const isSettlementRoute = activeMenu === 'settlement';
+  const shellClassName = isSettlementRoute ? 'cockpit-shell' : 'cockpit-shell cockpit-shell-no-dashboard-sidebar';
 
   return (
-    <div className={isSettlementRoute ? 'cockpit-shell' : 'cockpit-shell cockpit-shell-no-dashboard-sidebar'}>
+    <div className={shellClassName}>
       <SubdomainAccordionNav activeMenu={activeMenu} companyName={companyName} onLogout={onLogout} />
       <main className="cockpit-content">
         <Outlet />
