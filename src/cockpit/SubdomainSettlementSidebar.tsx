@@ -1,17 +1,13 @@
 import { NavLink } from 'react-router-dom';
 
-type SubdomainSettlementSidebarItem = {
-  label: string;
-  to: string;
-  description: string;
-};
+import type { SettlementChildNavItem } from './SubdomainAccordionNav';
 
 type SubdomainSettlementSidebarProps = {
-  items: SubdomainSettlementSidebarItem[];
+  items: SettlementChildNavItem[];
 };
 
 function getSettlementSidebarLinkId(to: string, suffix: 'title' | 'description') {
-  return `cockpit-settlement-sidebar-${to.slice(1).replaceAll('/', '-')}-${suffix}`;
+  return `cockpit-settlement-sidebar-${to.slice(1).replace(/\//g, '-')}-${suffix}`;
 }
 
 export function SubdomainSettlementSidebar({ items }: SubdomainSettlementSidebarProps) {
