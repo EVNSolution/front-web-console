@@ -96,6 +96,7 @@ import type { TenantCompanyContext, WorkspaceBootstrapPayload } from './types';
 import { useNavigationPolicyWithRefresh } from './hooks/useNavigationPolicy';
 import { accountItem, dashboardItem, isNavigationItemActive, navigationGroups } from './navigation';
 import type { NavItemKey } from './authScopes';
+import { CheonhaVehicleHomePage } from './cockpit/cheonha/CheonhaVehicleHomePage';
 
 const ROUTER_FUTURE = {
   v7_relativeSplatPath: true,
@@ -1429,6 +1430,7 @@ function AppContent() {
           <Routes>
             <Route element={<CockpitShell companyName={cockpitCompanyName} onLogout={handleLogout} session={session} />}>
               <Route path="/" element={<CheonhaDashboardPage companyName={cockpitCompanyName} />} />
+              <Route path="/vehicles/home" element={<CheonhaVehicleHomePage />} />
               <Route
                 path="/me"
                 element={
