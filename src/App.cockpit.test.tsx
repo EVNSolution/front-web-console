@@ -176,24 +176,12 @@ describe('App cockpit entry', () => {
         name: '천하운수 운영 대시보드',
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '최근 6개월 수입/지출' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '금월 배차표 기반 근태' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '금일 배차' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '이전 월' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '다음 월' })).toBeDisabled();
-    expect(screen.getByText(getCurrentMonthLabel())).toBeInTheDocument();
-    expect(screen.getAllByText('데이터 미연동')).toHaveLength(9);
-    expect(screen.queryByText('₩0')).not.toBeInTheDocument();
-    expect(screen.queryByText('0명')).not.toBeInTheDocument();
-    expect(screen.queryByText('0건')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', {
-        name: '정산 천하운수 전용 정산 워크스페이스로 이동합니다. 열기',
-      }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('천하운수')).toBeInTheDocument();
+    expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
   });
 
-  it('renders the subdomain shell with a left-side accordion nav instead of a top bar', async () => {
+  it('dashboard body no longer shows the old finance/attendance/dispatch sections', async () => {
     vi.mocked(loadStoredSession).mockReturnValue(session);
     vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
       companyId: '30000000-0000-0000-0000-000000000001',
@@ -226,9 +214,12 @@ describe('App cockpit entry', () => {
     expect(screen.getByRole('button', { name: '정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument();
     expect(document.querySelector('.console-topbar')).toBeNull();
+    expect(screen.queryByRole('heading', { name: '최근 6개월 수입/지출' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '금월 배차표 기반 근태' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '금일 배차' })).not.toBeInTheDocument();
   });
 
-  it('keeps settlement under /settlement', async () => {
+  it('/settlement redirects to /settlement/home', async () => {
     vi.mocked(loadStoredSession).mockReturnValue(session);
     vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
       companyId: '30000000-0000-0000-0000-000000000001',
@@ -257,6 +248,41 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
     expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/settlement/home');
+    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
+  });
+
+  it('/settlement/home still resolves under the cockpit shell without a top-level dispatch route', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(session);
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+    vi.mocked(getWorkspaceBootstrap).mockResolvedValue({
+      companyId: '30000000-0000-0000-0000-000000000001',
+      companyName: '천하운수',
+      tenantCode: 'cheonha',
+      workflowProfile: 'cheonha_ops_v1',
+      enabledFeatures: ['settlement', 'vehicle'],
+      homeDashboardPreset: {},
+      workspacePresets: {},
+    });
+
+    window.history.replaceState({}, '', '/settlement/home');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/settlement/home');
+    expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
     const subdomainNav = screen.getByRole('navigation', { name: '서브도메인 메뉴' });
     expect(within(subdomainNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/settlement/home');
     expect(within(subdomainNav).getByRole('link', { name: '배차 데이터' })).toHaveAttribute(
@@ -267,6 +293,7 @@ describe('App cockpit entry', () => {
       'href',
       '/settlement/crew',
     );
+    expect(screen.queryByRole('link', { name: '배차' })).not.toBeInTheDocument();
   });
 
   it('fails closed on removed /settlements aliases in the cockpit shell', async () => {
