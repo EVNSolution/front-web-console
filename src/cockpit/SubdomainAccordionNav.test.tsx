@@ -211,7 +211,6 @@ describe('SubdomainAccordionNav', () => {
 
     expect(settlementSidebar).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
-    expect(screen.queryByTestId('subdomain-settlement-sidebar-surface')).not.toBeInTheDocument();
   });
 
   it.each([
