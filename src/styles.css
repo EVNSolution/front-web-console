@@ -4132,7 +4132,6 @@ textarea:focus {
 .cockpit-shell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: var(--cockpit-rail-width) minmax(0, 1fr);
   background:
     radial-gradient(circle at top left, rgba(224, 241, 255, 0.85), transparent 32%),
     linear-gradient(180deg, #f7fafc 0%, #eef3f8 100%);
@@ -4140,10 +4139,12 @@ textarea:focus {
 
 .cockpit-shell-no-dashboard-sidebar {
   grid-template-columns: var(--cockpit-rail-width) minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
 }
 
 .cockpit-shell-settlement {
   grid-template-columns: var(--cockpit-rail-width) var(--cockpit-sidebar-lane-width) minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto;
 }
 
 .cockpit-brand-link {
@@ -4155,29 +4156,14 @@ textarea:focus {
   text-decoration: none;
 }
 
-.cockpit-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem 1rem 1rem;
-  border-right: 1px solid rgba(20, 40, 70, 0.08);
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(14px);
-  overflow: visible;
-}
-
 .cockpit-launcher-cluster {
   position: relative;
+  margin: 1.5rem 1rem 0;
 }
 
-.cockpit-shell-settlement .cockpit-rail {
-  display: grid;
-  grid-column: 1 / 3;
-  grid-template-columns: minmax(0, 1fr) var(--cockpit-popout-width);
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  column-gap: var(--cockpit-popout-gap);
-  row-gap: 1rem;
-  align-content: start;
+.cockpit-shell-no-dashboard-sidebar .cockpit-launcher-cluster {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .cockpit-shell-settlement .cockpit-launcher-cluster {
@@ -4308,14 +4294,14 @@ textarea:focus {
 
 .cockpit-detached-settlement-sidebar {
   width: var(--cockpit-popout-width);
-  margin-left: calc(100% + var(--cockpit-popout-gap));
 }
 
 .cockpit-shell-settlement .cockpit-detached-settlement-sidebar {
   grid-column: 2;
   grid-row: 2;
   width: auto;
-  margin-left: 0;
+  margin-top: 1rem;
+  align-self: start;
 }
 
 .cockpit-detached-sidebar {
@@ -4399,12 +4385,18 @@ textarea:focus {
 }
 
 .cockpit-rail-footer {
-  margin-top: auto;
-  padding: 0.25rem 0.5rem 0;
+  align-self: stretch;
+  margin: 0 1rem 1rem;
+}
+
+.cockpit-shell-no-dashboard-sidebar .cockpit-rail-footer {
+  grid-column: 1;
+  grid-row: 3;
 }
 
 .cockpit-shell-settlement .cockpit-rail-footer {
-  grid-column: 1 / -1;
+  grid-column: 1;
+  grid-row: 4;
 }
 
 .cockpit-logout-button {
@@ -4416,8 +4408,14 @@ textarea:focus {
   padding: 1.5rem;
 }
 
+.cockpit-shell-no-dashboard-sidebar .cockpit-content {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+}
+
 .cockpit-shell-settlement .cockpit-content {
   grid-column: 3;
+  grid-row: 1 / span 4;
 }
 
 .cockpit-workspace {
@@ -4596,26 +4594,21 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
-  .cockpit-shell-settlement .cockpit-rail {
-    display: flex;
-    grid-column: auto;
-    grid-template-columns: none;
+  .cockpit-shell-no-dashboard-sidebar,
+  .cockpit-shell-settlement {
+    grid-template-columns: 1fr;
     grid-template-rows: none;
-    column-gap: 0;
-    row-gap: 0;
   }
 
+  .cockpit-shell-no-dashboard-sidebar .cockpit-launcher-cluster,
   .cockpit-shell-settlement .cockpit-launcher-cluster,
   .cockpit-shell-settlement .cockpit-detached-settlement-sidebar,
+  .cockpit-shell-no-dashboard-sidebar .cockpit-rail-footer,
   .cockpit-shell-settlement .cockpit-rail-footer,
+  .cockpit-shell-no-dashboard-sidebar .cockpit-content,
   .cockpit-shell-settlement .cockpit-content {
     grid-column: auto;
     grid-row: auto;
-  }
-
-  .cockpit-rail {
-    border-right: 0;
-    border-bottom: 1px solid rgba(20, 40, 70, 0.08);
   }
 
   .cockpit-brand-block {
@@ -4635,7 +4628,7 @@ textarea:focus {
   .cockpit-detached-settlement-sidebar {
     position: static;
     width: auto;
-    margin-left: 0;
+    margin: 1rem 1rem 0;
     opacity: 1;
     transform: none;
     pointer-events: auto;
@@ -4651,5 +4644,13 @@ textarea:focus {
 
   .cockpit-content {
     padding: 1rem;
+  }
+
+  .cockpit-launcher-cluster {
+    margin: 1rem 1rem 0;
+  }
+
+  .cockpit-rail-footer {
+    margin: 0 1rem 1rem;
   }
 }

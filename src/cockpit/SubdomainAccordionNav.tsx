@@ -48,7 +48,7 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
   const topLevelNavClassName = isTopLevelMenuExpanded ? 'cockpit-nav is-expanded' : 'cockpit-nav';
 
   return (
-    <aside className="cockpit-rail">
+    <>
       <div className="cockpit-launcher-cluster" data-testid="subdomain-launcher-cluster">
         <div className="cockpit-brand-block">
           <SubdomainBrandCard companyName={companyName} />
@@ -83,6 +83,6 @@ export function SubdomainAccordionNav({ activeMenu, companyName, onLogout }: Sub
           로그아웃
         </button>
       </div>
-    </aside>
+    </>
   );
 }

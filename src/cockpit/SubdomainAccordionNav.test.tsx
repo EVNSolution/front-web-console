@@ -98,7 +98,7 @@ describe('SubdomainAccordionNav', () => {
 
     expect(launcherCluster).toContainElement(topLevelNav);
     expect(launcherCluster).not.toContainElement(settlementSidebar);
-    expect(launcherCluster.nextElementSibling).toBe(settlementSidebar);
+    expect(settlementSidebar.closest('.cockpit-rail')).toBeNull();
     expect(topLevelNav).toBeInTheDocument();
     expect(settlementSidebar).toBeInTheDocument();
     expect(settlementNav).toBeInTheDocument();
