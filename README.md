@@ -48,7 +48,9 @@
 - system-admin sessions are rejected from the subdomain shell
 - subdomain `/` opens the dashboard first
 - subdomain login shows the company header
-- subdomain launcher order is `대시보드 / 정산`
+- subdomain launcher order is `대시보드 / 차량 / 정산`
+- vehicle workspace is detached like settlement
+- vehicle sidebar order is `홈 / 배송원 / 차량 / 차량 배정`
 - settlement internal menu order is `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
 - rule-shell behavior is structural only: no persisted editor, no save action, no submit action, and no write API
 
