@@ -274,6 +274,7 @@ vi.mock('./api/regions', () => ({
 
 describe('Admin App', () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
@@ -283,6 +284,7 @@ describe('Admin App', () => {
     vi.mocked(resolveTenantEntry).mockReturnValue(null);
     vi.mocked(loginApi).mockReset();
     vi.mocked(listVehicleMasters).mockResolvedValue([]);
+    vi.stubEnv('MODE', 'test');
   });
 
   it('uses the unified dashboard as the root route', async () => {
@@ -558,5 +560,25 @@ describe('Admin App', () => {
     expect(topNotice).toHaveTextContent(GENERIC_SERVER_ERROR_MESSAGE);
     expect(topNotice).toHaveAttribute('data-tone', 'error');
     expect(document.querySelector('.error-banner.is-suppressed-by-top-notice')).not.toBeNull();
+  });
+
+  it('does not expose the dev session route outside local-sandbox mode', async () => {
+    window.history.replaceState({}, '', '/__dev__/session');
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+    expect(screen.queryByRole('button', { name: '세션 주입' })).not.toBeInTheDocument();
+    expect(screen.queryByText('현재 host')).not.toBeInTheDocument();
+  });
+
+  it('renders the dev session route only in local-sandbox mode', async () => {
+    vi.stubEnv('MODE', 'local-sandbox');
+    window.history.replaceState({}, '', '/__dev__/session');
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: '세션 주입' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '세션 초기화' })).toBeInTheDocument();
   });
 });

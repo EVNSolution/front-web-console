@@ -29,6 +29,8 @@
 ## Runtime Contract / Local Role
 
 - `npm run dev`는 host 개발용 `http://localhost:5174`를 소유한다.
+- `npm run dev:local-test`는 더 안전한 원격 dev/staging target 확인용이다.
+- `npm run dev:local-sandbox`는 `ev-dashboard.com` / `cheonha.ev-dashboard.com` host 문맥을 로컬에서 눌러보는 수동 테스트용이다.
 - Docker image는 `npm run dev`를 띄우지 않고, `npm run build` 결과물을 정적으로 서빙한다.
 - 통합 확인용 `http://localhost:8080`은 gateway 뒤의 built frontend 기준으로 본다.
 
@@ -36,6 +38,7 @@
 
 - 빠른 UI loop: `npm run dev`
 - safer remote target 확인: `npm run dev:local-test`
+- host 기반 수동 검증과 `/__dev__/session` 확인: `npm run dev:local-sandbox`
 - static bundle 검증: `npm run build`
 
 ## Subdomain Shell Contract
@@ -49,6 +52,25 @@
 - settlement internal menu order is `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
 - rule-shell behavior is structural only: no persisted editor, no save action, no submit action, and no write API
 
+## Local Sandbox Contract
+
+`npm run dev:local-sandbox`는 아래 계약만 허용한다.
+
+- host entries:
+  - `127.0.0.1 ev-dashboard.com`
+  - `127.0.0.1 cheonha.ev-dashboard.com`
+- allowed presets:
+  - `ev-dashboard.com` -> `system_admin`
+  - `cheonha.ev-dashboard.com` -> `cheonha_manager`
+- safety rule:
+  - local-sandbox는 절대 real `/api`로 fall through 하지 않는다.
+  - 이 모드의 `/api` 요청은 브라우저 내부 mock layer가 전부 처리한다.
+- reset expectations:
+  - `세션 초기화`는 저장된 session payload를 지운다.
+  - `세션 초기화`는 dev preset bookkeeping을 지운다.
+  - `세션 초기화`는 mock API memory state를 지운다.
+  - 초기화 후에는 로그인되지 않은 깨끗한 local-sandbox 상태로 돌아간다.
+
 ## Image Build / Deploy Contract
 
 - GitHub Actions workflow 이름은 `Build front-web-console image`다.
@@ -61,6 +83,7 @@
 - `VITE_DEV_PROXY_TARGET`을 사용하면 `5174`의 `/api`를 remote gateway로 프록시할 수 있다.
 - `.env.local`은 실데이터 remote target에 붙을 때만 사용한다.
 - `.env.local-test`는 dev/staging 같은 더 안전한 remote target에 우선 사용한다.
+- `.env.local-test`와 `npm run dev:local-test`는 remote proxy rehearsal용이고, `npm run dev:local-sandbox`와 같은 mock-only mode가 아니다.
 - `npm run dev:local-test`는 `local-test` mode로 실행되어 `.env.local-test`를 읽는다.
 - 현재 dev/local-test remote target 기본값은 `https://clever-hub-dev-public-alb-709320164.ap-northeast-2.elb.amazonaws.com` 이다.
 - 현재 실데이터 remote target 기본값은 `https://ev-dashboard.com`이다.
@@ -83,6 +106,8 @@ Use this checklist for the subdomain shell regression pass:
 - subdomain `/` opens dashboard
 - subdomain settlement menu order matches spec
 - subdomain login shows company header
+- `dev:local-test` still routes through the safer remote target and does not enable `/__dev__/session`
+- `dev:local-sandbox` uses host-based presets and never calls real `/api`
 
 ## Root Docs / Runbooks
 

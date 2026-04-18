@@ -162,9 +162,9 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    expect(screen.getByText('천하운수')).toBeInTheDocument();
-    expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
-    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(await screen.findByText('천하운수')).toBeInTheDocument();
+    expect(await screen.findByText('전용 업무 cockpit')).toBeInTheDocument();
+    expect(await screen.findByRole('main')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '정산 메뉴' })).not.toBeInTheDocument();
     expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
