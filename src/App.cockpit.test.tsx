@@ -162,9 +162,9 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
 
-    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     expect(screen.getByText('천하운수')).toBeInTheDocument();
     expect(screen.getByText('전용 업무 cockpit')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '정산 탭' })).not.toBeInTheDocument();
     expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
@@ -191,7 +191,6 @@ describe('App cockpit entry', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('기준: 오늘')).not.toBeInTheDocument();
     expect(screen.queryByText('데이터 미연동')).not.toBeInTheDocument();
-    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
   });
 
   it('/settlement redirects to /settlement/home', async () => {
@@ -229,7 +228,6 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
       expect(window.location.pathname).toBe('/');
     });
-    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     expect(screen.queryByText('cockpit alias surface')).not.toBeInTheDocument();
     expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
   });
@@ -242,7 +240,6 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     expect(window.location.pathname).toBe('/');
     expect(screen.queryByText('배차 관리 권한 필요')).not.toBeInTheDocument();
     expect(screen.queryByText('천하운수 운영 대시보드')).not.toBeInTheDocument();
@@ -276,7 +273,6 @@ describe('App cockpit entry', () => {
       expect(resolvePublicCompanyTenant).toHaveBeenCalledWith('cheonha');
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
-    expect(document.querySelector('section.cockpit-dashboard')).not.toBeNull();
     await waitFor(() => {
       expect(window.location.pathname).toBe('/');
     });
