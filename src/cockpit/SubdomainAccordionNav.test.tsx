@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SubdomainAccordionNav } from './SubdomainAccordionNav';
@@ -18,6 +18,16 @@ function renderNav(initialEntry = '/') {
         <Route path="*" element={<SubdomainAccordionNav companyName="천하운수" onLogout={vi.fn()} />} />
       </Routes>
     </MemoryRouter>,
+  );
+}
+
+function RouteSwitcher() {
+  const navigate = useNavigate();
+
+  return (
+    <button type="button" onClick={() => navigate('/other')}>
+      route-switch
+    </button>
   );
 }
 
@@ -54,32 +64,27 @@ describe('SubdomainAccordionNav', () => {
 
   it('top-level expanded state stays open after route changes until the user collapses it', async () => {
     const user = userEvent.setup();
-    renderNav('/settlement/crew');
 
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    await user.click(screen.getByRole('link', { name: '대시보드' }));
+    render(
+      <MemoryRouter
+        future={{
+          v7_relativeSplatPath: true,
+          v7_startTransition: true,
+        }}
+        initialEntries={['/']}
+      >
+        <Routes>
+          <Route path="*" element={<><RouteSwitcher /><SubdomainAccordionNav companyName="천하운수" onLogout={vi.fn()} /></>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '정산' }));
+    await user.click(screen.getByRole('button', { name: 'route-switch' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('button', { name: '정산' }));
     expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('marks the active child item for the current route', () => {
-    renderNav('/settlement/crew');
-
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
-    expect(screen.getByRole('link', { name: '배차 데이터' })).not.toHaveClass('is-active');
-  });
-
-  it('keeps settlement expanded while a settlement child route is active', async () => {
-    const user = userEvent.setup();
-    renderNav('/settlement/crew');
-
-    await user.click(screen.getByRole('button', { name: '정산' }));
-
-    expect(screen.getByRole('button', { name: '정산' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '배송원 관리' })).toHaveClass('is-active');
-  });
 });

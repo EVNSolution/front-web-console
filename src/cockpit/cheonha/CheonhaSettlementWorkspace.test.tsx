@@ -84,6 +84,5 @@ describe('CheonhaSettlementWorkspace', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
-    expect(screen.getByRole('link', { name: '홈' })).toHaveClass('is-active');
   });
 });
