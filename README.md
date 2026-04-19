@@ -33,6 +33,8 @@
 - `npm run dev:local-sandbox`는 `ev-dashboard.com` / `cheonha.ev-dashboard.com` host 문맥을 로컬에서 눌러보는 수동 테스트용이다.
 - Docker image는 `npm run dev`를 띄우지 않고, `npm run build` 결과물을 정적으로 서빙한다.
 - 통합 확인용 `http://localhost:8080`은 gateway 뒤의 built frontend 기준으로 본다.
+- production runtime rollout은 `../runtime-prod-release/` 가 소유한다.
+- production runtime shape와 canonical inventory는 `../runtime-prod-platform/` 이 소유한다.
 
 ## Local Run / Verification
 
@@ -86,10 +88,14 @@
 
 ## Image Build / Deploy Contract
 
+- prod contract is build, test, and immutable image publish only
+- production runtime rollout ownership belongs to `runtime-prod-release`
+- build and publish auth uses `ECR_BUILD_AWS_ROLE_ARN` plus shared `AWS_REGION`
+
 - GitHub Actions workflow 이름은 `Build front-web-console image`다.
 - workflow는 immutable `front-web-console:<sha>` 이미지를 ECR로 publish 한다.
 - `workflow_dispatch`에서는 optional `vite_api_base_url` input으로 baked API base URL을 줄 수 있다.
-- shared ECS deploy, ALB, ACM, Route53 관리는 `../infra-ev-dashboard-platform/` 이 소유한다.
+- production runtime shape와 canonical inventory는 `../runtime-prod-platform/` 이 소유한다.
 
 ## Environment Files And Safety Notes
 
