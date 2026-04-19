@@ -115,3 +115,12 @@ A single launcher can accumulate more than one detached workspace over time with
 - add new detached workspaces under the same launcher instead of inventing a separate shell
 - regroup existing CRUD pages into the new workspace when that preserves the domain boundary
 - do not invent new domain surfaces just because the navigation grouping changes
+
+## Settlement Dispatch Keeps Two Different Layout Modes
+
+`정산 > 배차 데이터`는 한 가지 레이아웃만 고집하면 안 된다.
+
+- 넓은 뷰포트에서는 `업로드 범위 | 업로드 파일` 2열 구조를 유지한다.
+- 좁은 뷰포트에서만 `업로드 범위`를 가로 launcher/expander로 접는다.
+- 접힘 상태는 세로 카드가 아니라 낮은 가로 bar여야 한다.
+- local-sandbox에서는 `/drivers/` read mock이 있어야 하고, unsupported API 경고를 화면에 노출하지 않는다.

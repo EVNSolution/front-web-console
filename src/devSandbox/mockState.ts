@@ -6,6 +6,7 @@ import type {
   DailyDeliveryInputSnapshot,
   DeliveryRecord,
   DispatchPlan,
+  DriverProfile,
   DriverLatestSettlementPage,
   Fleet,
   SettlementItem,
@@ -43,6 +44,7 @@ type LocalSandboxMockState = {
   publicCompanies: Company[];
   companies: Company[];
   fleets: Fleet[];
+  drivers: DriverProfile[];
   tenantContexts: Record<string, TenantCompanyContext>;
   mainWorkspaceBootstrap: WorkspaceBootstrapPayload;
   tenantWorkspaceBootstraps: Record<string, WorkspaceBootstrapPayload>;
@@ -110,6 +112,30 @@ function createInitialState(): LocalSandboxMockState {
     company_id: cheonhaCompany.company_id,
     name: '천하 운영 플릿',
   };
+  const drivers: DriverProfile[] = [
+    {
+      driver_id: 'driver-1',
+      route_no: 1,
+      company_id: cheonhaCompany.company_id,
+      fleet_id: cheonhaMainFleet.fleet_id,
+      name: '천하 기사 1',
+      external_user_name: 'CHEONHA_DRIVER_1',
+      ev_id: 'EV-0001',
+      phone_number: '010-0000-0001',
+      address: '서울',
+    },
+    {
+      driver_id: 'driver-2',
+      route_no: 2,
+      company_id: cheonhaCompany.company_id,
+      fleet_id: cheonhaOpsFleet.fleet_id,
+      name: '천하 기사 2',
+      external_user_name: 'CHEONHA_DRIVER_2',
+      ev_id: 'EV-0002',
+      phone_number: '010-0000-0002',
+      address: '서울',
+    },
+  ];
 
   return {
     sessions: {
@@ -119,6 +145,7 @@ function createInitialState(): LocalSandboxMockState {
     publicCompanies: [cheonhaCompany],
     companies: [cheonhaCompany],
     fleets: [cheonhaMainFleet, cheonhaOpsFleet],
+    drivers,
     tenantContexts: {
       cheonha: {
         companyId: cheonhaCompany.company_id,
@@ -331,6 +358,27 @@ export function listLocalSandboxCompanies(): Company[] {
 
 export function listLocalSandboxFleets(): Fleet[] {
   return clone(localSandboxMockState.fleets);
+}
+
+export function listLocalSandboxDrivers(searchParams: URLSearchParams): DriverProfile[] {
+  const companyId = searchParams.get('company_id');
+  const fleetId = searchParams.get('fleet_id');
+  const externalUserName = searchParams.get('external_user_name');
+
+  return clone(
+    localSandboxMockState.drivers.filter((driver) => {
+      if (companyId && driver.company_id !== companyId) {
+        return false;
+      }
+      if (fleetId && driver.fleet_id !== fleetId) {
+        return false;
+      }
+      if (externalUserName && driver.external_user_name !== externalUserName) {
+        return false;
+      }
+      return true;
+    }),
+  );
 }
 
 export function resolveLocalSandboxTenantContext(tenantCode: string): TenantCompanyContext | null {

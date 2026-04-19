@@ -125,6 +125,8 @@ Use this checklist for the subdomain shell regression pass:
 - main domain `/vehicles/home` does not open vehicle detail as `vehicleRef='home'`
 - vehicle sidebar marks only `홈` active on `/vehicles/home`
 - subdomain settlement menu order matches spec
+- `/settlement/dispatch` keeps `업로드 범위 | 업로드 파일` 2열 on wide viewports
+- `/settlement/dispatch` switches only the upload scope into a horizontal launcher/expander on narrow viewports
 - subdomain login shows company header
 - `dev:local-test` still routes through the safer remote target and does not enable `/__dev__/session`
 - `dev:local-sandbox` uses host-based presets and never calls real `/api`

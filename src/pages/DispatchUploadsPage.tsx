@@ -354,15 +354,14 @@ export function DispatchUploadsPage({
             {isLoading ? (
               <p className="empty-state">업로드 범위를 불러오는 중입니다...</p>
             ) : isSettlementScopeSummaryOnly ? (
-              <button
-                aria-label="업로드 범위 펼치기"
-                className="dispatch-upload-scope-inline-summary"
-                onClick={() => setIsSettlementScopeCollapsed(false)}
-                type="button"
-              >
-                <span className="dispatch-upload-scope-inline-summary-kicker">업로드 범위</span>
-                <span className="dispatch-upload-scope-inline-summary-note">클릭해 범위를 다시 펼칩니다.</span>
-              </button>
+            <button
+              aria-label="업로드 범위 펼치기"
+              className="dispatch-upload-scope-inline-summary"
+              onClick={() => setIsSettlementScopeCollapsed(false)}
+              type="button"
+            >
+              <span className="dispatch-upload-scope-inline-summary-kicker">업로드 범위</span>
+            </button>
             ) : (
               <>
                 <div className="dispatch-upload-scope-inline-header">

@@ -42,4 +42,26 @@ describe('installFetchMock', () => {
 
     uninstall();
   });
+
+  it('serves driver scope queries from the local sandbox mock instead of raising unsupported API errors', async () => {
+    const originalFetch = vi.fn().mockResolvedValue(new Response('should not be used'));
+    globalThis.fetch = originalFetch as typeof fetch;
+
+    const uninstall = installFetchMock();
+
+    const response = await fetch(
+      '/api/drivers/?company_id=30000000-0000-0000-0000-000000000001&fleet_id=40000000-0000-0000-0000-000000000001',
+    );
+
+    expect(originalFetch).not.toHaveBeenCalled();
+    expect(response.ok).toBe(true);
+    await expect(response.json()).resolves.toMatchObject([
+      {
+        driver_id: 'driver-1',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+      },
+    ]);
+
+    uninstall();
+  });
 });

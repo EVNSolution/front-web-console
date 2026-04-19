@@ -6,6 +6,7 @@ import {
   listLocalSandboxDailySnapshots,
   listLocalSandboxDeliveryRecords,
   listLocalSandboxDispatchPlans,
+  listLocalSandboxDrivers,
   listLocalSandboxFleets,
   listLocalSandboxLatestDriverSettlements,
   listLocalSandboxPublicCompanies,
@@ -168,6 +169,10 @@ async function handleApiRequest(input: RequestInfo | URL, init?: RequestInit): P
 
   if (method === 'GET' && apiPath === '/org/fleets/') {
     return jsonResponse(listLocalSandboxFleets());
+  }
+
+  if (method === 'GET' && apiPath === '/drivers/') {
+    return jsonResponse(listLocalSandboxDrivers(requestUrl.searchParams));
   }
 
   if (method === 'GET' && apiPath === '/delivery-record/records/') {
