@@ -27,8 +27,8 @@
   --console-dark: #171817;
   --console-dark-soft: #1f201f;
   --console-border: rgba(255, 255, 255, 0.08);
-  --cockpit-rail-width: 320px;
-  --cockpit-surface-width: 17.5rem;
+  --cockpit-rail-width: 18.4rem;
+  --cockpit-surface-width: 16.8rem;
   --cockpit-trigger-width: 32px;
   --cockpit-popout-width: 216px;
   --cockpit-popout-gap: 18px;
@@ -3350,6 +3350,100 @@ textarea:focus {
   min-width: 0;
 }
 
+.dispatch-upload-settlement-shell {
+  display: grid;
+  grid-template-columns: minmax(11rem, 12.5rem) minmax(0, 1fr);
+  gap: 0.9rem;
+  min-width: 0;
+  align-items: start;
+}
+
+.dispatch-upload-scope-inline {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.85rem 0.95rem;
+  max-width: 12.5rem;
+}
+
+.dispatch-upload-scope-inline.is-collapsed {
+  padding: 0.5rem 0.65rem;
+}
+
+.dispatch-upload-scope-inline-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.8rem;
+}
+
+.dispatch-upload-scope-inline-copy {
+  min-width: 0;
+}
+
+.dispatch-upload-scope-inline-copy .panel-kicker {
+  margin-bottom: 0.55rem;
+}
+
+.dispatch-upload-scope-inline-copy h2 {
+  font-size: 1.18rem;
+}
+
+.dispatch-upload-scope-inline-copy .table-meta {
+  font-size: 0.8rem;
+}
+
+.dispatch-upload-scope-inline-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 0.8rem;
+}
+
+.dispatch-upload-scope-inline-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.dispatch-upload-scope-inline-actions {
+  align-self: start;
+}
+
+.dispatch-upload-scope-inline-summary {
+  width: 100%;
+  min-height: 3.4rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px dashed rgba(20, 40, 70, 0.14);
+  border-radius: 16px;
+  background: rgba(245, 247, 249, 0.72);
+  color: rgba(79, 95, 121, 0.82);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  text-align: left;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dispatch-upload-scope-inline-summary-kicker {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.dispatch-upload-scope-inline-summary-note {
+  color: rgba(79, 95, 121, 0.68);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dispatch-upload-main.is-settlement {
+  min-width: 0;
+}
+
 .dispatch-upload-scope-grid,
 .dispatch-upload-scope-summary {
   display: grid;
@@ -3394,6 +3488,19 @@ textarea:focus {
   min-height: 2.2rem;
   padding: 0.45rem 0.7rem;
   font-size: 0.84rem;
+}
+
+.dispatch-upload-scope-toggle {
+  align-self: start;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4f5f79;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .dispatch-plan-list,
@@ -3785,8 +3892,34 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .dispatch-upload-settlement-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .dispatch-upload-scope-inline {
+    max-width: none;
+  }
+
   .dispatch-upload-sidebar {
     gap: 0.85rem;
+  }
+
+  .dispatch-upload-scope-inline-body {
+    grid-template-columns: minmax(14rem, 1.4fr) auto auto;
+    align-items: end;
+  }
+
+  .dispatch-upload-scope-inline-fields {
+    grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
+  }
+
+  .dispatch-upload-scope-inline-actions {
+    justify-self: start;
+    align-self: center;
+  }
+
+  .dispatch-upload-scope-inline-summary {
+    justify-content: flex-start;
   }
 
   .dispatch-upload-sheet-summary {
@@ -4133,9 +4266,7 @@ textarea:focus {
 .cockpit-shell {
   min-height: 100dvh;
   display: grid;
-  background:
-    radial-gradient(circle at top left, rgba(224, 241, 255, 0.85), transparent 32%),
-    linear-gradient(180deg, #f7fafc 0%, #eef3f8 100%);
+  background: #f4f6f7;
 }
 
 .cockpit-shell-no-dashboard-sidebar {
@@ -4171,7 +4302,7 @@ textarea:focus {
 
 .cockpit-launcher-cluster {
   position: relative;
-  margin: 1.35rem 1rem 0 1.35rem;
+  margin: 1rem 1rem 0;
 }
 
 .cockpit-shell-no-dashboard-sidebar .cockpit-launcher-cluster {
@@ -4190,7 +4321,7 @@ textarea:focus {
 }
 
 .cockpit-brand-block {
-  width: min(100%, var(--cockpit-surface-width));
+  width: 100%;
   padding: 0;
 }
 
@@ -4205,7 +4336,7 @@ textarea:focus {
   border-radius: 18px;
   border: 1px solid rgba(20, 40, 70, 0.08);
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16px 34px rgba(15, 41, 66, 0.06);
+  box-shadow: none;
 }
 
 .cockpit-brand-header-row {
@@ -4257,7 +4388,7 @@ textarea:focus {
   border-radius: 16px;
   border: 1px solid rgba(20, 40, 70, 0.08);
   background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 14px 34px rgba(15, 41, 66, 0.06);
+  box-shadow: none;
   overflow: hidden;
   z-index: 2;
   transition: width 180ms ease, padding-right 180ms ease, background-color 160ms ease, gap 140ms ease;
@@ -4297,7 +4428,7 @@ textarea:focus {
 }
 
 .cockpit-card-toggle[aria-expanded='true'] {
-  background: rgba(223, 238, 250, 0.85);
+  background: rgba(244, 248, 199, 0.92);
 }
 
 .cockpit-card-toggle:hover {
@@ -4349,13 +4480,13 @@ textarea:focus {
 }
 
 .cockpit-detached-settlement-sidebar {
-  width: 22rem;
+  width: auto;
 }
 
 .cockpit-shell-settlement .cockpit-detached-settlement-sidebar {
   grid-column: 1;
   grid-row: 2;
-  width: min(100%, 22rem);
+  width: auto;
   margin: 1rem 1rem 0;
   align-self: start;
 }
@@ -4363,10 +4494,13 @@ textarea:focus {
 .cockpit-detached-settlement-sidebar .cockpit-detached-sidebar {
   gap: 0.65rem;
   padding: 1.2rem 1.15rem 1.1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(20, 40, 70, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: none;
 }
 
 .cockpit-shell-vehicle > .cockpit-child-nav.cockpit-detached-sidebar {
-  width: var(--cockpit-surface-width);
   grid-column: 1;
   grid-row: 2;
   width: auto;
@@ -4387,7 +4521,7 @@ textarea:focus {
   border-radius: 18px;
   border: 1px solid rgba(20, 40, 70, 0.08);
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16px 34px rgba(15, 41, 66, 0.06);
+  box-shadow: none;
 }
 
 .cockpit-detached-settlement-sidebar .cockpit-child-nav::before {
@@ -4414,24 +4548,25 @@ textarea:focus {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  min-height: 4.65rem;
-  padding: 0.95rem 1rem;
+  min-height: 4.9rem;
+  padding: 1rem 1.05rem;
   border-radius: 16px;
-  gap: 0.24rem;
+  gap: 0.28rem;
 }
 
 .cockpit-settlement-nav-title {
   display: block;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.98rem;
+  font-size: 1.08rem;
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.02em;
+  color: currentColor;
 }
 
 .cockpit-settlement-nav-description {
   display: block;
-  font-size: 0.79rem;
+  font-size: 0.86rem;
   font-weight: 500;
   line-height: 1.25;
   color: #6e7a8e;
@@ -4444,7 +4579,7 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 16px;
   padding: 0 1rem;
   text-decoration: none;
@@ -4457,6 +4592,7 @@ textarea:focus {
 .cockpit-nav-child-link {
   justify-content: flex-start;
   font-weight: 600;
+  font-size: 1rem;
 }
 
 .cockpit-nav-link {
@@ -4482,13 +4618,16 @@ textarea:focus {
 .cockpit-nav-link.is-active,
 .cockpit-nav-toggle.is-active,
 .cockpit-nav-child-link.is-active {
-  color: #0b223a;
-  background: rgba(223, 238, 250, 0.95);
+  color: #14170f;
+  background: rgba(205, 222, 0, 0.98);
+  border: 1px solid rgba(154, 184, 0, 0.24);
+  box-shadow: none;
 }
 
 .cockpit-detached-settlement-sidebar .cockpit-nav-child-link.is-active {
-  background: linear-gradient(180deg, rgba(247, 250, 224, 0.98), rgba(232, 239, 180, 0.94));
-  box-shadow: inset 4px 0 0 rgba(205, 222, 0, 0.96), inset 0 0 0 1px rgba(154, 184, 0, 0.24);
+  background: rgba(205, 222, 0, 0.98);
+  border: 1px solid rgba(154, 184, 0, 0.24);
+  box-shadow: none;
 }
 
 .cockpit-nav-link:hover,
@@ -4499,7 +4638,7 @@ textarea:focus {
 }
 
 .cockpit-detached-settlement-sidebar .cockpit-nav-child-link.is-active .cockpit-settlement-nav-description {
-  color: #4e5a6a;
+  color: #47512d;
 }
 
 .cockpit-nav-link:focus-visible,
@@ -4584,21 +4723,19 @@ textarea:focus {
   border: 1px solid rgba(20, 40, 70, 0.08);
   background: rgba(255, 255, 255, 0.92);
   color: #193148;
-  box-shadow: 0 14px 34px rgba(15, 41, 66, 0.08);
+  box-shadow: none;
   transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
 .cockpit-header-action.is-open,
 .cockpit-header-action:hover {
-  background: rgba(223, 238, 250, 0.95);
-  color: #0f2942;
+  background: rgba(244, 248, 199, 0.9);
+  color: #14170f;
 }
 
 .cockpit-header-action:focus-visible {
   outline: none;
-  box-shadow:
-    0 14px 34px rgba(15, 41, 66, 0.08),
-    0 0 0 3px rgba(14, 95, 155, 0.18);
+  box-shadow: 0 0 0 3px rgba(14, 95, 155, 0.18);
 }
 
 .cockpit-header-icon {
@@ -4615,7 +4752,7 @@ textarea:focus {
   border-radius: 22px;
   border: 1px solid rgba(20, 40, 70, 0.08);
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 20px 44px rgba(15, 41, 66, 0.12);
+  box-shadow: none;
   z-index: 4;
 }
 
@@ -4728,6 +4865,13 @@ textarea:focus {
   box-shadow: 0 18px 42px rgba(15, 41, 66, 0.06);
 }
 
+.cockpit-shell-settlement .cockpit-workspace-header,
+.cockpit-shell-settlement .cockpit-workspace-panel {
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: none;
+}
+
 .cockpit-kicker {
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
@@ -4813,15 +4957,7 @@ textarea:focus {
 }
 
 .cockpit-cheonha-settlement-home::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top right, rgba(205, 222, 0, 0.15), transparent 32%),
-    radial-gradient(circle at left center, rgba(14, 95, 155, 0.1), transparent 30%);
-  opacity: 0.8;
+  content: none;
 }
 
 .cockpit-cheonha-settlement-home > * {
@@ -4843,7 +4979,7 @@ textarea:focus {
 .cockpit-settlement-home-banner h1 {
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.65rem, 2vw + 1.15rem, 2.5rem);
+  font-size: clamp(1.9rem, 2.15vw + 1.2rem, 2.7rem);
   letter-spacing: -0.04em;
   color: #102743;
 }
@@ -4864,14 +5000,15 @@ textarea:focus {
   border: 1px solid rgba(20, 40, 70, 0.08);
   background: rgba(255, 255, 255, 0.75);
   color: #4f5f79;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: default;
 }
 
 .cockpit-settlement-chip.is-active {
-  color: #0b223a;
-  background: rgba(223, 238, 250, 0.96);
-  border-color: rgba(14, 95, 155, 0.22);
+  color: #14170f;
+  background: rgba(205, 222, 0, 0.98);
+  border-color: rgba(154, 184, 0, 0.34);
 }
 
 .cockpit-settlement-process-card {
@@ -4893,8 +5030,8 @@ textarea:focus {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.95rem 1rem;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(247, 250, 253, 0.98), rgba(241, 246, 252, 0.92));
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(20, 40, 70, 0.08);
 }
 
@@ -4905,13 +5042,13 @@ textarea:focus {
 }
 
 .cockpit-settlement-process-step-copy strong {
-  font-size: 1rem;
+  font-size: 1.08rem;
   color: #102743;
 }
 
 .cockpit-settlement-process-step-copy span {
   color: #5d6c87;
-  font-size: 0.84rem;
+  font-size: 0.9rem;
 }
 
 .cockpit-settlement-process-link {
@@ -4929,7 +5066,7 @@ textarea:focus {
   background: rgba(20, 40, 70, 0.06);
   border: 1px solid rgba(20, 40, 70, 0.09);
   color: #61708f;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -4944,21 +5081,21 @@ textarea:focus {
   display: grid;
   gap: 0.45rem;
   padding: 1rem 1.05rem;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(20, 40, 70, 0.08);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 24px rgba(15, 41, 66, 0.04);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: none;
 }
 
 .cockpit-settlement-kpi-label {
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #61708f;
 }
 
 .cockpit-settlement-kpi-value {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.1rem, 1.1vw + 0.9rem, 1.45rem);
+  font-size: clamp(1.24rem, 1.2vw + 0.95rem, 1.62rem);
   letter-spacing: -0.04em;
   color: #102743;
 }
@@ -4985,7 +5122,7 @@ textarea:focus {
 }
 
 .cockpit-settlement-recent-grid dt {
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: #7a87a3;
 }
@@ -4993,6 +5130,7 @@ textarea:focus {
 .cockpit-settlement-recent-grid dd {
   margin: 0;
   font-weight: 600;
+  font-size: 1rem;
   color: #102743;
 }
 
@@ -5056,9 +5194,9 @@ textarea:focus {
   display: grid;
   gap: 0.7rem;
   padding: 1rem;
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid rgba(20, 40, 70, 0.08);
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 247, 253, 0.94));
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .cockpit-shell-summary-header {
@@ -5112,9 +5250,9 @@ textarea:focus {
   display: grid;
   gap: 0.7rem;
   padding: 1rem;
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid rgba(20, 40, 70, 0.08);
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 247, 253, 0.94));
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .cockpit-shell-preview-header {

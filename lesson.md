@@ -105,6 +105,7 @@ The refined company shell works only when the launcher and settlement navigation
 - settlement navigation is a detached block below that cluster, not a permanent dashboard rail
 - vehicle navigation follows the same detached workspace pattern as settlement
 - the brand card and detached settlement sidebar should read as the same surface family
+- the brand card and detached workspace sidebars must keep the same width as a fixed shell contract
 - the company shell now has a global top-right header for alerts and account actions across every subdomain page
 
 ## Detached Workspaces Can Grow Incrementally

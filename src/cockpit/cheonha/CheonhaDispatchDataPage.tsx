@@ -69,6 +69,7 @@ export function CheonhaDispatchDataPage(props: CheonhaWorkspaceDependenciesProps
       <DispatchUploadsPage
         client={client}
         dispatchBoardsPath="/settlement/dispatch"
+        layoutVariant="settlement"
         session={session}
         settlementInputsPath="/settlement/process"
       />

@@ -49,6 +49,7 @@ describe('CheonhaDispatchDataPage', () => {
       expect.objectContaining({
         client,
         dispatchBoardsPath: '/settlement/dispatch',
+        layoutVariant: 'settlement',
         session,
         settlementInputsPath: '/settlement/process',
       }),

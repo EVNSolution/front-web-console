@@ -119,6 +119,7 @@ Use this checklist for the subdomain shell regression pass:
 - subdomain `/` opens dashboard
 - subdomain brand card shows `CLEVER / EV&Solution / 천하운수`
 - subdomain top-level launcher opens to the right of the card
+- subdomain brand card width matches the detached settlement and vehicle sidebar width
 - subdomain global header shows `알림 / 계정` actions on every page
 - restricted company-manager deep links under `/drivers`, `/vehicles`, `/vehicle-assignments` redirect to the first allowed cockpit route
 - main domain `/vehicles/home` does not open vehicle detail as `vehicleRef='home'`

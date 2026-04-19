@@ -570,6 +570,37 @@ describe('DispatchUploadsPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/process');
   });
 
+  it('lets the settlement upload scope collapse into a horizontal launcher surface', async () => {
+    render(
+      <MemoryRouter initialEntries={['/settlement/dispatch']}>
+        <DispatchUploadsPage
+          client={{ request: vi.fn() }}
+          dispatchBoardsPath="/settlement/dispatch"
+          layoutVariant="settlement"
+          session={systemAdminSession}
+          settlementInputsPath="/settlement/process"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '업로드 범위 접기' }));
+
+    const collapsedSummary = screen.getByRole('button', { name: '업로드 범위 펼치기' });
+    expect(collapsedSummary).toBeInTheDocument();
+    expect(collapsedSummary).toHaveClass('dispatch-upload-scope-inline-summary');
+    expect(screen.queryByRole('heading', { name: '회사, 플릿, 날짜', level: 2 })).not.toBeInTheDocument();
+    expect(screen.queryByText('업로드와 정산 기준 범위를 먼저 고릅니다.')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('플릿')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('배차일')).not.toBeInTheDocument();
+
+    await user.click(collapsedSummary);
+    expect(screen.getByLabelText('플릿')).toBeInTheDocument();
+    expect(screen.getByLabelText('배차일')).toBeInTheDocument();
+  });
+
   it('hides company selection for company managers and locks the upload scope to the active company', async () => {
     render(
       <MemoryRouter>
