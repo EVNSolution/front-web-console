@@ -192,7 +192,61 @@ describe('App cockpit entry', () => {
       type: 'company',
       tenantCode: 'cheonha',
       host: 'cheonha.ev-dashboard.com',
+      source: 'host',
+      basePath: '',
     });
+  });
+
+  it('keeps the company login path while showing the tenant login screen on the apex domain', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+    vi.mocked(resolveTenantEntry).mockReturnValue({
+      type: 'company',
+      tenantCode: 'cheonha',
+      host: 'ev-dashboard.com',
+      source: 'path',
+      basePath: '/cheonha',
+    });
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
+
+    window.history.replaceState({}, '', '/cheonha/login');
+    render(<App />);
+
+    expect(await screen.findByText('천하운수')).toBeInTheDocument();
+    await waitFor(() => expect(window.location.pathname).toBe('/cheonha/login'));
+  });
+
+  it('normalizes an unauthenticated company deep link to the tenant login path on the apex domain', async () => {
+    vi.mocked(loadStoredSession).mockReturnValue(null);
+    vi.mocked(resolveTenantEntry).mockReturnValue({
+      type: 'company',
+      tenantCode: 'cheonha',
+      host: 'ev-dashboard.com',
+      source: 'path',
+      basePath: '/cheonha',
+    });
+    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
+
+    window.history.replaceState({}, '', '/cheonha/settlement/home');
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.pathname).toBe('/cheonha/login'));
+  });
+
+  it('renders company workspace routes under the tenant path basename on the apex domain', async () => {
+    vi.mocked(resolveTenantEntry).mockReturnValue({
+      type: 'company',
+      tenantCode: 'cheonha',
+      host: 'ev-dashboard.com',
+      source: 'path',
+      basePath: '/cheonha',
+    });
+    setupCompanyCockpit({ pathname: '/cheonha/settlement/home' });
+
+    render(<App />);
+
+    expect((await screen.findAllByRole('heading', { name: '천하운수 정산' })).length).toBeGreaterThan(0);
+    await waitFor(() => expect(window.location.pathname).toBe('/cheonha/settlement/home'));
   });
 
   it('lands the company shell root on the empty cockpit dashboard shell', async () => {
@@ -637,6 +691,8 @@ describe('App cockpit entry', () => {
       type: 'company',
       tenantCode: 'other-company',
       host: 'other-company.ev-dashboard.com',
+      source: 'host',
+      basePath: '',
     });
     vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
     vi.mocked(getWorkspaceBootstrap).mockResolvedValue(cockpitBootstrap);

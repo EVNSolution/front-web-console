@@ -1148,10 +1148,13 @@ function CompanyCockpitShell({
 }
 
 function AppContent() {
-  const tenantEntry = useMemo(
-    () => resolveTenantEntry(typeof window === 'undefined' ? undefined : window.location.hostname),
-    [],
-  );
+  const tenantEntry = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    return resolveTenantEntry(window.location.hostname, window.location.pathname);
+  }, []);
   const isCompanyTenant = tenantEntry?.type === 'company';
   const [session, setSession] = useState<SessionPayload | null>(() => loadStoredSession());
   const [authError, setAuthError] = useState<string | null>(null);
@@ -1346,12 +1349,17 @@ function AppContent() {
       return;
     }
 
-    if (window.location.pathname === '/' && window.location.search === '' && window.location.hash === '') {
+    const nextPath =
+      tenantEntry?.type === 'company' && tenantEntry.source === 'path'
+        ? `${tenantEntry.basePath}/login`
+        : '/';
+
+    if (window.location.pathname === nextPath && window.location.search === '' && window.location.hash === '') {
       return;
     }
 
-    window.history.replaceState(window.history.state, '', '/');
-  }, [session]);
+    window.history.replaceState(window.history.state, '', nextPath);
+  }, [session, tenantEntry]);
 
   if (clientRef.current === null) {
     clientRef.current = createHttpClient({
@@ -1493,7 +1501,7 @@ function AppContent() {
         <section className="auth-panel panel blocked-panel">
           <p className="panel-kicker">Tenant Resolve</p>
           <h2>{TENANT_NOT_FOUND_MESSAGE}</h2>
-          <p className="hero-copy">공개 tenant 확인에 실패했습니다. 호스트를 다시 확인한 뒤 로그인하세요.</p>
+          <p className="hero-copy">공개 tenant 확인에 실패했습니다. 회사 경로 또는 호스트를 다시 확인한 뒤 로그인하세요.</p>
         </section>
       </div>
     );
@@ -1505,7 +1513,7 @@ function AppContent() {
         <section className="auth-panel panel blocked-panel">
           <p className="panel-kicker">Tenant Resolve</p>
           <h2>회사 문맥을 확인하는 중입니다.</h2>
-          <p className="hero-copy">서브도메인에 연결된 tenant를 조회하고 있습니다.</p>
+          <p className="hero-copy">회사 경로 또는 호스트에 연결된 tenant를 조회하고 있습니다.</p>
         </section>
       </div>
     );
@@ -1702,8 +1710,15 @@ function AppRouteGate() {
 }
 
 export default function App() {
+  const tenantEntry =
+    typeof window === 'undefined'
+      ? null
+      : resolveTenantEntry(window.location.hostname, window.location.pathname);
+  const basename =
+    tenantEntry?.type === 'company' && tenantEntry.source === 'path' ? tenantEntry.basePath : undefined;
+
   return (
-    <BrowserRouter future={ROUTER_FUTURE}>
+    <BrowserRouter basename={basename} future={ROUTER_FUTURE}>
       <AppRouteGate />
     </BrowserRouter>
   );
