@@ -1562,6 +1562,11 @@ textarea:focus {
   width: 100%;
 }
 
+.driver-list-filter-row-compact .driver-list-filter-inline {
+  flex: 0 1 15rem;
+  max-width: 15rem;
+}
+
 .driver-list-filter-inline {
   display: grid;
   gap: 0.3rem;
@@ -1652,6 +1657,37 @@ textarea:focus {
 
 .driver-list-table tbody tr.interactive-row:focus {
   box-shadow: inset 0 0 0 1px rgba(28, 32, 43, 0.14);
+}
+
+.driver-list-status-table th:nth-child(1),
+.driver-list-status-table td:nth-child(1) {
+  width: auto;
+}
+
+.driver-list-status-table td {
+  white-space: normal;
+}
+
+.driver-list-status-cell {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.driver-list-status-cell strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #161b24;
+}
+
+.driver-list-status-cell span {
+  min-width: 0;
+  color: #626b79;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .driver-list-table th:nth-child(1),

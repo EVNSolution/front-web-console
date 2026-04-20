@@ -37,10 +37,10 @@ describe('SubdomainSettlementSidebar', () => {
     expect(links[1]).toHaveAccessibleDescription('업로드 · 정산');
     expect(links[1]).toHaveTextContent('배차 데이터');
     expect(links[1]).toHaveTextContent('업로드 · 정산');
-    expect(links[2]).toHaveAccessibleName('배송원 관리');
-    expect(links[2]).toHaveAccessibleDescription('매니저 등록');
-    expect(links[2]).toHaveTextContent('배송원 관리');
-    expect(links[2]).toHaveTextContent('매니저 등록');
+    expect(links[2]).toHaveAccessibleName('배송원 현황');
+    expect(links[2]).toHaveAccessibleDescription('플릿 기준 목록');
+    expect(links[2]).toHaveTextContent('배송원 현황');
+    expect(links[2]).toHaveTextContent('플릿 기준 목록');
     expect(links[3]).toHaveAccessibleName('운영 현황');
     expect(links[3]).toHaveAccessibleDescription('날짜별 현황');
     expect(links[3]).toHaveTextContent('운영 현황');

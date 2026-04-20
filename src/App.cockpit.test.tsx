@@ -419,7 +419,7 @@ describe('App cockpit entry', () => {
   });
 
   it.each([
-    ['/drivers', '배송원'],
+    ['/drivers', '배송원 현황'],
     ['/vehicles', '차량'],
     ['/vehicle-assignments', '차량 배정'],
   ])('renders %s under the company cockpit vehicle shell', async (pathname, heading) => {

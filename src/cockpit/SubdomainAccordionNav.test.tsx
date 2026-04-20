@@ -177,12 +177,12 @@ describe('SubdomainAccordionNav', () => {
     expect(vehicleSidebar).not.toHaveAttribute('data-nav-label');
     expect(vehicleNav).toHaveClass('cockpit-child-nav', 'cockpit-detached-sidebar');
     expect(within(vehicleNav).getByRole('link', { name: '홈' })).toHaveAttribute('href', '/vehicles/home');
-    expect(within(vehicleNav).getByRole('link', { name: '배송원' })).toHaveAttribute('href', '/drivers');
+    expect(within(vehicleNav).getByRole('link', { name: '배송원 현황' })).toHaveAttribute('href', '/drivers');
     expect(within(vehicleNav).getByRole('link', { name: '차량' })).toHaveAttribute('href', '/vehicles');
     expect(within(vehicleNav).getByRole('link', { name: '차량 배정' })).toHaveAttribute('href', '/vehicle-assignments');
     expect(within(vehicleNav).getAllByRole('link').map((link) => link.textContent)).toEqual([
       '홈',
-      '배송원',
+      '배송원 현황',
       '차량',
       '차량 배정',
     ]);

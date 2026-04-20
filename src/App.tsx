@@ -977,7 +977,7 @@ function CompanyCockpitShell({
         <Route element={<CockpitShell companyName={companyName} onLogout={handleLogout} session={session} />}>
           <Route path="/" element={<CheonhaDashboardPage companyName={companyName} />} />
           <Route path="/vehicles/home" element={<CheonhaVehicleHomePage />} />
-          <Route path="/drivers" element={<DriversPage client={client} session={session} />} />
+          <Route path="/drivers" element={<DriversPage client={client} session={session} viewMode="vehicleStatus" />} />
           <Route
             path="/drivers/new"
             element={

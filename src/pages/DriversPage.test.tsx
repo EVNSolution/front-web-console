@@ -78,6 +78,21 @@ function renderDriversPage(sessionOverrides: Record<string, unknown> = {}) {
   );
 }
 
+function renderVehicleStatusDriversPage(sessionOverrides: Record<string, unknown> = {}) {
+  return render(
+    <MemoryRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+      <DriversPage
+        client={{ request: vi.fn() }}
+        session={{
+          ...defaultSession,
+          ...sessionOverrides,
+        }}
+        viewMode="vehicleStatus"
+      />
+    </MemoryRouter>,
+  );
+}
+
 describe('Admin DriversPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -131,6 +146,43 @@ describe('Admin DriversPage', () => {
     expect(screen.queryByRole('link', { name: '수정' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/이름/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/org unit id/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the cockpit vehicle status variant with fleet selection and a slim one-column table', async () => {
+    apiMocks.listDrivers.mockResolvedValue([
+      createDriver(1, {
+        name: '김기사',
+        external_user_name: 'driver.kim',
+        fleet_id: '40000000-0000-0000-0000-000000000001',
+      }),
+      createDriver(2, {
+        name: '박기사',
+        external_user_name: 'driver.park',
+        fleet_id: '40000000-0000-0000-0000-000000000002',
+      }),
+    ]);
+    apiMocks.listDriverAccountLinks.mockResolvedValue([]);
+    apiMocks.listCompanies.mockResolvedValue([{ company_id: '30000000-0000-0000-0000-000000000001', name: 'Seed Company' }]);
+    apiMocks.listFleets.mockResolvedValue([
+      { fleet_id: '40000000-0000-0000-0000-000000000001', company_id: '30000000-0000-0000-0000-000000000001', name: '메인 플릿' },
+      { fleet_id: '40000000-0000-0000-0000-000000000002', company_id: '30000000-0000-0000-0000-000000000001', name: '보조 플릿' },
+    ]);
+
+    renderVehicleStatusDriversPage();
+
+    await screen.findByRole('heading', { name: '배송원 현황' });
+
+    expect(screen.getByText('플릿 기준 배송원 목록')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /배송원 생성/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('플릿')).toHaveValue('40000000-0000-0000-0000-000000000001');
+    expect(screen.queryByLabelText('검색')).not.toBeInTheDocument();
+    expect(screen.getByText('배송원')).toBeInTheDocument();
+    expect(screen.getByText('김기사')).toBeInTheDocument();
+    expect(screen.getByText('driver.kim')).toBeInTheDocument();
+    expect(screen.queryByText('박기사')).not.toBeInTheDocument();
+    expect(screen.queryByText('회사')).not.toBeInTheDocument();
+    expect(screen.queryByText('계정 연결')).not.toBeInTheDocument();
+    expect(screen.getByText('김기사').closest('tr')).toHaveAttribute('data-detail-path', '/drivers/1');
   });
 
   it('hides driver create action for vehicle managers', async () => {

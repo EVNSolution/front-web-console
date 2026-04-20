@@ -13,6 +13,7 @@ import type { Company, DriverAccountLinkSummary, DriverProfile, Fleet } from '..
 type DriversPageProps = {
   client: HttpClient;
   session: SessionPayload;
+  viewMode?: 'default' | 'vehicleStatus';
 };
 
 const PAGE_SIZE_OPTIONS = [15, 30, 50, 100, 'all'] as const;
@@ -35,7 +36,7 @@ function buildPaginationTokens(totalPages: number, currentPage: number): Paginat
   return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
 }
 
-export function DriversPage({ client, session }: DriversPageProps) {
+export function DriversPage({ client, session, viewMode = 'default' }: DriversPageProps) {
   const navigate = useNavigate();
   const [driverAccountLinks, setDriverAccountLinks] = useState<DriverAccountLinkSummary[]>([]);
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -48,6 +49,7 @@ export function DriversPage({ client, session }: DriversPageProps) {
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(15);
   const [currentPage, setCurrentPage] = useState(1);
   const canManageDriverProfiles = canManageDriverProfileScope(session);
+  const isVehicleStatusView = viewMode === 'vehicleStatus';
 
   useEffect(() => {
     let ignore = false;
@@ -89,6 +91,21 @@ export function DriversPage({ client, session }: DriversPageProps) {
   useEffect(() => {
     setCurrentPage(1);
   }, [pageSize, searchTerm, selectedFleetId]);
+
+  useEffect(() => {
+    if (!isVehicleStatusView) {
+      return;
+    }
+
+    if (fleets.length === 0) {
+      return;
+    }
+
+    const hasSelectedFleet = fleets.some((fleet) => fleet.fleet_id === selectedFleetId);
+    if (!hasSelectedFleet) {
+      setSelectedFleetId(fleets[0].fleet_id);
+    }
+  }, [fleets, isVehicleStatusView, selectedFleetId]);
 
   function getCompanyName(companyId: string) {
     return companies.find((company) => company.company_id === companyId)?.name ?? '미확인 회사';
@@ -141,7 +158,21 @@ export function DriversPage({ client, session }: DriversPageProps) {
       ? filteredDrivers
       : filteredDrivers.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
   const paginationTokens = buildPaginationTokens(totalPages, safeCurrentPage);
-  const filters = (
+  const filters = isVehicleStatusView ? (
+    <div className="driver-list-filter-row driver-list-filter-row-compact">
+      <label className="driver-list-filter-inline">
+        <span>플릿</span>
+        <select value={selectedFleetId} onChange={(event) => setSelectedFleetId(event.target.value)}>
+          {fleets.length === 0 ? <option value="all">플릿 없음</option> : null}
+          {fleets.map((fleet) => (
+            <option key={fleet.fleet_id} value={fleet.fleet_id}>
+              {fleet.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  ) : (
     <div className="driver-list-filter-row">
       <label className="driver-list-filter-inline">
         <span>플릿</span>
@@ -173,15 +204,15 @@ export function DriversPage({ client, session }: DriversPageProps) {
       layoutClassName="driver-list-layout"
       template="workbench"
       actions={
-        canManageDriverProfiles ? (
+        !isVehicleStatusView && canManageDriverProfiles ? (
           <Link className="button primary" to="/drivers/new">
             배송원 생성
           </Link>
         ) : null
       }
       filters={filters}
-      subtitle="배송원 운영 현황을 확인하고, 계정 연결은 상세 화면에서 관리합니다."
-      title="배송원"
+      subtitle={isVehicleStatusView ? '플릿 기준 배송원 목록' : '배송원 운영 현황을 확인하고, 계정 연결은 상세 화면에서 관리합니다.'}
+      title={isVehicleStatusView ? '배송원 현황' : '배송원'}
     >
       <section className="panel driver-list-shell">
         <div className="driver-list-body">
@@ -192,14 +223,26 @@ export function DriversPage({ client, session }: DriversPageProps) {
             {!isLoading && pagedDrivers.length > 0 ? (
               <div className="driver-list-table-shell">
                 <div className="driver-list-table-scroll">
-                  <table className="table compact driver-list-table">
+                  <table
+                    className={
+                      isVehicleStatusView
+                        ? 'table compact driver-list-table driver-list-status-table'
+                        : 'table compact driver-list-table'
+                    }
+                  >
                     <thead>
                       <tr>
-                        <th>이름</th>
-                        <th>원청 앱 사용자명</th>
-                        <th>회사</th>
-                        <th>플릿</th>
-                        <th>계정 연결</th>
+                        {isVehicleStatusView ? (
+                          <th>배송원</th>
+                        ) : (
+                          <>
+                            <th>이름</th>
+                            <th>원청 앱 사용자명</th>
+                            <th>회사</th>
+                            <th>플릿</th>
+                            <th>계정 연결</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -216,13 +259,24 @@ export function DriversPage({ client, session }: DriversPageProps) {
                             onKeyDown={detailPath ? (event) => handleRowKeyDown(event, detailPath) : undefined}
                             tabIndex={detailPath ? 0 : undefined}
                           >
-                            <td>{driver.name}</td>
-                            <td>{driver.external_user_name || '미입력'}</td>
-                            <td>{getCompanyName(driver.company_id)}</td>
-                            <td>{getFleetName(driver.fleet_id)}</td>
-                            <td onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
-                              {activeLink?.identity_name ?? ''}
-                            </td>
+                            {isVehicleStatusView ? (
+                              <td>
+                                <div className="driver-list-status-cell">
+                                  <strong>{driver.name}</strong>
+                                  <span>{driver.external_user_name || '계정 미연결'}</span>
+                                </div>
+                              </td>
+                            ) : (
+                              <>
+                                <td>{driver.name}</td>
+                                <td>{driver.external_user_name || '미입력'}</td>
+                                <td>{getCompanyName(driver.company_id)}</td>
+                                <td>{getFleetName(driver.fleet_id)}</td>
+                                <td onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
+                                  {activeLink?.identity_name ?? ''}
+                                </td>
+                              </>
+                            )}
                           </tr>
                         );
                       })}

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import type { HttpClient, SessionPayload } from '../../api/http';
+import { DriversPage } from '../../pages/DriversPage';
 import type { SettlementChildNavItem } from '../SubdomainAccordionNav';
 import { settlementChildNavItems } from '../SubdomainAccordionNav';
 import { CheonhaDispatchDataPage } from './CheonhaDispatchDataPage';
@@ -26,33 +27,7 @@ function renderSettlementChildRoute(
     case 'dispatch':
       return <CheonhaDispatchDataPage client={client} session={session} />;
     case 'crew':
-      return (
-        <CheonhaRuleShellPanel
-          description="배송원 연결 현황"
-          note="등록 배송원 요약"
-          summaryCards={[
-            {
-              rows: [
-                { label: '등록 배송원', value: 0 },
-                { label: '배차 연결', value: 0 },
-                { label: '미연결', value: '없음' },
-              ],
-              status: '0명',
-              title: '등록 현황',
-            },
-            {
-              rows: [
-                { label: '최근 동기화', value: '없음' },
-                { label: '계정 승인', value: '없음' },
-                { label: '저장 동작', value: '없음' },
-              ],
-              status: '없음',
-              title: '계정 연결',
-            },
-          ]}
-          title="배송원 관리"
-        />
-      );
+      return client && session ? <DriversPage client={client} session={session} viewMode="vehicleStatus" /> : null;
     case 'operations':
       return (
         <CheonhaRuleShellPanel

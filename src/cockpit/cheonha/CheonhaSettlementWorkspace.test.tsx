@@ -26,6 +26,10 @@ vi.mock('./CheonhaSettlementProcessPage', () => ({
   CheonhaSettlementProcessPage: () => <section><h2>정산 처리 화면</h2></section>,
 }));
 
+vi.mock('../../pages/DriversPage', () => ({
+  DriversPage: () => <section><h2>배송원 현황</h2></section>,
+}));
+
 vi.mock('./CheonhaRuleShellPanel', () => ({
   CheonhaRuleShellPanel: ({ title }: { title: string }) => <section><h2>{title}</h2></section>,
 }));
@@ -40,7 +44,7 @@ function renderWorkspace(initialEntry: string) {
   function WorkspaceHarness() {
     return (
       <>
-        <CheonhaSettlementWorkspace />
+        <CheonhaSettlementWorkspace client={{ request: vi.fn() } as never} session={{} as never} />
         <LocationProbe />
       </>
     );
@@ -96,7 +100,7 @@ describe('CheonhaSettlementWorkspace', () => {
   });
 
   it.each([
-    ['/settlement/crew', '배송원 관리'],
+    ['/settlement/crew', '배송원 현황'],
     ['/settlement/operations', '운영 현황'],
     ['/settlement/team', '팀 관리'],
   ])('keeps shell-only route %s inside the shared settlement workspace frame', async (initialEntry, heading) => {
