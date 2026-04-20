@@ -12,7 +12,7 @@ type CheonhaRuleShellPanelProps = {
   title: string;
 };
 
-const DEFAULT_NOTE = '실제 업무 흐름은 홈, 배차 데이터, 정산 처리에서 이어집니다.';
+const DEFAULT_NOTE = '읽기 전용 요약';
 const DISABLED_RULE_SECTIONS = [
   { fieldLabel: '회사 규칙', title: '회사', value: '회사 기준 정산 규칙 편집은 아직 비활성입니다.' },
   { fieldLabel: '플릿 규칙', title: '플릿', value: '플릿별 예외 규칙 편집은 아직 비활성입니다.' },
@@ -34,11 +34,7 @@ export function CheonhaRuleShellPanel({
   title,
 }: CheonhaRuleShellPanelProps) {
   return (
-    <section
-      className="cockpit-workspace-panel cockpit-shell-panel"
-      data-testid="settlement-workspace-panel"
-    >
-      <p className="cockpit-kicker">Route Shell</p>
+    <section className="cockpit-shell-panel" data-testid="settlement-workspace-panel">
       <div className="cockpit-shell-panel-header">
         <h2>{title}</h2>
         <span className="cockpit-shell-status">준비 중</span>

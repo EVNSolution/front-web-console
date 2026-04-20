@@ -71,8 +71,8 @@ describe('CheonhaSettlementWorkspace', () => {
 
     const frame = screen.getByTestId('settlement-workspace-frame');
 
-    expect(await screen.findByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(frame).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(within(frame).getByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
@@ -91,8 +91,8 @@ describe('CheonhaSettlementWorkspace', () => {
 
     expect(renderedHeading).toBeInTheDocument();
     expect(frame).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
     expect(within(frame).getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
   });
 
   it.each([
@@ -107,8 +107,8 @@ describe('CheonhaSettlementWorkspace', () => {
 
     expect(renderedHeading).toBeInTheDocument();
     expect(frame).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
     expect(within(frame).getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
   });
 
   it.each([
@@ -123,8 +123,8 @@ describe('CheonhaSettlementWorkspace', () => {
     const frame = screen.getByTestId('settlement-workspace-frame');
     expect(await screen.findByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
     expect(frame).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
     expect(within(frame).getByRole('heading', { level: 2, name: '홈 화면' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/settlement/home');
   });
 });

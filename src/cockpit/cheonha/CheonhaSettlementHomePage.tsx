@@ -95,16 +95,10 @@ export function CheonhaSettlementHomePage({
 }: CheonhaSettlementHomePageProps) {
   return (
     <div className="cockpit-home-page cockpit-cheonha-settlement-home">
-      <section
-        className="cockpit-workspace-panel cockpit-settlement-home-banner"
-        data-testid="settlement-greeting-banner"
-      >
-        <p className="cockpit-kicker">정산 워크플로우</p>
+      <section className="cockpit-settlement-home-banner" data-testid="settlement-greeting-banner">
         <div className="cockpit-settlement-home-banner-copy">
           <h1>{companyName} 정산</h1>
-          <p className="cockpit-copy">
-            연결된 값이 있으면 그대로 보여주고, 아직 없으면 0원과 없음 같은 명시적 상태로 시작합니다.
-          </p>
+          <p className="cockpit-copy">정산 현황</p>
         </div>
       </section>
 

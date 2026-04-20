@@ -370,8 +370,8 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
     await screen.findByTestId('settlement-workspace-frame');
-    const header = screen.getByTestId('settlement-workspace-header');
-    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
   });
 
@@ -384,8 +384,8 @@ describe('App cockpit entry', () => {
       expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
     });
     await screen.findByTestId('settlement-workspace-frame');
-    const header = screen.getByTestId('settlement-workspace-header');
-    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/settlement/home');
     expect(screen.getByText('CLEVER')).toBeInTheDocument();
     expect(screen.getByText('EV&Solution')).toBeInTheDocument();
@@ -393,7 +393,7 @@ describe('App cockpit entry', () => {
 
     expect(screen.getByTestId('subdomain-settlement-sidebar')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
-    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: '천하운수 정산' })).toHaveLength(1);
   });
 
   it('routes from the cockpit launcher to the vehicle workspace shell', async () => {
@@ -486,8 +486,8 @@ describe('App cockpit entry', () => {
     await user.click(screen.getByRole('link', { name: '정산' }));
     expect(await screen.findByRole('navigation', { name: '정산 메뉴' })).toBeInTheDocument();
     await screen.findByTestId('settlement-workspace-frame');
-    const header = screen.getByTestId('settlement-workspace-header');
-    expect(within(header).getByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
+    expect(screen.queryByTestId('settlement-workspace-header')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: '천하운수 정산' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '상위 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByRole('link', { name: '대시보드' }));

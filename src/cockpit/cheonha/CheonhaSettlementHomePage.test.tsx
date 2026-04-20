@@ -26,7 +26,8 @@ describe('CheonhaSettlementHomePage', () => {
 
     expect(greetingBanner).toBeInTheDocument();
     expect(within(greetingBanner).getByRole('heading', { name: '천하운수 정산' })).toBeInTheDocument();
-    expect(within(greetingBanner).getByText('정산 워크플로우')).toBeInTheDocument();
+    expect(within(greetingBanner).getByText('정산 현황')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: '천하운수 정산' })).toHaveLength(1);
 
     expect(processCard).toBeInTheDocument();
     expect(processSteps).toHaveLength(4);

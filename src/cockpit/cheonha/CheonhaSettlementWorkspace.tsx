@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import type { HttpClient, SessionPayload } from '../../api/http';
 import type { SettlementChildNavItem } from '../SubdomainAccordionNav';
@@ -28,8 +28,8 @@ function renderSettlementChildRoute(
     case 'crew':
       return (
         <CheonhaRuleShellPanel
-          description="배송원 운영은 계정 연결과 배차 연결 상태를 먼저 확인하는 자리로 정리합니다."
-          note="등록 배송원과 연결 상태를 한 화면에서 확인하는 읽기 전용 요약입니다."
+          description="배송원 연결 현황"
+          note="등록 배송원 요약"
           summaryCards={[
             {
               rows: [
@@ -56,8 +56,8 @@ function renderSettlementChildRoute(
     case 'operations':
       return (
         <CheonhaRuleShellPanel
-          description="운영 현황은 날짜, 배차, 근태를 같은 박스 안에서 확인하는 요약 자리로 제공합니다."
-          note="실제 값이 없으면 없음과 0을 그대로 보여 주는 box-style summary입니다."
+          description="날짜별 운영 현황"
+          note="배차 근태 요약"
           summaryCards={[
             {
               rows: [
@@ -95,8 +95,8 @@ function renderSettlementChildRoute(
     case 'team':
       return (
         <CheonhaRuleShellPanel
-          description="팀 관리는 단가와 규칙이 붙는 기준 정보를 먼저 묶어 보여 줍니다."
-          note="팀 수, 기본 기준, 연결 상태를 요약으로 확인하는 읽기 전용 자리입니다."
+          description="팀 기준 정보"
+          note="단가 기준 요약"
           summaryCards={[
             {
               rows: [
@@ -128,33 +128,39 @@ export function CheonhaSettlementWorkspace({
   companyName = '천하운수',
   session,
 }: CheonhaSettlementWorkspaceProps) {
+  const location = useLocation();
+  const isDetachedSettlementRoute = location.pathname === '/settlement/dispatch';
+
+  const routes = (
+    <Routes>
+      <Route index element={<Navigate replace to="/settlement/home" />} />
+      {settlementChildNavItems.map((item) => (
+        <Route
+          key={item.slug}
+          path={item.slug}
+          element={renderSettlementChildRoute(item.slug, client, session, companyName)}
+        />
+      ))}
+      <Route path="*" element={<Navigate replace to="/settlement/home" />} />
+    </Routes>
+  );
+
   return (
     <div
       className="cockpit-workspace settlement-workspace-frame"
       data-testid="settlement-workspace-frame"
     >
-      <header
-        className="cockpit-workspace-header settlement-workspace-frame-header"
-        data-testid="settlement-workspace-header"
-      >
-        <p className="cockpit-kicker">정산 Workspace</p>
-        <h1>{companyName} 정산</h1>
-        <p className="cockpit-copy">배차 업로드부터 snapshot 검토까지 실제 워크플로우를 같은 정산 문맥 안에서 이어갑니다.</p>
-      </header>
       <div className="cockpit-workspace-stage settlement-workspace-frame-body">
-        <section className="cockpit-workspace-panel settlement-workspace-frame-panel">
-          <Routes>
-            <Route index element={<Navigate replace to="/settlement/home" />} />
-            {settlementChildNavItems.map((item) => (
-              <Route
-                key={item.slug}
-                path={item.slug}
-                element={renderSettlementChildRoute(item.slug, client, session, companyName)}
-              />
-            ))}
-            <Route path="*" element={<Navigate replace to="/settlement/home" />} />
-          </Routes>
-        </section>
+        {isDetachedSettlementRoute ? (
+          routes
+        ) : (
+          <section
+            className="cockpit-workspace-panel settlement-workspace-frame-panel settlement-workspace-scroll-panel"
+            data-testid="settlement-workspace-panel"
+          >
+            {routes}
+          </section>
+        )}
       </div>
     </div>
   );
