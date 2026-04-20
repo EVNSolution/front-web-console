@@ -685,6 +685,25 @@ describe('App cockpit entry', () => {
     expect(await screen.findByText('천하운수')).toBeInTheDocument();
   });
 
+  it('renders the company cockpit for the canonical transport_ops workflow profile', async () => {
+    setupCompanyCockpit({
+      bootstrap: {
+        ...cockpitBootstrap,
+        workflowProfile: 'transport_ops',
+      },
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+
+    expect(screen.queryByText('이 tenant에 연결된 cockpit profile을 아직 렌더링할 수 없습니다.')).not.toBeInTheDocument();
+    expect(await screen.findByText('CLEVER')).toBeInTheDocument();
+    expect(await screen.findByText('천하운수')).toBeInTheDocument();
+  });
+
   it('rejects a company manager session on the wrong company subdomain before entering the cockpit shell', async () => {
     vi.mocked(loadStoredSession).mockReturnValue(wrongCompanySession);
     vi.mocked(resolveTenantEntry).mockReturnValue({

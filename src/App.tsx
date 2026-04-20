@@ -105,6 +105,11 @@ const ROUTER_FUTURE = {
 
 const TENANT_NOT_FOUND_MESSAGE = '존재하지 않는 회사 서브도메인입니다.';
 const TENANT_RESOLVE_ERROR_MESSAGE = '회사 문맥을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+const COMPANY_COCKPIT_WORKFLOW_PROFILES = new Set(['transport_ops', 'cheonha_ops_v1']);
+
+function isCompanyCockpitWorkflowProfile(profile: string | null | undefined) {
+  return profile !== undefined && profile !== null && COMPANY_COCKPIT_WORKFLOW_PROFILES.has(profile);
+}
 
 function resolveFirstAllowedPath(session: SessionPayload, allowedNavKeys: NavItemKey[]) {
   const allowed = new Set(allowedNavKeys);
@@ -1657,7 +1662,7 @@ function AppContent() {
       );
     }
 
-    if (workspaceBootstrap?.workflowProfile === 'cheonha_ops_v1') {
+    if (isCompanyCockpitWorkflowProfile(workspaceBootstrap?.workflowProfile)) {
       return (
         <CompanyCockpitShell
           client={client}
