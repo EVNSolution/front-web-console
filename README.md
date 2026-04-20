@@ -37,19 +37,21 @@
 - 빠른 개발과 수동 검증은 repo script를 사용한다.
 - static bundle 검증은 `npm run build`를 사용한다.
 
-## Subdomain Shell Contract
+## Company Path Shell Contract
 
 - main domain remains the system-admin surface
 - company manager sessions are rejected from the main-domain shell
-- system-admin sessions are rejected from the subdomain shell
-- subdomain `/` opens the dashboard first
-- subdomain login shows the company header
-- subdomain launcher order is `대시보드 / 차량 / 정산`
+- system-admin sessions can enter a company tenant path before the cockpit shell renders
+- canonical company tenant entry is `ev-dashboard.com/{tenant}`
+- compatibility host fallback may exist, but it is not the canonical route contract
+- company tenant `/` opens the dashboard first
+- company tenant login shows the company header
+- company tenant launcher order is `대시보드 / 차량 / 정산`
 - vehicle workspace is detached like settlement
 - vehicle sidebar order is `홈 / 배송원 / 차량 / 차량 배정`
 - company cockpit deep links still obey the shared navigation policy redirect rules
 - main domain `/vehicles/home` redirects safely to `/vehicles`
-- settlement internal menu order is `홈 / 배차 데이터 / 배송원 관리 / 운영 현황 / 정산 처리 / 팀 관리`
+- settlement internal menu order is `홈 / 배차 데이터 / 배송원 현황 / 운영 현황 / 정산 처리 / 팀 관리`
 - rule-shell behavior is structural only: no persisted editor, no save action, no submit action, and no write API
 
 ## Image Build / Deploy Contract
@@ -65,23 +67,23 @@
 
 ## Manual Verification Matrix
 
-Use this checklist for the subdomain shell regression pass:
+Use this checklist for the company path shell regression pass:
 
 - main domain still shows system-admin surface
 - company manager session is rejected from main-domain shell
-- system-admin session is rejected from subdomain shell
-- subdomain `/` opens dashboard
-- subdomain brand card shows `CLEVER / EV&Solution / 천하운수`
-- subdomain top-level launcher opens to the right of the card
-- subdomain brand card width matches the detached settlement and vehicle sidebar width
-- subdomain global header shows `알림 / 계정` actions on every page
+- system-admin session can enter `/{tenant}` without the blocked-domain panel
+- canonical tenant path `/{tenant}` opens dashboard
+- company path brand card shows `CLEVER / EV&Solution / 천하운수`
+- company path top-level launcher opens to the right of the card
+- company path brand card width matches the detached settlement and vehicle sidebar width
+- company path global header shows `알림 / 계정` actions on every page
 - restricted company-manager deep links under `/drivers`, `/vehicles`, `/vehicle-assignments` redirect to the first allowed cockpit route
 - main domain `/vehicles/home` does not open vehicle detail as `vehicleRef='home'`
 - vehicle sidebar marks only `홈` active on `/vehicles/home`
-- subdomain settlement menu order matches spec
+- company path settlement menu order matches spec
 - `/settlement/dispatch` keeps `업로드 범위 | 업로드 파일` 2열 on wide viewports
 - `/settlement/dispatch` switches only the upload scope into a horizontal launcher/expander on narrow viewports
-- subdomain login shows company header
+- company path login shows company header
 
 ## Root Docs / Runbooks
 

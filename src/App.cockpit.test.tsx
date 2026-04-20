@@ -572,7 +572,7 @@ describe('App cockpit entry', () => {
       window.history.replaceState({}, '', '/');
       render(<App />);
 
-      expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(await screen.findByText('존재하지 않는 회사 경로입니다.')).toBeInTheDocument();
       expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
       expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
       expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
@@ -592,7 +592,7 @@ describe('App cockpit entry', () => {
       window.history.replaceState({}, '', '/');
       render(<App />);
 
-      expect(await screen.findByText('존재하지 않는 회사 서브도메인입니다.')).toBeInTheDocument();
+      expect(await screen.findByText('존재하지 않는 회사 경로입니다.')).toBeInTheDocument();
       expect(screen.queryByText('회사 전용 로그인')).not.toBeInTheDocument();
       expect(screen.queryByText(/전용 콘솔$/)).not.toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: '로그인' })).not.toBeInTheDocument();
@@ -616,7 +616,7 @@ describe('App cockpit entry', () => {
       render(<App />);
 
       expect(await screen.findByText('회사 문맥을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.')).toBeInTheDocument();
-      expect(screen.queryByText('존재하지 않는 회사 서브도메인입니다.')).not.toBeInTheDocument();
+      expect(screen.queryByText('존재하지 않는 회사 경로입니다.')).not.toBeInTheDocument();
       expect(getWorkspaceBootstrap).not.toHaveBeenCalled();
     });
   });
@@ -720,7 +720,7 @@ describe('App cockpit entry', () => {
 
     await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
     expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
-    expect(screen.getByText('회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.getByText('회사 계정은 자기 회사 경로에서만 사용할 수 있습니다.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
     expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
   });

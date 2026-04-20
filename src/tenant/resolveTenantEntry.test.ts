@@ -13,7 +13,7 @@ describe('resolveTenantEntry', () => {
     });
   });
 
-  it('resolves company cockpit subdomains on the ev-dashboard apex domain', () => {
+  it('keeps host-based company cockpit resolution as a compatibility fallback', () => {
     expect(resolveTenantEntry('cheonha.ev-dashboard.com', '/')).toEqual({
       type: 'company',
       tenantCode: 'cheonha',

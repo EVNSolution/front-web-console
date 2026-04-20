@@ -103,7 +103,7 @@ const ROUTER_FUTURE = {
   v7_startTransition: true,
 } as const;
 
-const TENANT_NOT_FOUND_MESSAGE = '존재하지 않는 회사 서브도메인입니다.';
+const TENANT_NOT_FOUND_MESSAGE = '존재하지 않는 회사 경로입니다.';
 const TENANT_RESOLVE_ERROR_MESSAGE = '회사 문맥을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.';
 const COMPANY_COCKPIT_WORKFLOW_PROFILES = new Set(['transport_ops', 'cheonha_ops_v1']);
 
@@ -1623,7 +1623,7 @@ function AppContent() {
       <DomainAccessBlockedPanel
         description={
           isCompanyTenant
-            ? '회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.'
+            ? '회사 계정은 자기 회사 경로에서만 사용할 수 있습니다.'
             : '메인 도메인은 시스템 관리자 계정만 사용할 수 있습니다.'
         }
         onLogout={handleLogout}
