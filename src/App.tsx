@@ -261,13 +261,18 @@ function getDomainAccessState({
     isManagerSession &&
     tenantCompany !== null &&
     session?.activeAccount?.companyId === tenantCompany.companyId;
+  const canAccessCompanyTenant =
+    isCompanyTenant &&
+    tenantResolutionStatus === 'resolved' &&
+    (isMatchingCompanySession || isSystemAdminSession);
 
   return {
     hasSession: session !== null,
     isBlocked:
       session !== null &&
-      ((isCompanyTenant && tenantResolutionStatus === 'resolved' && !isMatchingCompanySession) ||
+      ((isCompanyTenant && tenantResolutionStatus === 'resolved' && !canAccessCompanyTenant) ||
         (!isCompanyTenant && !isSystemAdminSession)),
+    canAccessCompanyTenant,
     isMatchingCompanySession,
   };
 }
@@ -1390,7 +1395,7 @@ function AppContent() {
   });
 
   useEffect(() => {
-    if (!domainAccessState.isMatchingCompanySession || tenantEntry?.type !== 'company') {
+    if (!domainAccessState.canAccessCompanyTenant || tenantEntry?.type !== 'company') {
       setWorkspaceBootstrap(null);
       setWorkspaceBootstrapError(null);
       setIsLoadingWorkspaceBootstrap(false);
@@ -1422,7 +1427,7 @@ function AppContent() {
     return () => {
       ignore = true;
     };
-  }, [client, domainAccessState.isMatchingCompanySession, tenantEntry, tenantResolutionStatus]);
+  }, [client, domainAccessState.canAccessCompanyTenant, tenantEntry, tenantResolutionStatus]);
 
   async function handleLogin(credentials: { email: string; password: string }) {
     setIsSubmitting(true);

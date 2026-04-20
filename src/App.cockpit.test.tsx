@@ -671,18 +671,18 @@ describe('App cockpit entry', () => {
     });
   });
 
-  it('rejects a system-admin session on a company subdomain before entering the cockpit shell', async () => {
-    vi.mocked(loadStoredSession).mockReturnValue(systemAdminSession);
-    vi.mocked(resolvePublicCompanyTenant).mockResolvedValue(cockpitBootstrap);
-    vi.mocked(getWorkspaceBootstrap).mockResolvedValue(cockpitBootstrap);
+  it('allows a system-admin session on a company tenant before entering the cockpit shell', async () => {
+    setupCompanyCockpit({ sessionValue: systemAdminSession });
 
     render(<App />);
 
-    await waitFor(() => expect(getWorkspaceBootstrap).not.toHaveBeenCalled());
-    expect(screen.getByRole('heading', { name: '도메인 접근 권한 필요' })).toBeInTheDocument();
-    expect(screen.getByText('회사 계정은 자기 회사 서브도메인에서만 사용할 수 있습니다.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getWorkspaceBootstrap).toHaveBeenCalledWith(expect.anything(), 'cheonha');
+    });
+    expect(screen.queryByRole('heading', { name: '도메인 접근 권한 필요' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '천하운수 운영 대시보드' })).not.toBeInTheDocument();
     expect(screen.queryByText('전용 업무 cockpit')).not.toBeInTheDocument();
+    expect(await screen.findByText('천하운수')).toBeInTheDocument();
   });
 
   it('rejects a company manager session on the wrong company subdomain before entering the cockpit shell', async () => {
