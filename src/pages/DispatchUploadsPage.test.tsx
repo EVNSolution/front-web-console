@@ -497,6 +497,20 @@ describe('DispatchUploadsPage', () => {
     expect(screen.queryByText('Method "POST" not allowed.')).not.toBeInTheDocument();
   });
 
+  it('keeps the upload screen alive when the drivers api returns a malformed payload', async () => {
+    driverMocks.listDrivers.mockResolvedValue({ results: [] });
+
+    render(
+      <MemoryRouter>
+        <DispatchUploadsPage client={{ request: vi.fn() }} session={systemAdminSession} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '배차표 업로드', level: 1 })).toBeInTheDocument();
+    expect(screen.getByLabelText('플릿')).toBeInTheDocument();
+    expect(screen.getByLabelText('배차일')).toBeInTheDocument();
+  });
+
   it('keeps the upload page copy short and emphasizes upload actions', async () => {
     render(
       <MemoryRouter>

@@ -162,7 +162,7 @@ export function DispatchUploadsPage({
           fleet_id: selectedFleetId,
         });
         if (!ignore) {
-          setDrivers(response);
+          setDrivers(Array.isArray(response) ? response : []);
         }
       } catch (error) {
         if (!ignore) {
@@ -456,6 +456,7 @@ export function DispatchUploadsPage({
               companyId={selectedCompanyId}
               fleetId={selectedFleetId}
               dispatchDate={dispatchDate}
+              drivers={drivers}
               onDispatchDateDetected={setDispatchDate}
               onFleetCodeDetected={handleFleetCodeDetected}
               pendingDetectedFleetCode={pendingDetectedFleetCode}
@@ -559,6 +560,7 @@ export function DispatchUploadsPage({
               companyId={selectedCompanyId}
               fleetId={selectedFleetId}
               dispatchDate={dispatchDate}
+              drivers={drivers}
               onDispatchDateDetected={setDispatchDate}
               onFleetCodeDetected={handleFleetCodeDetected}
               pendingDetectedFleetCode={pendingDetectedFleetCode}

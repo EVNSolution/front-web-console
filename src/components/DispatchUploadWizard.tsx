@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { read, utils } from 'xlsx';
 
-import type { DispatchUploadBatch } from '../types';
+import type { DispatchUploadBatch, DriverProfile } from '../types';
 import {
   confirmDispatchUpload,
   previewDispatchUpload,
@@ -14,6 +14,7 @@ type DispatchUploadWizardProps = {
   companyId: string;
   fleetId: string;
   dispatchDate: string;
+  drivers?: DriverProfile[];
   onDispatchDateDetected?: (dispatchDate: string) => void;
   onFleetCodeDetected?: (fleetCode: string | null) => void;
   pendingDetectedFleetCode?: string | null;
@@ -179,7 +180,10 @@ function clampColumnWidth(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function formatValidatedMatchLabel(row: DispatchUploadBatch['rows'][number] | undefined) {
+function formatValidatedMatchLabel(
+  row: DispatchUploadBatch['rows'][number] | undefined,
+  driverById: Map<string, DriverProfile>,
+) {
   if (!row) {
     return {
       status: '검증 대기',
@@ -188,9 +192,13 @@ function formatValidatedMatchLabel(row: DispatchUploadBatch['rows'][number] | un
   }
 
   if (row.matched_driver_id) {
+    const matchedDriver = driverById.get(row.matched_driver_id);
+    const driverName = matchedDriver?.name.trim() ?? '';
+    const externalUserName =
+      matchedDriver?.external_user_name.trim() || row.external_user_name.trim();
     return {
       status: '매칭 완료',
-      detail: `${row.external_user_name} · ${row.matched_driver_id}`,
+      detail: driverName ? `${driverName} - ${externalUserName}` : externalUserName,
     };
   }
 
@@ -209,6 +217,7 @@ export function DispatchUploadWizard({
   companyId,
   fleetId,
   dispatchDate,
+  drivers = [],
   onDispatchDateDetected,
   onFleetCodeDetected,
   pendingDetectedFleetCode = null,
@@ -247,6 +256,10 @@ export function DispatchUploadWizard({
         : summarizeBatch(previewBatch),
     [editableRows, previewBatch],
   );
+  const driverById = useMemo(
+    () => new Map(drivers.map((driver) => [driver.driver_id, driver])),
+    [drivers],
+  );
   const sheetColumnWidths = useMemo(() => {
     const rows = editableRows;
     const nameWidth = clampColumnWidth(
@@ -277,7 +290,13 @@ export function DispatchUploadWizard({
     const matchWidth = clampColumnWidth(
       Math.max(
         '배송원 매칭'.length,
-        ...rows.map((row) => formatValidatedMatchLabel(previewBatch?.rows.find((candidate) => candidate.row_index === row.row_index)).detail.length),
+        ...rows.map(
+          (row) =>
+            formatValidatedMatchLabel(
+              previewBatch?.rows.find((candidate) => candidate.row_index === row.row_index),
+              driverById,
+            ).detail.length,
+        ),
       ) + 2,
       12,
       22,
@@ -292,7 +311,7 @@ export function DispatchUploadWizard({
       householdCount: `${householdWidth}ch`,
       match: `${matchWidth}ch`,
     };
-  }, [editableRows, previewBatch]);
+  }, [driverById, editableRows, previewBatch]);
   const isUploadDisabled = !companyId || isUploading || isValidating || isConfirming;
   const requiresFleetConfirmation = Boolean(pendingDetectedFleetCode);
   const requiresMissingDriverCreation = pendingMissingDriverNames.length > 0;
@@ -735,7 +754,7 @@ export function DispatchUploadWizard({
                 <tbody>
                   {editableRows.map((row) => {
                     const validatedRow = previewBatch?.rows.find((candidate) => candidate.row_index === row.row_index);
-                    const matchLabel = formatValidatedMatchLabel(validatedRow);
+                    const matchLabel = formatValidatedMatchLabel(validatedRow, driverById);
 
                     return (
                       <tr key={row.row_index}>

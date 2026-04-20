@@ -150,6 +150,19 @@ describe('DispatchUploadWizard', () => {
         companyId="company-1"
         fleetId="fleet-1"
         dispatchDate="2026-03-24"
+        drivers={[
+          {
+            driver_id: 'driver-1',
+            route_no: 1,
+            company_id: 'company-1',
+            fleet_id: 'fleet-1',
+            name: '김영희',
+            external_user_name: 'ZD김영희',
+            ev_id: '',
+            phone_number: '',
+            address: '',
+          },
+        ]}
       />,
     );
 
@@ -180,7 +193,7 @@ describe('DispatchUploadWizard', () => {
       });
     });
     expect(await screen.findByText('검증 완료')).toBeInTheDocument();
-    expect(screen.getByText('ZD김영희 · driver-1')).toBeInTheDocument();
+    expect(screen.getByText('김영희 - ZD김영희')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '서버 검증' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '업로드 확정' })).not.toBeInTheDocument();
   });
